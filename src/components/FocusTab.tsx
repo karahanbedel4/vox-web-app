@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Play, 
   Pause, 
   RotateCcw, 
-  Volume2, 
   Flame, 
   Newspaper, 
   BookOpen, 
@@ -28,13 +27,18 @@ import {
   Signal,
   Calendar,
   Clock,
-  Pencil
+  Pencil,
+  Target,
+  Trophy,
+  Check,
+  Volume2
 } from 'lucide-react';
 import { Article } from '../types';
 import { triggerHapticImpact, triggerHapticNotification } from '../lib/haptics';
 import { AmbientChannel } from './AmbientMixerSheet';
 import { fetchNewsByCategory } from '../lib/newsService';
 import { appStorage } from '../lib/storage';
+import { useTheme } from '../lib/ThemeContext';
 
 interface FocusTabProps {
   articles: Article[];
@@ -173,8 +177,9 @@ function getChannelIconComponent(name: string = '', id: string = '') {
 }
 
 // Preset cycle options (Clean paired sets)
-const WORK_OPTIONS = [25, 45, 50, 60];
-const BREAK_OPTIONS = [5, 10, 15, 20];
+const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6];
+const WORK_OPTIONS = [15, 20, 25, 45, 50];
+const BREAK_OPTIONS = [5, 10, 15];
 
 export const FocusTab: React.FC<FocusTabProps> = ({
   articles,
@@ -188,15 +193,60 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   onVolumeChange,
   onOpenAmbientMixer
 }) => {
+  const { theme } = useTheme();
+
   // POMODORO STATE
   // Mode: 'work' (Çalışma) -> Otomatik 'break' (Mola) -> Otomatik 'work'
   const [sessionType, setSessionType] = useState<'work' | 'break'>('work');
   const [workMinutes, setWorkMinutes] = useState<number>(25);
   const [breakMinutes, setBreakMinutes] = useState<number>(5);
+  const [targetRounds, setTargetRounds] = useState<number>(() => {
+    try {
+      const saved = appStorage.getItemSync('vox_focus_target_rounds');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+    } catch (e) {}
+    return 3;
+  });
 
   const [timeLeft, setTimeLeft] = useState<number>(25 * 60);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [completedSessions, setCompletedSessions] = useState<number>(0);
+  const [completedSessions, setCompletedSessions] = useState<number>(() => {
+    try {
+      const saved = appStorage.getItemSync('vox_focus_completed_sessions');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= 0) return parsed;
+      }
+    } catch (e) {}
+    return 0;
+  });
+
+  const handleSelectTargetRounds = (rounds: number) => {
+    setTargetRounds(rounds);
+    try {
+      appStorage.setItemSync('vox_focus_target_rounds', rounds.toString());
+    } catch (e) {}
+    triggerHapticImpact('light').catch(() => {});
+    showTemporaryStatus(`🎯 Hedef: ${rounds} Tur (${workMinutes} dk/seans)`);
+  };
+
+  const handleResetSessions = () => {
+    setCompletedSessions(0);
+    try {
+      appStorage.setItemSync('vox_focus_completed_sessions', '0');
+    } catch (e) {}
+    triggerHapticImpact('light').catch(() => {});
+    showTemporaryStatus('🔄 Tur sayacı sıfırlandı');
+  };
+
+  useEffect(() => {
+    try {
+      appStorage.setItemSync('vox_focus_completed_sessions', completedSessions.toString());
+    } catch (e) {}
+  }, [completedSessions]);
   
   // Custom Focus Goal & Tasks with persistent storage
   const [focusGoal, setFocusGoal] = useState<string>(() => {
@@ -541,45 +591,83 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   const totalCurrentDuration = (sessionType === 'work' ? workMinutes : breakMinutes) * 60;
   const progressPercent = Math.max(0, Math.min(100, Math.round(((totalCurrentDuration - timeLeft) / totalCurrentDuration) * 100)));
 
-  // Right side news list
-  const displayArticles = (liveNews.length > 0 ? liveNews : articles).slice(0, 12);
+  // Right side news list (Filtered for real news & tweets, no dummy items)
+  const displayArticles = useMemo(() => {
+    const raw = liveNews.length > 0 ? liveNews : articles;
+    return raw.filter(a => 
+      a && a.title && 
+      !a.id.includes('quantum-geopolitics') && 
+      !a.id.includes('silicon-forest') && 
+      !a.id.includes('ethics-of-ai') &&
+      !a.id.includes('dunya-diplomasi-2026') &&
+      !a.id.includes('kultur-sanat-dijital-muze')
+    ).slice(0, 12);
+  }, [liveNews, articles]);
 
   return (
-    <div className="p-3 sm:p-5 md:p-8 max-w-7xl mx-auto space-y-6 text-gray-200">
+    <div className={`p-3 sm:p-5 md:p-8 max-w-7xl mx-auto space-y-6 transition-colors duration-200 ${
+      theme === 'light' ? 'text-slate-800' : 'text-gray-200'
+    }`}>
       
-      {/* Clean Top Header */}
-      <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-4">
+      {/* Clean & Compact Top Header (Contrast-safe across light & dark themes) */}
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b ${
+        theme === 'light' ? 'border-slate-200' : 'border-white/10'
+      }`}>
         <div>
-          <h1 className="font-display text-xl md:text-2xl font-black text-white tracking-tight">
+          <h1 className={`font-display text-xl md:text-2xl font-black tracking-tight ${
+            theme === 'light' ? 'text-slate-900' : 'text-white'
+          }`}>
             Odaklanma Alanı
           </h1>
-          <p className="text-xs text-gray-400">
-            Çalışma ve dinlenme döngüsü, görevler ve ambiyans sesleri.
-          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#161c23] border border-white/10 rounded-xl text-xs font-bold text-white shadow-sm">
-            <Flame className="w-3.5 h-3.5 text-[#10b981] fill-current" />
-            <span>{completedSessions} Seans</span>
+        <div className="flex items-center gap-2.5">
+          {/* Completed Session Progress Badge */}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-colors ${
+            completedSessions >= targetRounds
+              ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+              : theme === 'light'
+                ? 'bg-white border border-slate-200 text-slate-800'
+                : 'bg-[#161c23] border border-white/10 text-white'
+          }`}>
+            {completedSessions >= targetRounds ? (
+              <Trophy className="w-3.5 h-3.5 text-emerald-500 animate-bounce" />
+            ) : (
+              <Flame className="w-3.5 h-3.5 text-[#10b981] fill-current" />
+            )}
+            <span>
+              {completedSessions >= targetRounds 
+                ? `Hedef Tamamlandı! (${completedSessions}/${targetRounds} Tur)` 
+                : `${completedSessions} / ${targetRounds} Tur Tamamlandı`}
+            </span>
           </div>
 
-          <button
-            onClick={testBellAndNotification}
-            className="p-2 bg-[#161c23] border border-white/10 hover:bg-[#10b981]/15 text-gray-300 hover:text-[#10b981] rounded-xl transition-all shadow-sm"
-            title="Tibet Çan Sesini Test Et"
-          >
-            <Volume2 className="w-4 h-4" />
-          </button>
+          {completedSessions > 0 && (
+            <button
+              onClick={handleResetSessions}
+              className={`p-2 rounded-xl text-xs transition-colors border shadow-sm ${
+                theme === 'light'
+                  ? 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  : 'bg-[#161c23] border border-white/10 text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+              title="Tamamlanan tur sayacını sıfırla"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* WEB PUSH NOTIFICATION PROMPT CARD */}
       {!hasConsented && notifPermission !== 'granted' && (
-        <div className="bg-[#161c23] border border-[#10b981]/30 rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm relative group">
+        <div className={`border rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm relative group ${
+          theme === 'light'
+            ? 'bg-emerald-50/70 border-emerald-200 text-slate-800'
+            : 'bg-[#161c23] border-[#10b981]/30 text-white'
+        }`}>
           <button
             onClick={dismissNotificationBanner}
-            className="absolute top-2 right-2 p-1 text-gray-500 hover:text-gray-300 rounded-lg hover:bg-white/5"
+            className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg"
             title="Kapat"
           >
             <X className="w-3.5 h-3.5" />
@@ -590,14 +678,14 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               <Bell className="w-4 h-4 text-[#10b981]" />
             </div>
             <div className="text-left">
-              <h3 className="text-xs font-bold text-white">Mola bildirimlerini açın</h3>
-              <p className="text-[11px] text-gray-400">Çalışma veya mola tamamlandığında anlık bildirim alın.</p>
+              <h3 className={`text-xs font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Mola bildirimlerini açın</h3>
+              <p className={`text-[11px] ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>Çalışma veya mola tamamlandığında anlık bildirim alın.</p>
             </div>
           </div>
 
           <button
             onClick={requestNotificationPermission}
-            className="py-2 px-3.5 bg-[#10b981] text-black font-extrabold text-xs rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+            className="py-2 px-3.5 bg-[#10b981] text-black font-extrabold text-xs rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Bell className="w-3.5 h-3.5 fill-current" />
             <span>Bildirimleri Aç</span>
@@ -611,16 +699,53 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         {/* LEFT COLUMN: Modern Phone Mockup Display & Ambient Sounds */}
         <div className="lg:col-span-7 space-y-6">
 
-          {/* INTEGRATED DÖNGÜ (CYCLE) CONFIGURATION CARD */}
-          <div className="bg-surface-container border border-white/10 rounded-3xl p-4 sm:p-5 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {/* INTEGRATED TUR (ROUND) & DÖNGÜ CONFIGURATION CARD */}
+          <div className={`border rounded-3xl p-4 sm:p-5 shadow-sm space-y-4 transition-colors ${
+            theme === 'light'
+              ? 'bg-white border-slate-200'
+              : 'bg-[#121814] border-white/10'
+          }`}>
+            {/* 1. SEANS / TUR SAYISI SEÇİMİ (Kullanıcı Talebi: Kaç seans/tur yapacağını seçebilsin) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className={`font-bold flex items-center gap-1.5 ${theme === 'light' ? 'text-slate-800' : 'text-gray-200'}`}>
+                  <Target className="w-3.5 h-3.5 text-[#1ed760]" />
+                  <span>Hedef Seans Sayısı (Kaç Tur):</span>
+                </span>
+                <span className="font-mono font-bold text-[#1ed760]">
+                  {targetRounds} Tur ({targetRounds * workMinutes} dk Toplam)
+                </span>
+              </div>
+              <div className="grid grid-cols-6 gap-1.5">
+                {ROUND_OPTIONS.map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => handleSelectTargetRounds(r)}
+                    className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                      targetRounds === r
+                        ? 'bg-[#1ed760] text-black border-[#1ed760] shadow-md shadow-[#1ed760]/20 font-black'
+                        : theme === 'light'
+                          ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                          : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {r} Tur
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. ÇALIŞMA VE DİNLENME SÜRESİ SEÇİCİSİ */}
+            <div className={`pt-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+              theme === 'light' ? 'border-slate-100' : 'border-white/5'
+            }`}>
               
-              {/* Çalışma Süresi Seçici */}
+              {/* Çalışma Süresi */}
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-gray-300 flex items-center gap-1.5">
+                  <span className={`font-bold flex items-center gap-1.5 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
                     <span className="w-2 h-2 rounded-full bg-[#1ed760]" />
-                    <span>Çalışma</span>
+                    <span>Tur Süresi</span>
                   </span>
                   <span className="font-mono font-bold text-[#1ed760]">{workMinutes} dk</span>
                 </div>
@@ -629,10 +754,12 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     <button
                       key={m}
                       onClick={() => handleSelectWorkMinutes(m)}
-                      className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all ${
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                         workMinutes === m
                           ? 'bg-[#1ed760] text-black border-[#1ed760] shadow-md shadow-[#1ed760]/20'
-                          : 'bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                          : theme === 'light'
+                            ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            : 'bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'
                       }`}
                     >
                       {m}m
@@ -642,28 +769,30 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               </div>
 
               {/* Ortadaki Akış Oku */}
-              <div className="hidden sm:flex items-center justify-center pt-5 text-gray-500">
+              <div className="hidden sm:flex items-center justify-center pt-5 text-gray-400">
                 <ArrowRight className="w-4 h-4" />
               </div>
 
-              {/* Dinlenme / Mola Süresi Seçici */}
+              {/* Dinlenme / Mola Süresi */}
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-gray-300 flex items-center gap-1.5">
+                  <span className={`font-bold flex items-center gap-1.5 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
                     <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span>Dinlenme / Mola</span>
+                    <span>Mola Süresi</span>
                   </span>
-                  <span className="font-mono font-bold text-amber-400">{breakMinutes} dk</span>
+                  <span className="font-mono font-bold text-amber-500 dark:text-amber-400">{breakMinutes} dk</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {BREAK_OPTIONS.map((m) => (
                     <button
                       key={m}
                       onClick={() => handleSelectBreakMinutes(m)}
-                      className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all ${
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                         breakMinutes === m
-                          ? 'bg-amber-400 text-black border-amber-400 shadow-md shadow-amber-400/20'
-                          : 'bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                          ? 'bg-amber-400 text-black border-amber-400 shadow-md shadow-amber-400/20 font-black'
+                          : theme === 'light'
+                            ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            : 'bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'
                       }`}
                     >
                       {m}m
@@ -672,6 +801,44 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 </div>
               </div>
 
+            </div>
+
+            {/* 3. SEANS İLERLEME GÖSTERGESİ (Tamamlanan / Hedef) */}
+            <div className={`pt-3 border-t space-y-2 ${theme === 'light' ? 'border-slate-100' : 'border-white/5'}`}>
+              <div className="flex items-center justify-between text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <span className={theme === 'light' ? 'text-slate-600' : 'text-gray-400'}>İlerleme:</span>
+                  <div className="flex items-center gap-1.5">
+                    {Array.from({ length: targetRounds }).map((_, idx) => (
+                      <span
+                        key={idx}
+                        className={`w-3 h-3 rounded-full transition-all flex items-center justify-center text-[8px] font-black ${
+                          idx < completedSessions
+                            ? 'bg-[#1ed760] text-black ring-2 ring-[#1ed760]/30'
+                            : idx === completedSessions && isRunning
+                              ? 'bg-amber-400 animate-pulse text-black ring-2 ring-amber-400/40'
+                              : theme === 'light' ? 'bg-slate-200 text-slate-400' : 'bg-white/10 text-gray-500'
+                        }`}
+                        title={`Tur ${idx + 1} ${idx < completedSessions ? '(Tamamlandı)' : ''}`}
+                      >
+                        {idx < completedSessions ? '✓' : idx + 1}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <span className="font-mono font-bold text-[#1ed760]">
+                  %{Math.min(100, Math.round((completedSessions / targetRounds) * 100))}
+                </span>
+              </div>
+
+              {/* Linear Progress bar */}
+              <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'light' ? 'bg-slate-100' : 'bg-white/10'}`}>
+                <div 
+                  className="h-full bg-gradient-to-r from-[#1ed760] to-emerald-400 transition-all duration-500 rounded-full"
+                  style={{ width: `${Math.min(100, (completedSessions / targetRounds) * 100)}%` }}
+                />
+              </div>
             </div>
           </div>
 
@@ -901,8 +1068,8 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   <div className="flex items-center justify-between text-xs">
                     <button
                       onClick={resetTimer}
-                      className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors"
-                      title="Sıfırla"
+                      className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                      title="Zamanlayıcıyı Başa Al"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
@@ -915,13 +1082,10 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       </span>
                     </div>
 
-                    <button
-                      onClick={testBellAndNotification}
-                      className="w-8 h-8 rounded-full bg-white/5 hover:bg-[#1ed760]/20 border border-white/10 text-gray-400 hover:text-[#1ed760] flex items-center justify-center transition-colors"
-                      title="Tibet Çanı Çal"
-                    >
-                      <Volume2 className="w-3.5 h-3.5" />
-                    </button>
+                    {/* Round Indicator inside Phone */}
+                    <div className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono font-bold text-emerald-400" title="Geçerli Seans / Hedef">
+                      {Math.min(targetRounds, completedSessions + 1)}/{targetRounds} Tur
+                    </div>
                   </div>
 
                   {/* Main Timer Display */}
@@ -990,15 +1154,21 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
           {/* DOĞA SESLERİ & AMBİYANS */}
           <section className="space-y-4 pt-2">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <div className={`flex items-center justify-between border-b pb-3 ${
+              theme === 'light' ? 'border-slate-200' : 'border-white/10'
+            }`}>
               <div className="flex items-center gap-2">
                 <Headphones className="w-5 h-5 text-[#1ed760]" />
-                <h2 className="font-display text-base md:text-lg font-bold text-white">Doğa Sesleri & Ambiyans</h2>
+                <h2 className={`font-display text-base md:text-lg font-bold ${
+                  theme === 'light' ? 'text-slate-900' : 'text-white'
+                }`}>
+                  Doğa Sesleri & Ambiyans
+                </h2>
               </div>
 
               <button
                 onClick={onOpenAmbientMixer}
-                className="px-3 py-1.5 rounded-xl bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30 text-xs font-bold hover:bg-[#1ed760]/20 transition-all flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30 text-xs font-bold hover:bg-[#1ed760]/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <Sliders className="w-3.5 h-3.5" />
                 <span>Gelişmiş Mikser</span>
@@ -1015,16 +1185,22 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   <div
                     key={channel.id}
                     onClick={() => onToggleAmbientChannel(channel.id)}
-                    className={`bg-surface-container border p-4 rounded-2xl flex flex-col justify-between gap-3 cursor-pointer transition-all ${
+                    className={`border p-4 rounded-2xl flex flex-col justify-between gap-3 cursor-pointer transition-all ${
                       isPlayingThis
-                        ? 'border-emerald-500 bg-[#1ed760]/10 ring-2 ring-emerald-500 shadow-[0_0_25px_rgba(30,215,96,0.22)] scale-[1.01]'
-                        : 'border-white/5 hover:border-emerald-500/40 hover:bg-white/[0.03]'
+                        ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/50 shadow-md scale-[1.01]'
+                        : theme === 'light'
+                          ? 'bg-white border-slate-200 hover:border-emerald-500/40 hover:bg-slate-50 shadow-sm'
+                          : 'bg-[#121814] border-white/10 hover:border-emerald-500/40 hover:bg-white/[0.03]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors relative overflow-hidden ${
-                          isPlayingThis ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/30' : 'bg-white/5 text-[#1ed760]'
+                      <div className="flex items-center gap-3 min-w-0 pr-2">
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors shrink-0 relative overflow-hidden ${
+                          isPlayingThis 
+                            ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/30' 
+                            : theme === 'light'
+                              ? 'bg-slate-100 text-emerald-600'
+                              : 'bg-white/5 text-[#1ed760]'
                         }`}>
                           {isPlayingThis ? (
                             <div className="flex items-end gap-0.5 h-4">
@@ -1037,24 +1213,32 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                             <IconComponent className="w-5 h-5" />
                           )}
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <h3 className="text-xs font-bold text-white">{channel.name}</h3>
+                            <h3 className={`text-xs font-bold truncate ${
+                              theme === 'light' ? 'text-slate-900' : 'text-white'
+                            }`}>
+                              {channel.name}
+                            </h3>
                             {isPlayingThis && (
-                              <span className="text-[9px] font-extrabold text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                              <span className="text-[9px] font-extrabold text-emerald-500 dark:text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shrink-0">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
                                 Çalıyor
                               </span>
                             )}
                           </div>
-                          <span className="text-[10px] text-gray-400">
+                          <span className={`text-[10px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
                             {isPlayingThis ? `Ses Seviyesi: %${channel.volume}` : 'Çalmak için dokunun'}
                           </span>
                         </div>
                       </div>
 
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                        isPlayingThis ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30' : 'bg-white/5 text-gray-400 hover:text-white'
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                        isPlayingThis 
+                          ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30' 
+                          : theme === 'light'
+                            ? 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                            : 'bg-white/5 text-gray-400 hover:text-white'
                       }`}>
                         {isPlayingThis ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
                       </div>
@@ -1066,7 +1250,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         className="flex items-center gap-2 pt-2 border-t border-emerald-500/20"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <Volume2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <Volume2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                         <input
                           type="range"
                           min={0}
@@ -1076,9 +1260,11 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                             e.stopPropagation();
                             onVolumeChange(channel.id, parseFloat(e.target.value));
                           }}
-                          className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                          className={`w-full h-1 rounded-lg appearance-none cursor-pointer accent-emerald-500 ${
+                            theme === 'light' ? 'bg-slate-200' : 'bg-white/20'
+                          }`}
                         />
-                        <span className="text-[10px] font-mono text-emerald-400 w-8 text-right shrink-0">
+                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 w-8 text-right shrink-0">
                           %{channel.volume}
                         </span>
                       </div>
@@ -1094,11 +1280,15 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         <div className="lg:col-span-5 space-y-4">
           
           {/* Header Bar */}
-          <div className="flex items-center justify-between bg-surface-container border border-white/5 rounded-2xl p-4 shadow-sm">
+          <div className={`flex items-center justify-between border rounded-2xl p-4 shadow-sm transition-colors ${
+            theme === 'light' ? 'bg-white border-slate-200' : 'bg-[#121814] border-white/10'
+          }`}>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-[#1ed760] animate-ping" />
               <Newspaper className="w-5 h-5 text-[#1ed760]" />
-              <h2 className="font-display text-base font-bold text-white tracking-tight">
+              <h2 className={`font-display text-base font-bold tracking-tight ${
+                theme === 'light' ? 'text-slate-900' : 'text-white'
+              }`}>
                 Haber Akışı
               </h2>
             </div>
@@ -1107,14 +1297,20 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               <button
                 onClick={loadLiveFeed}
                 disabled={isLoadingLiveFeed}
-                className="py-1.5 px-3 bg-white/5 hover:bg-[#1ed760]/15 text-gray-300 hover:text-[#1ed760] border border-white/10 hover:border-[#1ed760]/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                className={`py-1.5 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 border cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    : 'bg-white/5 hover:bg-[#1ed760]/15 text-gray-300 hover:text-[#1ed760] border-white/10'
+                }`}
                 title="Haberleri Yenile"
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-[#1ed760] ${isLoadingLiveFeed ? 'animate-spin' : ''}`} />
                 <span>Yenile</span>
               </button>
 
-              <span className="text-[11px] font-mono text-gray-400 bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/5">
+              <span className={`text-[11px] font-mono px-2.5 py-1.5 rounded-xl border ${
+                theme === 'light' ? 'bg-slate-50 text-slate-600 border-slate-200' : 'bg-white/5 text-gray-400 border-white/5'
+              }`}>
                 {displayArticles.length} makale
               </span>
             </div>
@@ -1129,12 +1325,16 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               return (
                 <div
                   key={article.id}
-                  className="bg-surface-container hover:bg-[#161f19] border border-white/5 hover:border-[#1ed760]/30 rounded-2xl p-3.5 flex gap-3.5 transition-all shadow-sm group"
+                  className={`border rounded-2xl p-3.5 flex gap-3.5 transition-all shadow-sm group ${
+                    theme === 'light'
+                      ? 'bg-white border-slate-200 hover:border-[#1ed760]/50 hover:bg-slate-50/80'
+                      : 'bg-[#121814] border-white/5 hover:bg-[#161f19] hover:border-[#1ed760]/30'
+                  }`}
                 >
                   {/* Left: News Thumbnail */}
                   <div 
                     onClick={() => onSelectArticle(article)}
-                    className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl overflow-hidden bg-white/5 cursor-pointer"
+                    className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-white/5 cursor-pointer"
                   >
                     <img
                       src={article.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=400&auto=format&fit=crop&q=80'}
@@ -1165,7 +1365,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                               onOpenPaywall('bookmark_action');
                             }}
                             className={`p-1 rounded-lg transition-colors cursor-pointer ${
-                              isSaved ? 'text-[#1ed760]' : 'text-gray-500 hover:text-gray-300'
+                              isSaved ? 'text-[#1ed760]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
                             }`}
                             title="Haberleri kaydetmek için VOX iOS uygulamasını indirin"
                           >
@@ -1176,25 +1376,46 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
                       <h3
                         onClick={() => onSelectArticle(article)}
-                        className="font-bold text-xs sm:text-sm text-white group-hover:text-[#1ed760] line-clamp-2 leading-snug cursor-pointer transition-colors"
+                        className={`font-bold text-xs sm:text-sm group-hover:text-[#1ed760] line-clamp-2 leading-snug cursor-pointer transition-colors ${
+                          theme === 'light' ? 'text-slate-900' : 'text-white'
+                        }`}
                       >
                         {article.title}
                       </h3>
 
-                      <p className="text-[11px] text-gray-400 line-clamp-1 leading-relaxed">
+                      <p className={`text-[11px] line-clamp-1 leading-relaxed ${
+                        theme === 'light' ? 'text-slate-600' : 'text-gray-400'
+                      }`}>
                         {article.summary}
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5 mt-1">
-                      <span className="text-[10px] text-gray-400 font-medium truncate max-w-[100px] sm:max-w-[130px]">
-                        {article.author || 'Anadolu Ajansı'}
+                    <div className={`flex items-center justify-between gap-2 pt-2 border-t mt-1 ${
+                      theme === 'light' ? 'border-slate-100' : 'border-white/5'
+                    }`}>
+                      <span className={`text-[10px] font-medium truncate max-w-[130px] sm:max-w-[160px] flex items-center gap-1 ${
+                        theme === 'light' ? 'text-slate-500' : 'text-gray-400'
+                      }`}>
+                        {article.sourceType === 'twitter' ? (
+                          <>
+                            <span className="text-[#1ed760] font-extrabold text-[11px]">𝕏</span>
+                            <span className={`font-semibold truncate ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
+                              {article.author || 'Özet Geç Haber'}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="truncate">{article.author || 'Anadolu Ajansı'}</span>
+                        )}
                       </span>
 
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={() => onSelectArticle(article)}
-                          className="py-1 px-3 bg-white/5 hover:bg-[#1ed760]/15 text-gray-300 hover:text-[#1ed760] border border-white/10 hover:border-[#1ed760]/30 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95"
+                          className={`py-1 px-3 border rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
+                            theme === 'light'
+                              ? 'bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200 hover:border-emerald-300'
+                              : 'bg-white/5 hover:bg-[#1ed760]/15 text-gray-300 hover:text-[#1ed760] border-white/10 hover:border-[#1ed760]/30'
+                          }`}
                         >
                           <BookOpen className="w-3.5 h-3.5 text-[#1ed760]" />
                           <span>Metni Oku</span>

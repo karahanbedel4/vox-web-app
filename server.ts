@@ -2521,13 +2521,13 @@ app.get('/api/tweets', async (req, res) => {
             summary,
             content: `${content}\n\nBu anlık bilgilendirme ve sıcak gelişme, VOX Akıllı Akış motoru ile Twitter (𝕏) üzerinden canlı olarak aktarılmıştır.`,
             category: acc.category,
-            author: acc.handle,
+            author: acc.name || acc.handle,
             sourceType: 'twitter',
             sourceUrl: link.startsWith('http') ? link : `https://x.com/${acc.username}`,
             imageUrl: imageUrl || undefined,
             durationSeconds: Math.max(60, Math.min(180, Math.round(summary.length * 0.4))),
             createdAt: pubDateISO,
-            keyPoints: [title, `Kaynak: 𝕏 ${acc.handle}`, `Kategori: ${acc.category}`]
+            keyPoints: [title, `Kaynak: 𝕏 ${acc.name} (${acc.handle})`, `Kategori: ${acc.category}`]
           });
         }
       });

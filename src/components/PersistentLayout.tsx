@@ -726,9 +726,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         )}
       </AnimatePresence>
 
-      {/* FLOATING EXPANDABLE MOBILE BOTTOM DOCK (Never hidden, always on top with smooth expanding animation) */}
+      {/* FLOATING EXPANDABLE MOBILE BOTTOM DOCK (Clean, Minimal: Gündem + Odaklan + Tema) */}
       <div className="md:hidden fixed bottom-3 left-3 right-3 z-50 pointer-events-none flex justify-center">
-        <nav className={`pointer-events-auto w-full max-w-sm h-14 rounded-full backdrop-blur-2xl border px-2 py-1.5 flex items-center justify-between shadow-2xl transition-all duration-300 ${
+        <nav className={`pointer-events-auto w-full max-w-xs h-14 rounded-full backdrop-blur-2xl border px-3 py-1.5 flex items-center justify-around shadow-2xl transition-all duration-300 ${
           theme === 'light'
             ? 'bg-white/95 border-slate-200 text-slate-700 shadow-slate-900/10'
             : 'bg-[#101612]/95 border-white/10 text-gray-300'
@@ -739,7 +739,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             return (
               <NavLink
                 to="/"
-                className={`relative flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-full transition-all duration-300 active:scale-95 ${
+                className={`relative flex items-center justify-center gap-1.5 py-2 px-4 rounded-full transition-all duration-300 active:scale-95 ${
                   isGundemActive
                     ? theme === 'light' ? 'text-white font-bold' : 'text-emerald-300 font-bold'
                     : 'text-gray-400 hover:text-white'
@@ -762,7 +762,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     initial={false}
                     animate={{ width: isGundemActive ? 'auto' : 0, opacity: isGundemActive ? 1 : 0 }}
                     transition={{ duration: 0.2 }}
-                    className="text-xs whitespace-nowrap overflow-hidden leading-none"
+                    className="text-xs whitespace-nowrap overflow-hidden leading-none font-medium"
                   >
                     Gündem
                   </motion.span>
@@ -771,13 +771,13 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             );
           })()}
 
-          {/* TAB 2: ODAKLAN (Pomodoro) */}
+          {/* TAB 2: ODAKLAN (Pomodoro & Odaklanma) */}
           {(() => {
             const isFocusActive = location.pathname === '/odaklan';
             return (
               <NavLink
                 to="/odaklan"
-                className={`relative flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-full transition-all duration-300 active:scale-95 ${
+                className={`relative flex items-center justify-center gap-1.5 py-2 px-4 rounded-full transition-all duration-300 active:scale-95 ${
                   isFocusActive
                     ? theme === 'light' ? 'text-white font-bold' : 'text-emerald-300 font-bold'
                     : 'text-gray-400 hover:text-white'
@@ -800,7 +800,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     initial={false}
                     animate={{ width: isFocusActive ? 'auto' : 0, opacity: isFocusActive ? 1 : 0 }}
                     transition={{ duration: 0.2 }}
-                    className="text-xs whitespace-nowrap overflow-hidden leading-none"
+                    className="text-xs whitespace-nowrap overflow-hidden leading-none font-medium"
                   >
                     Odaklan
                   </motion.span>
@@ -809,29 +809,12 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             );
           })()}
 
-          {/* TAB 3: AMBIYANS MİKSERİ */}
-          <button
-            onClick={() => setIsAmbientMixerOpen(true)}
-            className={`relative flex items-center justify-center gap-1.5 py-2 px-3 rounded-full transition-all active:scale-90 cursor-pointer ${
-              isAmbientActive
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                : 'text-gray-400 hover:text-white'
-            }`}
-            title="Doğa Sesleri Mikseri"
-            aria-label="Doğa Sesleri Mikseri"
-          >
-            <Headphones className="w-4 h-4 shrink-0" />
-            {isAmbientActive && (
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-            )}
-          </button>
-
-          {/* TAB 4: TEMA DEĞİŞTİR */}
+          {/* TAB 3: TEMA DEĞİŞTİR (Karanlık / Aydınlık Modu) */}
           <button
             onClick={toggleTheme}
-            className="flex items-center justify-center p-2 rounded-full text-gray-400 hover:text-white active:scale-90 transition-all cursor-pointer"
-            title="Açık/Koyu Tema Değiştir"
-            aria-label="Açık/Koyu Tema Değiştir"
+            className="flex items-center justify-center p-2.5 rounded-full text-gray-400 hover:text-white active:scale-90 transition-all cursor-pointer hover:bg-white/10"
+            title="Açık / Koyu Tema Değiştir"
+            aria-label="Açık / Koyu Tema Değiştir"
           >
             {theme === 'light' ? (
               <Sun className="w-4 h-4 text-amber-500" />
@@ -1212,12 +1195,19 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
 
                   <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 font-mono">
                     {readingArticle.sourceType === 'twitter' ? (
-                      <span className="inline-flex items-center gap-1 text-white bg-white/10 px-2.5 py-1 rounded-md font-bold border border-white/10">
-                        <XLogoIcon className="w-3 h-3 text-[#1ed760]" />
-                        <span>{readingArticle.author?.startsWith('@') ? readingArticle.author : `@${readingArticle.author || 'ConflictTR'}`}</span>
+                      <span className="inline-flex items-center gap-1.5 text-emerald-300 bg-emerald-500/10 px-3 py-1 rounded-full font-bold border border-emerald-500/30">
+                        <XLogoIcon className="w-3.5 h-3.5 text-[#1ed760]" />
+                        <span>{(() => {
+                          const a = (readingArticle.author || '').trim();
+                          const aLower = a.toLowerCase();
+                          if (aLower.includes('ozetgechaber') || aLower.includes('özet geç')) return 'Özet Geç Haber';
+                          if (aLower.includes('conflicttr') || aLower.includes('conflict tr')) return 'Conflict TR';
+                          if (aLower.includes('vaziyet')) return 'Vaziyet';
+                          return a.replace(/^@/, '') || 'Özet Geç Haber';
+                        })()}</span>
                       </span>
                     ) : (
-                      <span className="text-gray-300 font-semibold">{readingArticle.author || 'VOX Stüdyo / Haber'}</span>
+                      <span className="text-gray-300 font-semibold">{readingArticle.author || 'Anadolu Ajansı'}</span>
                     )}
                     <span>•</span>
                     <span className="flex items-center gap-1">

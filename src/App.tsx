@@ -35,12 +35,12 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
     type: 'youtube',
     url: 'https://www.youtube.com/watch?v=3mst47Uu3IU',
     youtubeId: '3mst47Uu3IU',
-    volume: 60,
+    volume: 65,
     active: false
   },
   {
     id: 'yt-forest-birds',
-    name: 'Sakin Orman & Doğa Sesi',
+    name: 'Sakin Orman & Kuş Sesi',
     type: 'youtube',
     url: 'https://www.youtube.com/watch?v=xNN7iTA57jM',
     youtubeId: 'xNN7iTA57jM',
@@ -62,7 +62,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
     type: 'youtube',
     url: 'https://www.youtube.com/watch?v=9JEL_n6egA8',
     youtubeId: '9JEL_n6egA8',
-    volume: 70,
+    volume: 60,
     active: false
   },
   {
@@ -72,6 +72,24 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
     url: 'https://www.youtube.com/watch?v=czMO-L42nnc',
     youtubeId: 'czMO-L42nnc',
     volume: 50,
+    active: false
+  },
+  {
+    id: 'yt-ocean-waves',
+    name: 'Okyanus & Dalga Sesi',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=bn9F19Hi1Lk',
+    youtubeId: 'bn9F19Hi1Lk',
+    volume: 60,
+    active: false
+  },
+  {
+    id: 'yt-campfire-night',
+    name: 'Gece & Kamp Ateşi Sesi',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=L_LUpnjgPso',
+    youtubeId: 'L_LUpnjgPso',
+    volume: 55,
     active: false
   }
 ];
@@ -88,10 +106,10 @@ export default function App() {
 
   const [ambientChannels, setAmbientChannels] = useState<AmbientChannel[]>(() => {
     try {
-      const saved = appStorage.getItemSync('vox_ambient_channels');
+      const saved = appStorage.getItemSync('vox_ambient_channels_v4');
       if (saved) {
         const parsed: AmbientChannel[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id.startsWith('yt-')) {
           return parsed.map(c => ({ ...c, active: false }));
         }
       }
@@ -102,7 +120,7 @@ export default function App() {
   // Keep ambient channels and active channel persisted in storage & cookies
   useEffect(() => {
     try {
-      appStorage.setItemSync('vox_ambient_channels', JSON.stringify(ambientChannels));
+      appStorage.setItemSync('vox_ambient_channels_v4', JSON.stringify(ambientChannels));
       const activeCh = ambientChannels.find(c => c.active && c.volume > 0);
       if (activeCh) {
         appStorage.setItemSync('vox_last_ambient_id', activeCh.id);

@@ -541,7 +541,7 @@ function parseTwitterXmlWithDOM(xmlString: string, account: TargetTwitterAccount
           summary: cleanSummary,
           content: cleanContent,
           category: account.category,
-          author: account.handle,
+          author: account.name || account.handle,
           sourceType: 'twitter' as const,
           sourceUrl: link.startsWith('http') ? link : `https://x.com/${account.username}`,
           imageUrl: mediaUrl ? sanitizeImageUrl(mediaUrl) : (getTopicContextualImage(cleanTitle, account.category, index) || DEFAULT_VOX_FALLBACK_IMAGE),
@@ -549,7 +549,7 @@ function parseTwitterXmlWithDOM(xmlString: string, account: TargetTwitterAccount
           createdAt: pubDateISO,
           keyPoints: [
             cleanTitle,
-            `Kaynak: 𝕏 ${account.handle}`,
+            `Kaynak: 𝕏 ${account.name} (${account.handle})`,
             `Kategori: ${account.category}`,
             'Canlı Twitter (𝕏) Akışı'
           ]

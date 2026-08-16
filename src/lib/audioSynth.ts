@@ -1,7 +1,16 @@
 /**
- * WoodRainSynth - Web Audio API Client-Side Ambient Generator
- * Synthesizes wood-impact rain droplets, soft pink rain, night crickets/rumble, and thunder
- * with 0 MB network data transfer.
+ * WoodRainSynth - Web Audio API Client-Side Ambient Generator & Sound Engine
+ * Synthesizes zero-latency nature sounds & ambient soundscapes directly in the browser:
+ * - Rain (Doğada Yağmur)
+ * - Forest & Birds (Sakin Orman & Kuş Sesleri)
+ * - Ocean Waves (Okyanus & Dalga Sesleri)
+ * - Wood Rain (Ahşap Üstü Yağmur Damlaları)
+ * - Thunder & Storm (Şimşek ve Fırtına)
+ * - Night Crickets (Gece & Ağustos Böceği)
+ * - Cozy Cafe (Sakin Kafe Ambiyansı)
+ * - Deep Focus Noise (Derin Odaklanma Brown/White Noise)
+ *
+ * 100% Client-Side Web Audio API, Zero Network Data, Works completely offline and on all mobile browsers.
  */
 
 export class WoodRainSynthEngine {
@@ -9,16 +18,16 @@ export class WoodRainSynthEngine {
   private isRunning: boolean = false;
   private masterGain: GainNode | null = null;
 
-  // Sound channels
+  // Sound channel gain nodes
   private channelGains: Map<string, GainNode> = new Map();
   private channelAudios: Map<string, HTMLAudioElement> = new Map();
 
-  // Noise nodes for generative channels
+  // Active generative nodes cleanup
   private activeGenerators: { stop: () => void }[] = [];
 
   constructor() {
-    // Lazy initialization on user interaction & visibility handling
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      // Handle mobile visibility change
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
           this.suspend();
@@ -26,6 +35,16 @@ export class WoodRainSynthEngine {
           this.resume();
         }
       });
+
+      // Mobile Touch/Click AudioContext Unlock
+      const unlockAudio = () => {
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+      };
+      window.addEventListener('touchstart', unlockAudio, { passive: true });
+      window.addEventListener('touchend', unlockAudio, { passive: true });
+      window.addEventListener('click', unlockAudio, { passive: true });
     }
   }
 
@@ -41,17 +60,18 @@ export class WoodRainSynthEngine {
     }
   }
 
-  private initCtx() {
+  public initCtx(): AudioContext {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtx();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = 0.8;
+      this.masterGain.gain.value = 0.85;
       this.masterGain.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
+    return this.ctx;
   }
 
   public start() {
@@ -59,11 +79,15 @@ export class WoodRainSynthEngine {
     if (this.isRunning) return;
     this.isRunning = true;
 
-    // Build synthesized sound generators
+    // Initialize all synthesized generators
     this.startRainSynth();
+    this.startForestBirdsSynth();
+    this.startOceanWavesSynth();
     this.startWoodRainSynth();
-    this.startNightRainSynth();
     this.startThunderSynth();
+    this.startNightRainSynth();
+    this.startCafeSynth();
+    this.startBrownNoiseSynth();
   }
 
   public stop() {
@@ -92,17 +116,24 @@ export class WoodRainSynthEngine {
 
   public setChannelVolume(channelId: string, volume: number) {
     this.initCtx();
-    let gain = this.channelGains.get(channelId);
+    if (!this.isRunning && volume > 0) {
+      this.start();
+    }
+
+    const normId = this.normalizeChannelId(channelId);
+    let gain = this.channelGains.get(normId);
+
     if (!gain && this.ctx && this.masterGain) {
       gain = this.ctx.createGain();
       gain.connect(this.masterGain);
-      this.channelGains.set(channelId, gain);
+      this.channelGains.set(normId, gain);
     }
+
     if (gain && this.ctx) {
       gain.gain.setTargetAtTime(Math.max(0, Math.min(1, volume)), this.ctx.currentTime, 0.05);
     }
 
-    // If custom audio channel
+    // If custom audio stream element
     const customAudio = this.channelAudios.get(channelId);
     if (customAudio) {
       customAudio.volume = Math.max(0, Math.min(1, volume));
@@ -114,7 +145,23 @@ export class WoodRainSynthEngine {
     }
   }
 
-  // Channel 1: Standard Rain (Pink noise + lowpass)
+  private normalizeChannelId(id: string): string {
+    const clean = id.toLowerCase().replace(/^(yt-|synth-)/, '');
+    if (clean.includes('rain') || clean.includes('yagmur')) {
+      if (clean.includes('wood') || clean.includes('ahsap')) return 'woodrain';
+      if (clean.includes('thunder') || clean.includes('simsek')) return 'thunder';
+      return 'rain';
+    }
+    if (clean.includes('forest') || clean.includes('orman') || clean.includes('bird')) return 'forest';
+    if (clean.includes('wave') || clean.includes('ocean') || clean.includes('dalga') || clean.includes('deniz')) return 'waves';
+    if (clean.includes('thunder') || clean.includes('storm') || clean.includes('firtina')) return 'thunder';
+    if (clean.includes('night') || clean.includes('gece') || clean.includes('bocek')) return 'night';
+    if (clean.includes('cafe') || clean.includes('kafe')) return 'cafe';
+    if (clean.includes('white') || clean.includes('brown') || clean.includes('noise') || clean.includes('focus') || clean.includes('odak')) return 'whitenoise';
+    return clean;
+  }
+
+  // 1. Channel: Standard Rain (Pink noise + lowpass filter + subtle droplet impacts)
   private startRainSynth() {
     if (!this.ctx || !this.masterGain) return;
 
@@ -122,7 +169,6 @@ export class WoodRainSynthEngine {
     const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const output = noiseBuffer.getChannelData(0);
     
-    // Generate pink-ish noise
     let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
     for (let i = 0; i < bufferSize; i++) {
       const white = Math.random() * 2 - 1;
@@ -143,10 +189,10 @@ export class WoodRainSynthEngine {
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.value = 1200;
+    filter.frequency.value = 1150;
 
     const channelGain = this.ctx.createGain();
-    channelGain.gain.value = 0.0; // Controlled by UI slider
+    channelGain.gain.value = 0.0;
     this.channelGains.set('rain', channelGain);
 
     whiteSource.connect(filter);
@@ -161,7 +207,125 @@ export class WoodRainSynthEngine {
     });
   }
 
-  // Channel 2: WoodRainSynth (Wooden Surface Rain Drops - Resonant Bandpass Droplets)
+  // 2. Channel: Forest Birds & Gentle Breeze
+  private startForestBirdsSynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('forest', channelGain);
+    channelGain.connect(this.masterGain);
+
+    // Forest wind breeze
+    const bufferSize = 2 * this.ctx.sampleRate;
+    const breezeBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = breezeBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.04;
+    }
+    const breezeSource = this.ctx.createBufferSource();
+    breezeSource.buffer = breezeBuffer;
+    breezeSource.loop = true;
+
+    const breezeFilter = this.ctx.createBiquadFilter();
+    breezeFilter.type = 'bandpass';
+    breezeFilter.frequency.value = 450;
+    breezeFilter.Q.value = 2.0;
+
+    breezeSource.connect(breezeFilter);
+    breezeFilter.connect(channelGain);
+    breezeSource.start();
+
+    let isBirdTimerActive = true;
+
+    // Generative Bird Chirps (Stochastic organic harmonic chirps)
+    const triggerBirdChirp = () => {
+      if (!this.ctx || !isBirdTimerActive) return;
+
+      const baseFreq = 2600 + Math.random() * 1200;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.3, this.ctx.currentTime + 0.06);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.9, this.ctx.currentTime + 0.12);
+
+      gain.gain.setValueAtTime(0, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.15);
+
+      osc.connect(gain);
+      gain.connect(channelGain);
+
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.2);
+
+      // Next chirp interval: 1.5s - 5s
+      const nextDelay = 1500 + Math.random() * 3500;
+      setTimeout(triggerBirdChirp, nextDelay);
+    };
+
+    triggerBirdChirp();
+
+    this.activeGenerators.push({
+      stop: () => {
+        isBirdTimerActive = false;
+        try { breezeSource.stop(); } catch (e) {}
+      }
+    });
+  }
+
+  // 3. Channel: Ocean Waves (Swell in & out)
+  private startOceanWavesSynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const bufferSize = 2 * this.ctx.sampleRate;
+    const waveBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = waveBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.15;
+    }
+    const waveSource = this.ctx.createBufferSource();
+    waveSource.buffer = waveBuffer;
+    waveSource.loop = true;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 350;
+
+    // LFO for periodic wave swell (every 6 seconds)
+    const lfo = this.ctx.createOscillator();
+    const lfoGain = this.ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.12; // Wave cycle
+    lfoGain.gain.value = 400;
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(filter.frequency);
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('waves', channelGain);
+
+    waveSource.connect(filter);
+    filter.connect(channelGain);
+    channelGain.connect(this.masterGain);
+
+    waveSource.start();
+    lfo.start();
+
+    this.activeGenerators.push({
+      stop: () => {
+        try {
+          waveSource.stop();
+          lfo.stop();
+        } catch (e) {}
+      }
+    });
+  }
+
+  // 4. Channel: WoodRainSynth (Hollow resonant droplets on cedar wood)
   private startWoodRainSynth() {
     if (!this.ctx || !this.masterGain) return;
 
@@ -175,7 +339,6 @@ export class WoodRainSynthEngine {
     const triggerDroplet = () => {
       if (!this.ctx || !isTimerActive) return;
 
-      // Random wooden resonant frequency (400Hz - 900Hz gives hollow wood timbre)
       const freq = 450 + Math.random() * 450;
       const osc = this.ctx.createOscillator();
       const dropGain = this.ctx.createGain();
@@ -184,9 +347,8 @@ export class WoodRainSynthEngine {
       osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(freq * 0.6, this.ctx.currentTime + 0.04);
 
-      // Fast attack, resonant wooden decay
       dropGain.gain.setValueAtTime(0, this.ctx.currentTime);
-      dropGain.gain.linearRampToValueAtTime(0.15 + Math.random() * 0.2, this.ctx.currentTime + 0.003);
+      dropGain.gain.linearRampToValueAtTime(0.16 + Math.random() * 0.2, this.ctx.currentTime + 0.003);
       dropGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.04 + Math.random() * 0.05);
 
       osc.connect(dropGain);
@@ -195,8 +357,7 @@ export class WoodRainSynthEngine {
       osc.start();
       osc.stop(this.ctx.currentTime + 0.1);
 
-      // Random interval between droplets (20ms - 180ms)
-      const nextDelay = 20 + Math.random() * 160;
+      const nextDelay = 25 + Math.random() * 150;
       setTimeout(triggerDroplet, nextDelay);
     };
 
@@ -209,7 +370,51 @@ export class WoodRainSynthEngine {
     });
   }
 
-  // Channel 3: Night Rain / Crickets (High pitch subtle sibilance)
+  // 5. Channel: Thunder & Storm Rumble
+  private startThunderSynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('thunder', channelGain);
+    channelGain.connect(this.masterGain);
+
+    let isTimerActive = true;
+
+    const triggerThunderRumble = () => {
+      if (!this.ctx || !isTimerActive) return;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(45, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(18, this.ctx.currentTime + 3.0);
+
+      gain.gain.setValueAtTime(0, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.28, this.ctx.currentTime + 0.4);
+      gain.gain.exponentialRampToValueAtTime(0.0005, this.ctx.currentTime + 3.5);
+
+      osc.connect(gain);
+      gain.connect(channelGain);
+
+      osc.start();
+      osc.stop(this.ctx.currentTime + 3.6);
+
+      const nextThunder = 10000 + Math.random() * 16000;
+      setTimeout(triggerThunderRumble, nextThunder);
+    };
+
+    triggerThunderRumble();
+
+    this.activeGenerators.push({
+      stop: () => {
+        isTimerActive = false;
+      }
+    });
+  }
+
+  // 6. Channel: Night Crickets & Serene Sibilance
   private startNightRainSynth() {
     if (!this.ctx || !this.masterGain) return;
 
@@ -220,20 +425,20 @@ export class WoodRainSynthEngine {
     const channelGain = this.ctx.createGain();
 
     osc.type = 'sawtooth';
-    osc.frequency.value = 4800;
+    osc.frequency.value = 4600;
 
     filter.type = 'bandpass';
-    filter.frequency.value = 4800;
-    filter.Q.value = 15;
+    filter.frequency.value = 4600;
+    filter.Q.value = 14;
 
-    lfo.frequency.value = 18; // Cricket rhythm
-    lfoGain.gain.value = 0.05;
+    lfo.frequency.value = 16;
+    lfoGain.gain.value = 0.06;
 
     lfo.connect(lfoGain);
     lfoGain.connect(channelGain.gain);
 
     channelGain.gain.value = 0.0;
-    this.channelGains.set('nightrain', channelGain);
+    this.channelGains.set('night', channelGain);
 
     osc.connect(filter);
     filter.connect(channelGain);
@@ -252,47 +457,71 @@ export class WoodRainSynthEngine {
     });
   }
 
-  // Channel 4: Thunder (Low sub rumble)
-  private startThunderSynth() {
+  // 7. Channel: Cozy Cafe Background Murmur
+  private startCafeSynth() {
     if (!this.ctx || !this.masterGain) return;
+
+    const bufferSize = 2 * this.ctx.sampleRate;
+    const cafeBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = cafeBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.08;
+    }
+    const cafeSource = this.ctx.createBufferSource();
+    cafeSource.buffer = cafeBuffer;
+    cafeSource.loop = true;
+
+    const cafeFilter = this.ctx.createBiquadFilter();
+    cafeFilter.type = 'bandpass';
+    cafeFilter.frequency.value = 650;
+    cafeFilter.Q.value = 1.2;
 
     const channelGain = this.ctx.createGain();
     channelGain.gain.value = 0.0;
-    this.channelGains.set('thunder', channelGain);
+    this.channelGains.set('cafe', channelGain);
+
+    cafeSource.connect(cafeFilter);
+    cafeFilter.connect(channelGain);
     channelGain.connect(this.masterGain);
 
-    let isTimerActive = true;
-
-    const triggerThunderRumble = () => {
-      if (!this.ctx || !isTimerActive) return;
-
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(40, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 2.5);
-
-      gain.gain.setValueAtTime(0, this.ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.25, this.ctx.currentTime + 0.4);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3.0);
-
-      osc.connect(gain);
-      gain.connect(channelGain);
-
-      osc.start();
-      osc.stop(this.ctx.currentTime + 3.2);
-
-      // Trigger thunder every 12 to 30 seconds
-      const nextThunder = 12000 + Math.random() * 18000;
-      setTimeout(triggerThunderRumble, nextThunder);
-    };
-
-    triggerThunderRumble();
-
+    cafeSource.start();
     this.activeGenerators.push({
       stop: () => {
-        isTimerActive = false;
+        try { cafeSource.stop(); } catch (e) {}
+      }
+    });
+  }
+
+  // 8. Channel: Deep Focus Brownian Noise
+  private startBrownNoiseSynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const bufferSize = 2 * this.ctx.sampleRate;
+    const brownBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = brownBuffer.getChannelData(0);
+    let lastOut = 0.0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      data[i] = (lastOut + (0.02 * white)) / 1.02;
+      lastOut = data[i];
+      data[i] *= 3.5;
+    }
+
+    const brownSource = this.ctx.createBufferSource();
+    brownSource.buffer = brownBuffer;
+    brownSource.loop = true;
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('whitenoise', channelGain);
+
+    brownSource.connect(channelGain);
+    channelGain.connect(this.masterGain);
+
+    brownSource.start();
+    this.activeGenerators.push({
+      stop: () => {
+        try { brownSource.stop(); } catch (e) {}
       }
     });
   }
@@ -311,3 +540,4 @@ export class WoodRainSynthEngine {
 }
 
 export const woodRainSynth = new WoodRainSynthEngine();
+

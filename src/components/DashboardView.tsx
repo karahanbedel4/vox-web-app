@@ -19,6 +19,16 @@ interface DashboardViewProps {
   onOpenPaywall: (reason?: 'limit_reached' | 'pages_exceeded' | 'not_logged_in') => void;
 }
 
+function formatTwitterAuthor(author?: string): string {
+  if (!author) return 'Özet Geç Haber';
+  const a = author.trim();
+  const aLower = a.toLowerCase();
+  if (aLower.includes('ozetgechaber') || aLower.includes('özet geç')) return 'Özet Geç Haber';
+  if (aLower.includes('conflicttr') || aLower.includes('conflict tr')) return 'Conflict TR';
+  if (aLower.includes('vaziyet')) return 'Vaziyet';
+  return a.replace(/^@/, '') || 'Özet Geç Haber';
+}
+
 export const DashboardView: React.FC<DashboardViewProps> = ({
   category = 'Tümü',
   articles,
@@ -40,6 +50,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [isSearchingGoogle, setIsSearchingGoogle] = useState<boolean>(false);
   const [googleSearchResults, setGoogleSearchResults] = useState<Article[] | null>(null);
 
+  const isDummyArticle = (a: Article) => {
+    if (!a || !a.id) return true;
+    const id = a.id.toLowerCase();
+    return id.includes('quantum-geopolitics') || 
+           id.includes('silicon-forest') || 
+           id.includes('ethics-of-ai') || 
+           id.includes('dunya-diplomasi-2026') || 
+           id.includes('kultur-sanat-dijital-muze') ||
+           id.includes('fallback_');
+  };
+
   const loadCategoryArticles = async (showFullLoader = true) => {
     if (showFullLoader) setIsLoading(true);
     setIsRefreshing(true);
@@ -47,27 +68,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     try {
       const liveFetched = await fetchNewsByCategory(activeCategory, 'tr');
       const firestoreRes = await getArticlesPaginated(20, null, activeCategory === 'Tümü' ? undefined : activeCategory);
-      const firestoreList = firestoreRes.articles || [];
+      const firestoreList = (firestoreRes.articles || []).filter(a => !isDummyArticle(a));
 
       const mergedMap = new Map<string, Article>();
 
       if (liveFetched && liveFetched.length > 0) {
         liveFetched.forEach(a => {
-          if (a.title) mergedMap.set(a.title.toLowerCase().trim(), a);
+          if (a.title && !isDummyArticle(a)) mergedMap.set(a.title.toLowerCase().trim(), a);
         });
       }
 
       firestoreList.forEach(a => {
         if (a.title && !mergedMap.has(a.title.toLowerCase().trim())) {
           mergedMap.set(a.title.toLowerCase().trim(), a);
-        }
-      });
-
-      articles.forEach(a => {
-        if (a.title && !mergedMap.has(a.title.toLowerCase().trim())) {
-          if (activeCategory === 'Tümü' || a.category === activeCategory) {
-            mergedMap.set(a.title.toLowerCase().trim(), a);
-          }
         }
       });
 
@@ -78,11 +91,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         setLiveNews(finalArticles);
         cacheTop3Articles(finalArticles);
       } else {
-        setLiveNews(articles.filter(a => activeCategory === 'Tümü' || a.category === activeCategory));
+        const fallbackList = articles.filter(a => !isDummyArticle(a) && (activeCategory === 'Tümü' || a.category === activeCategory));
+        setLiveNews(fallbackList);
       }
     } catch (e) {
       console.warn('DashboardView fetch error:', e);
-      setLiveNews(articles.filter(a => activeCategory === 'Tümü' || a.category === activeCategory));
+      const fallbackList = articles.filter(a => !isDummyArticle(a) && (activeCategory === 'Tümü' || a.category === activeCategory));
+      setLiveNews(fallbackList);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -353,13 +368,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : (article.category || activeCategory)}
                       </span>
                       {article.sourceType === 'twitter' ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-white bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                          theme === 'light' ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white/5 border-white/10 text-emerald-300'
+                        }`}>
                           <XLogoIcon className="w-3 h-3 text-[#1ed760]" />
-                          <span>{article.author?.startsWith('@') ? article.author : `@${article.author || 'ConflictTR'}`}</span>
+                          <span>{formatTwitterAuthor(article.author)}</span>
                         </span>
                       ) : (
                         <span className={`text-xs font-mono ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                          {article.author || 'Reuters'}
+                          {article.author || 'Anadolu Ajansı'}
                         </span>
                       )}
                     </div>
