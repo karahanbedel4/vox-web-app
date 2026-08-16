@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes as RouterRoutes, Route as RouterRoute, Navigate as RouterNavigate } from 'react-router-dom';
+import { ThemeProvider } from './lib/ThemeContext';
 import { PersistentLayout } from './components/PersistentLayout';
 import { DashboardView } from './components/DashboardView';
 import { FocusTab } from './components/FocusTab';
@@ -226,130 +227,132 @@ export default function App() {
   };
 
   return (
-    <Router>
-      <RouterRoutes>
-        <RouterRoute
-          element={
-            <PersistentLayout
-              user={user}
-              subscription={subscription}
-              readingArticle={readingArticle}
-              setReadingArticle={setReadingArticle}
-              onPlayArticle={handlePlayArticle}
-              onOpenPaywall={handleOpenPaywallModalWithReason}
-              ambientChannels={ambientChannels}
-              setAmbientChannels={setAmbientChannels}
-              isAmbientMixerOpen={isAmbientMixerOpen}
-              setIsAmbientMixerOpen={setIsAmbientMixerOpen}
-            />
-          }
-        >
-          {/* Default Route -> Gündem */}
-          <RouterRoute path="/" element={<RouterNavigate to="/gundem" replace />} />
-
-          {/* News Dashboard Routes */}
+    <ThemeProvider>
+      <Router>
+        <RouterRoutes>
           <RouterRoute
-            path="/gundem"
             element={
-              <DashboardView
-                category="Gündem"
-                articles={articles}
-                bookmarkedIds={bookmarkedIds}
-                onToggleBookmark={handleToggleBookmark}
-                onSelectArticle={(art) => setReadingArticle(art)}
-                onOpenPaywall={handleOpenPaywallModalWithReason}
-              />
-            }
-          />
-
-          <RouterRoute
-            path="/teknoloji"
-            element={
-              <DashboardView
-                category="Teknoloji"
-                articles={articles}
-                bookmarkedIds={bookmarkedIds}
-                onToggleBookmark={handleToggleBookmark}
-                onSelectArticle={(art) => setReadingArticle(art)}
-                onOpenPaywall={handleOpenPaywallModalWithReason}
-              />
-            }
-          />
-
-          <RouterRoute
-            path="/ekonomi"
-            element={
-              <DashboardView
-                category="Ekonomi"
-                articles={articles}
-                bookmarkedIds={bookmarkedIds}
-                onToggleBookmark={handleToggleBookmark}
-                onSelectArticle={(art) => setReadingArticle(art)}
-                onOpenPaywall={handleOpenPaywallModalWithReason}
-              />
-            }
-          />
-
-          {/* Focus / Pomodoro Mode Route */}
-          <RouterRoute
-            path="/odaklan"
-            element={
-              <FocusTab
-                articles={articles}
-                bookmarkedIds={bookmarkedIds}
-                onToggleBookmark={handleToggleBookmark}
+              <PersistentLayout
+                user={user}
+                subscription={subscription}
+                readingArticle={readingArticle}
+                setReadingArticle={setReadingArticle}
                 onPlayArticle={handlePlayArticle}
-                onSelectArticle={(art) => setReadingArticle(art)}
                 onOpenPaywall={handleOpenPaywallModalWithReason}
                 ambientChannels={ambientChannels}
-                onToggleAmbientChannel={handleToggleAmbientChannel}
-                onVolumeChange={handleAmbientVolumeChange}
-                onOpenAmbientMixer={() => setIsAmbientMixerOpen(true)}
+                setAmbientChannels={setAmbientChannels}
+                isAmbientMixerOpen={isAmbientMixerOpen}
+                setIsAmbientMixerOpen={setIsAmbientMixerOpen}
               />
             }
-          />
+          >
+            {/* Default Route -> Gündem */}
+            <RouterRoute path="/" element={<RouterNavigate to="/gundem" replace />} />
 
-          {/* Library / PDF Upload Route */}
-          <RouterRoute
-            path="/kitaplik"
-            element={
-              <LibraryTab
-                articles={articles}
-                bookmarkedIds={bookmarkedIds}
-                user={user}
-                dailyQuotaUsed={subscription.dailyQuotaUsed}
-                isPremium={subscription.isPremium}
-                onPlayArticle={handlePlayArticle}
-                onToggleBookmark={handleToggleBookmark}
-                onImportSuccess={handleImportSuccess}
-                onOpenPaywallModal={handleOpenPaywallModalWithReason}
-                onIncrementQuota={subscription.incrementQuota}
-              />
-            }
-          />
+            {/* News Dashboard Routes */}
+            <RouterRoute
+              path="/gundem"
+              element={
+                <DashboardView
+                  category="Gündem"
+                  articles={articles}
+                  bookmarkedIds={bookmarkedIds}
+                  onToggleBookmark={handleToggleBookmark}
+                  onSelectArticle={(art) => setReadingArticle(art)}
+                  onOpenPaywall={handleOpenPaywallModalWithReason}
+                />
+              }
+            />
 
-          {/* User Profile Route */}
-          <RouterRoute
-            path="/profil"
-            element={
-              <ProfileTab
-                user={user}
-                onRefreshUser={handleRefreshUser}
-                isAmbientActive={ambientChannels.some(c => c.active)}
-                activeAmbientName={ambientChannels.filter(c => c.active).map(c => c.name).join(', ')}
-                onToggleAmbient={() => setIsAmbientMixerOpen(true)}
-                onStopAmbient={() => setAmbientChannels(prev => prev.map(c => ({ ...c, active: false })))}
-                onOpenAmbientMixer={() => setIsAmbientMixerOpen(true)}
-                onOpenPaywall={() => handleOpenPaywallModalWithReason('limit_reached')}
-                onClearAllCache={() => {}}
-              />
-            }
-          />
+            <RouterRoute
+              path="/teknoloji"
+              element={
+                <DashboardView
+                  category="Teknoloji"
+                  articles={articles}
+                  bookmarkedIds={bookmarkedIds}
+                  onToggleBookmark={handleToggleBookmark}
+                  onSelectArticle={(art) => setReadingArticle(art)}
+                  onOpenPaywall={handleOpenPaywallModalWithReason}
+                />
+              }
+            />
 
-          {/* Fallback Catch-all Route */}
-          <RouterRoute path="*" element={<RouterNavigate to="/gundem" replace />} />
-        </RouterRoute>
-      </RouterRoutes>
-    </Router>
+            <RouterRoute
+              path="/ekonomi"
+              element={
+                <DashboardView
+                  category="Ekonomi"
+                  articles={articles}
+                  bookmarkedIds={bookmarkedIds}
+                  onToggleBookmark={handleToggleBookmark}
+                  onSelectArticle={(art) => setReadingArticle(art)}
+                  onOpenPaywall={handleOpenPaywallModalWithReason}
+                />
+              }
+            />
+
+            {/* Focus / Pomodoro Mode Route */}
+            <RouterRoute
+              path="/odaklan"
+              element={
+                <FocusTab
+                  articles={articles}
+                  bookmarkedIds={bookmarkedIds}
+                  onToggleBookmark={handleToggleBookmark}
+                  onPlayArticle={handlePlayArticle}
+                  onSelectArticle={(art) => setReadingArticle(art)}
+                  onOpenPaywall={handleOpenPaywallModalWithReason}
+                  ambientChannels={ambientChannels}
+                  onToggleAmbientChannel={handleToggleAmbientChannel}
+                  onVolumeChange={handleAmbientVolumeChange}
+                  onOpenAmbientMixer={() => setIsAmbientMixerOpen(true)}
+                />
+              }
+            />
+
+            {/* Library / PDF Upload Route */}
+            <RouterRoute
+              path="/kitaplik"
+              element={
+                <LibraryTab
+                  articles={articles}
+                  bookmarkedIds={bookmarkedIds}
+                  user={user}
+                  dailyQuotaUsed={subscription.dailyQuotaUsed}
+                  isPremium={subscription.isPremium}
+                  onPlayArticle={handlePlayArticle}
+                  onToggleBookmark={handleToggleBookmark}
+                  onImportSuccess={handleImportSuccess}
+                  onOpenPaywallModal={handleOpenPaywallModalWithReason}
+                  onIncrementQuota={subscription.incrementQuota}
+                />
+              }
+            />
+
+            {/* User Profile Route */}
+            <RouterRoute
+              path="/profil"
+              element={
+                <ProfileTab
+                  user={user}
+                  onRefreshUser={handleRefreshUser}
+                  isAmbientActive={ambientChannels.some(c => c.active)}
+                  activeAmbientName={ambientChannels.filter(c => c.active).map(c => c.name).join(', ')}
+                  onToggleAmbient={() => setIsAmbientMixerOpen(true)}
+                  onStopAmbient={() => setAmbientChannels(prev => prev.map(c => ({ ...c, active: false })))}
+                  onOpenAmbientMixer={() => setIsAmbientMixerOpen(true)}
+                  onOpenPaywall={() => handleOpenPaywallModalWithReason('limit_reached')}
+                  onClearAllCache={() => {}}
+                />
+              }
+            />
+
+            {/* Fallback Catch-all Route */}
+            <RouterRoute path="*" element={<RouterNavigate to="/gundem" replace />} />
+          </RouterRoute>
+        </RouterRoutes>
+      </Router>
+    </ThemeProvider>
   );
 }

@@ -178,6 +178,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   onToggleBookmark,
   onPlayArticle,
   onSelectArticle,
+  onOpenPaywall,
   ambientChannels,
   onToggleAmbientChannel,
   onVolumeChange,
@@ -731,24 +732,23 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       {/* Pulsing Aura when Running */}
                       <div className={`absolute -inset-2 rounded-full blur-md transition-opacity ${
                         isRunning 
-                          ? sessionType === 'work' ? 'bg-[#1ed760]/40 animate-ping opacity-50' : 'bg-amber-400/40 animate-ping opacity-50'
+                          ? 'bg-orange-500/40 animate-ping opacity-50'
                           : 'opacity-0'
                       }`} />
 
                       <button
                         onClick={toggleTimer}
-                        className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-xl active:scale-95 ${
+                        className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-xl active:scale-95 cursor-pointer ${
                           isRunning
                             ? 'bg-red-500/20 border-2 border-red-500 text-red-400 hover:bg-red-500/30'
-                            : sessionType === 'work'
-                              ? 'bg-[#1ed760] text-black hover:brightness-110 shadow-[0_0_25px_rgba(30,215,96,0.35)]'
-                              : 'bg-amber-400 text-black hover:brightness-110 shadow-[0_0_25px_rgba(251,191,36,0.35)]'
+                            : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-extrabold shadow-[0_0_20px_rgba(249,115,22,0.35)] hover:shadow-[0_0_28px_rgba(249,115,22,0.55)] hover:scale-105'
                         }`}
+                        title={isRunning ? 'Zamanlayıcıyı Duraklat' : 'Zamanlayıcıyı Başlat'}
                       >
                         {isRunning ? (
-                          <Pause className="w-8 h-8 fill-current" />
+                          <Pause className="w-8 h-8 fill-current text-white" />
                         ) : (
-                          <Play className="w-8 h-8 fill-current ml-1" />
+                          <Play className="w-8 h-8 fill-current ml-1 text-white" />
                         )}
                       </button>
                     </div>
@@ -949,12 +949,12 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onToggleBookmark(article.id);
+                              onOpenPaywall('bookmark_action');
                             }}
-                            className={`p-1 rounded-lg transition-colors ${
+                            className={`p-1 rounded-lg transition-colors cursor-pointer ${
                               isSaved ? 'text-[#1ed760]' : 'text-gray-500 hover:text-gray-300'
                             }`}
-                            title={isSaved ? 'Kaydedilenlerden Çıkar' : 'Kaydet'}
+                            title="Haberleri kaydetmek için VOX iOS uygulamasını indirin"
                           >
                             <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
                           </button>

@@ -14,17 +14,28 @@ import {
   Sliders, 
   Clock, 
   ExternalLink, 
-  LogIn
+  LogIn,
+  Sun,
+  Moon,
+  Linkedin,
+  Twitter,
+  Instagram,
+  Hash,
+  MapPin,
+  Plus,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Article, UserProfile, PlaybackState } from '../types';
 import { ttsService } from '../lib/ttsService';
 import { AppStorePaywallModal } from './AppStorePaywallModal';
-import { AuthModal } from './AuthModal';
 import { AmbientMixerSheet, AmbientChannel } from './AmbientMixerSheet';
 import { AmbientNotificationBanner } from './AmbientControls';
 import { getTopicContextualImage } from '../lib/newsService';
 import { woodRainSynth } from '../lib/audioSynth';
+import { useTheme } from '../lib/ThemeContext';
+import { InfoModal, InfoModalType } from './InfoModal';
+import { VoxLogo } from './VoxLogo';
 
 interface PersistentLayoutProps {
   user: UserProfile | null;
@@ -53,11 +64,13 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const [playbackState, setPlaybackState] = useState<PlaybackState>(ttsService.getState());
   const [volume, setVolume] = useState<number>(100);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [topNotificationText, setTopNotificationText] = useState<string | null>(null);
+  const [infoModalType, setInfoModalType] = useState<InfoModalType>(null);
   const modalScrollRef = useRef<HTMLDivElement>(null);
 
   // Active ambient channels
@@ -178,7 +191,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   const activeArticle = playbackState.currentArticle;
 
   return (
-    <div className="flex min-h-screen bg-[#0a0d0b] text-gray-200 antialiased font-sans selection:bg-[#1ed760]/30">
+    <div className={`flex min-h-screen antialiased font-sans transition-colors duration-300 ${
+      theme === 'light' ? 'bg-[#f4f6f8] text-slate-900' : 'bg-[#0a0d0b] text-gray-200'
+    }`}>
       {/* Top Ambient Toast Banner */}
       <AmbientNotificationBanner
         notificationText={topNotificationText}
@@ -186,101 +201,196 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         onOpenMixer={() => setIsAmbientMixerOpen(true)}
       />
 
-      {/* LEFT SIDEBAR (Desktop Fixed w-64) - SIMPLIFIED TO 2 CORE TABS */}
-      <aside className="hidden md:flex w-64 flex-shrink-0 border-r border-white/5 bg-[#121814] flex-col justify-between h-screen fixed top-0 left-0 z-40">
-        <div className="p-6 flex flex-col gap-6">
-          <div>
+      {/* LEFT FLOATING OVAL SIDEBAR (Inspired by Bundle Web App Architecture) */}
+      <aside className="hidden md:flex w-64 lg:w-72 flex-shrink-0 flex-col justify-between h-[calc(100vh-1.5rem)] fixed top-3 left-3 z-40 bg-black rounded-[32px] border border-white/10 p-5 shadow-2xl overflow-y-auto scrollbar-none text-white select-none">
+        <div className="flex flex-col gap-4">
+          {/* LOGO & BRANDING */}
+          <div className="px-1 pt-1">
             <Link 
               to="/gundem" 
-              className="inline-block cursor-pointer group hover:opacity-85 transition-opacity" 
-              title="Ana Sayfaya Git (Haber Akışı)"
+              className="inline-flex items-center cursor-pointer group hover:opacity-90 transition-opacity" 
+              title="VOX Ana Sayfası"
             >
-              <h1 className="text-3xl font-black text-white tracking-tighter">VOX</h1>
+              <VoxLogo size="md" />
             </Link>
-            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold leading-relaxed">
-              READ LESS. LISTEN MORE. FOCUS BETTER.
-            </p>
           </div>
 
-          {/* SADECE İKİ ANA SEKME */}
-          <nav className="flex flex-col gap-2 pt-2">
+          {/* MAIN SECTION NAVIGATION */}
+          <nav className="flex flex-col gap-1.5 pt-1">
+            {/* GÜNDEM */}
             <NavLink
               to="/gundem"
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${
+                `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
                   isActive || location.pathname === '/' || location.pathname === '/teknoloji' || location.pathname === '/ekonomi'
-                    ? 'bg-[#1ed760]/15 text-[#1ed760] border border-[#1ed760]/30 shadow-[0_0_15px_rgba(30,215,96,0.12)]'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                    ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`
               }
             >
-              <Newspaper className="w-5 h-5 text-[#1ed760]" />
-              <span>📰 Haber Akışı</span>
+              <div className="flex items-center gap-2">
+                <Newspaper className="w-4 h-4 text-[#10b981]" />
+                <span>GÜNDEM</span>
+              </div>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
             </NavLink>
 
+            {/* ODAKLAN */}
             <NavLink
               to="/odaklan"
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${
+                `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
                   isActive
-                    ? 'bg-[#1ed760]/15 text-[#1ed760] border border-[#1ed760]/30 shadow-[0_0_15px_rgba(30,215,96,0.12)]'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                    ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`
               }
             >
-              <Target className="w-5 h-5 text-[#1ed760]" />
-              <span>🎯 Odaklan</span>
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-[#10b981]" />
+                <span>ODAKLAN</span>
+              </div>
             </NavLink>
           </nav>
+
+          {/* MOBILE APP DOWNLOAD PROMPT (YAKINDA) */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                <span>📱</span>
+                <span>Mobil Uygulama</span>
+              </span>
+              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm">
+                Yakında!
+              </span>
+            </div>
+            <p className="text-[10px] text-gray-400 leading-snug">
+              iOS App Store & Google Play'de çok yakında sizlerle!
+            </p>
+          </div>
         </div>
 
-        {/* Sidebar Footer User Card */}
-        <div className="p-4 border-t border-white/5">
-          {user && user.authProvider !== 'guest' && user.email !== 'misafir@vox.app' ? (
-            <NavLink
-              to="/profil"
-              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#1ed760]/20 border border-[#1ed760]/40 flex items-center justify-center text-[#1ed760] font-bold shrink-0">
-                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold text-white truncate group-hover:text-[#1ed760] transition-colors">
-                  {user?.displayName || 'VOX Kullanıcısı'}
-                </span>
-                <span className="text-[10px] text-[#1ed760] font-semibold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse"></span>
-                  Web Pro Sürümü
-                </span>
-              </div>
-            </NavLink>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <NavLink
-                to="/profil"
-                className="flex items-center gap-2.5 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors"
-              >
-                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-gray-400 font-bold shrink-0 text-xs">
-                  M
+        {/* BOTTOM SECTION: VOX PREMIUM LEAD MAGNET, THEME TOGGLE, SOCIAL, INFO LINKS & POWERED BY GOOGLE AI STUDIO */}
+        <div className="flex flex-col gap-3 pt-3 border-t border-white/10">
+          {/* VOX PREMIUM LEAD MAGNET PROFILE AREA */}
+          <button
+            onClick={() => onOpenPaywall('limit_reached')}
+            className="flex items-center justify-between w-full p-3 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-[#121814] border border-emerald-500/30 hover:border-emerald-500/60 text-left transition-all group shadow-md cursor-pointer hover:scale-[1.02] active:scale-95"
+            title="VOX iOS Uygulamasını İndirin"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shrink-0 shadow-sm">
+                <div className="w-full h-full bg-black rounded-[10px] flex items-center justify-center text-emerald-400">
+                  <Sparkles className="w-4 h-4 fill-emerald-400" />
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-gray-300 truncate">Misafir Kullanıcı</span>
-                  <span className="text-[10px] text-gray-500">Kayıtsız Kullanıcı</span>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black text-white tracking-wide">VOX Premium</span>
+                  <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">PRO</span>
                 </div>
-              </NavLink>
-              <button
-                onClick={() => subscription.setIsAuthModalOpen(true)}
-                className="w-full py-2 px-3 rounded-xl bg-[#1ed760]/15 hover:bg-[#1ed760]/25 text-[#1ed760] border border-[#1ed760]/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-[0_0_12px_rgba(30,215,96,0.1)]"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Giriş Yap</span>
-              </button>
+                <p className="text-[10px] text-gray-400 truncate">Sınırsız Sesli Deneyim</p>
+              </div>
             </div>
-          )}
+            <ChevronRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </button>
+
+          {/* THEME TOGGLE (AÇIK / KOYU SWITCH AS SEEN IN BUNDLE) */}
+          <div className="flex items-center justify-between py-1 px-1">
+            <div className="flex items-center gap-2 text-xs font-extrabold text-gray-200">
+              {theme === 'light' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-gray-400" />
+              )}
+              <span className="tracking-wider">{theme === 'light' ? 'AÇIK' : 'KOYU'}</span>
+            </div>
+            <button
+              onClick={toggleTheme}
+              className={`w-12 h-6 rounded-full p-0.5 flex items-center transition-all cursor-pointer ${
+                theme === 'light' ? 'bg-[#3b82f6] justify-end' : 'bg-white/20 justify-start'
+              }`}
+              title="Açık/Koyu Tema Değiştir"
+            >
+              <motion.div
+                layout
+                className="w-5 h-5 rounded-full bg-white shadow-md"
+              />
+            </button>
+          </div>
+
+          {/* SOCIAL MEDIA ICONS ROW (/voxozet) */}
+          <div className="flex items-center justify-between px-1 text-gray-400">
+            <a 
+              href="https://threads.net/@voxozet" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"
+              title="Threads (@voxozet)"
+            >
+              <Hash className="w-4 h-4" />
+            </a>
+            <a 
+              href="https://linkedin.com/company/voxozet" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"
+              title="LinkedIn (/voxozet)"
+            >
+              <Linkedin className="w-4 h-4" />
+            </a>
+            <a 
+              href="https://x.com/voxozet" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"
+              title="Twitter (X) (/voxozet)"
+            >
+              <Twitter className="w-4 h-4" />
+            </a>
+            <a 
+              href="https://instagram.com/voxozet" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"
+              title="Instagram (@voxozet)"
+            >
+              <Instagram className="w-4 h-4" />
+            </a>
+          </div>
+
+          {/* INFORMATIONAL LINKS (Hakkımızda, Gizlilik, Künye vs.) */}
+          <div className="space-y-1 text-[11px] text-gray-400 px-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+              <button onClick={() => setInfoModalType('ads')} className="hover:text-white transition-colors cursor-pointer">Reklam</button>
+              <button onClick={() => setInfoModalType('about')} className="hover:text-white transition-colors cursor-pointer">Hakkımızda</button>
+              <button onClick={() => setInfoModalType('contact')} className="hover:text-white transition-colors cursor-pointer">İletişim</button>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+              <button onClick={() => setInfoModalType('terms')} className="hover:text-white transition-colors cursor-pointer">Kullanım Koşulları</button>
+              <button onClick={() => setInfoModalType('privacy')} className="hover:text-white transition-colors cursor-pointer">Gizlilik Politikası</button>
+            </div>
+            <div>
+              <button onClick={() => setInfoModalType('impressum')} className="hover:text-white transition-colors cursor-pointer">Künye</button>
+            </div>
+          </div>
+
+          {/* POWERED BY GOOGLE AI STUDIO */}
+          <div className="flex items-center justify-between text-[10px] text-gray-500 font-mono pt-1 border-t border-white/10">
+            <span>© 2026 VOX</span>
+            <span className="text-gray-700">|</span>
+            <span className="flex items-center gap-1 text-gray-300 font-medium">
+              Powered by
+              <span className="text-white font-black inline-flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded">
+                <Sparkles className="w-3 h-3 text-[#4285F4] animate-pulse" />
+                Google AI Studio
+              </span>
+            </span>
+          </div>
         </div>
       </aside>
 
-      {/* MOBILE BOTTOM NAVIGATION BAR (2 Primary Tabs) */}
+      {/* MOBILE BOTTOM NAVIGATION BAR */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#121814]/95 backdrop-blur-xl border-t border-white/10 px-4 py-2.5 flex items-center justify-around text-xs">
         <NavLink
           to="/gundem"
@@ -305,15 +415,35 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           <Target className="w-5 h-5" />
           <span className="text-[11px]">Odaklan</span>
         </NavLink>
+
+        <button
+          onClick={toggleTheme}
+          className="flex flex-col items-center gap-1 py-1 px-4 rounded-xl text-gray-400 hover:text-white"
+        >
+          {theme === 'light' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-gray-400" />}
+          <span className="text-[11px]">{theme === 'light' ? 'Açık' : 'Koyu'}</span>
+        </button>
       </nav>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 ml-0 md:ml-64 pb-28 min-h-screen overflow-y-auto">
+      <main className={`flex-1 ml-0 md:ml-72 lg:ml-80 pb-28 min-h-screen overflow-y-auto transition-colors duration-300 ${
+        theme === 'light' ? 'bg-[#f4f6f8] text-slate-900' : 'bg-[#0a0d0b] text-gray-200'
+      }`}>
         <Outlet />
       </main>
 
+      {/* INFORMATIONAL POPUP MODAL */}
+      <InfoModal
+        type={infoModalType}
+        onClose={() => setInfoModalType(null)}
+      />
+
       {/* PERSISTENT BOTTOM AUDIO PLAYER (Fixed across all route changes) */}
-      <div className="fixed bottom-0 left-0 md:left-64 right-0 h-20 bg-[#121814]/95 backdrop-blur-xl border-t border-white/5 z-40 flex items-center justify-between px-4 md:px-8 shadow-2xl">
+      <div className={`fixed bottom-0 left-0 md:left-72 lg:left-80 right-0 h-20 backdrop-blur-xl border-t z-40 flex items-center justify-between px-4 md:px-8 shadow-2xl transition-colors duration-300 ${
+        theme === 'light'
+          ? 'bg-white/95 border-slate-200 text-slate-900'
+          : 'bg-[#121814]/95 border-white/5 text-gray-200'
+      }`}>
         {/* Track / Soundscape Info */}
         <div className="flex items-center gap-3 w-1/3 min-w-0">
           {activeArticle ? (
@@ -335,11 +465,15 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 </span>
                 <h4 
                   onClick={() => setReadingArticle(activeArticle)}
-                  className="text-xs font-bold text-white truncate cursor-pointer hover:text-[#1ed760] transition-colors"
+                  className={`text-xs font-bold truncate cursor-pointer hover:text-[#1ed760] transition-colors ${
+                    theme === 'light' ? 'text-slate-900' : 'text-white'
+                  }`}
                 >
                   {activeArticle.title}
                 </h4>
-                <p className="text-[10px] text-gray-400 truncate">{activeArticle.author || 'VOX Stüdyo'}</p>
+                <p className={`text-[10px] truncate ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                  {activeArticle.author || 'VOX Stüdyo'}
+                </p>
               </div>
             </>
           ) : isAmbientActive ? (
@@ -360,18 +494,28 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse"></span>
                   🌿 AMBİYANS SESLERİ
                 </span>
-                <h4 className="text-xs font-bold text-white truncate">{getAmbientDisplayTitle()}</h4>
-                <p className="text-[10px] text-gray-400">Arka planda kesintisiz çalıyor</p>
+                <h4 className={`text-xs font-bold truncate ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                  {getAmbientDisplayTitle()}
+                </h4>
+                <p className={`text-[10px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                  Arka planda kesintisiz çalıyor
+                </p>
               </div>
             </>
           ) : (
             <div className="flex items-center gap-3 text-gray-500">
-              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                <Headphones className="w-5 h-5 text-gray-600" />
+              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${
+                theme === 'light' ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white/5 border-white/10 text-gray-600'
+              }`}>
+                <Headphones className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs font-medium text-gray-400">Herhangi bir ses oynatılmıyor</h4>
-                <p className="text-[10px] text-gray-600">Odaklan sekmesinden bir ambiyans sesi seçin</p>
+                <h4 className={`text-xs font-medium ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>
+                  Herhangi bir ses oynatılmıyor
+                </h4>
+                <p className={`text-[10px] ${theme === 'light' ? 'text-slate-400' : 'text-gray-600'}`}>
+                  Odaklan sekmesinden bir ambiyans sesi seçin
+                </p>
               </div>
             </div>
           )}
@@ -383,7 +527,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             <button
               onClick={() => activeArticle && ttsService.seek(Math.max(0, playbackState.currentTime - 15))}
               disabled={!activeArticle}
-              className="text-gray-400 hover:text-white disabled:opacity-30 transition-colors p-1"
+              className={`disabled:opacity-30 transition-colors p-1 ${
+                theme === 'light' ? 'text-slate-400 hover:text-slate-800' : 'text-gray-400 hover:text-white'
+              }`}
               title="15 saniye geri sar"
             >
               <RotateCcw className="w-4 h-4" />
@@ -392,7 +538,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             <button
               onClick={handleTogglePlay}
               disabled={!activeArticle && !isAmbientActive}
-              className="w-10 h-10 rounded-full bg-[#1ed760] text-black font-bold flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(30,215,96,0.3)] disabled:opacity-40"
+              className="w-10 h-10 rounded-full bg-[#1ed760] text-black font-bold flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(30,215,96,0.3)] disabled:opacity-40 cursor-pointer"
               title={
                 activeArticle
                   ? (playbackState.isPlaying ? 'Duraklat' : 'Oynat')
@@ -409,7 +555,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             <button
               onClick={() => activeArticle && ttsService.seek(Math.min(playbackState.duration, playbackState.currentTime + 15))}
               disabled={!activeArticle}
-              className="text-gray-400 hover:text-white disabled:opacity-30 transition-colors p-1"
+              className={`disabled:opacity-30 transition-colors p-1 ${
+                theme === 'light' ? 'text-slate-400 hover:text-slate-800' : 'text-gray-400 hover:text-white'
+              }`}
               title="15 saniye ileri sar"
             >
               <RotateCcw className="w-4 h-4 scale-x-[-1]" />
@@ -417,7 +565,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           </div>
 
           {/* Time & Seek Bar */}
-          <div className="w-full flex items-center gap-2 text-[10px] font-mono text-gray-400">
+          <div className={`w-full flex items-center gap-2 text-[10px] font-mono ${
+            theme === 'light' ? 'text-slate-400' : 'text-gray-400'
+          }`}>
             <span>{formatTime(playbackState.currentTime)}</span>
             <div className="flex-1 relative flex items-center">
               <input
@@ -427,7 +577,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 value={playbackState.currentTime || 0}
                 onChange={handleSeek}
                 disabled={!activeArticle}
-                className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#1ed760] disabled:cursor-not-allowed"
+                className={`w-full h-1 rounded-lg appearance-none cursor-pointer accent-[#1ed760] disabled:cursor-not-allowed ${
+                  theme === 'light' ? 'bg-slate-200' : 'bg-white/10'
+                }`}
               />
             </div>
             <span>{formatTime(playbackState.duration)}</span>
@@ -437,7 +589,10 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         {/* Right Volume Control */}
         <div className="flex items-center justify-end gap-3 w-1/3">
           <div className="flex items-center gap-2">
-            <button onClick={toggleMute} className="text-gray-400 hover:text-white transition-colors">
+            <button 
+              onClick={toggleMute} 
+              className={`transition-colors ${theme === 'light' ? 'text-slate-500 hover:text-slate-800' : 'text-gray-400 hover:text-white'}`}
+            >
               {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
             </button>
             <input
@@ -446,7 +601,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               max={100}
               value={isMuted ? 0 : volume}
               onChange={handleVolumeChange}
-              className="w-20 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#1ed760]"
+              className={`w-20 h-1 rounded-lg appearance-none cursor-pointer accent-[#1ed760] ${
+                theme === 'light' ? 'bg-slate-200' : 'bg-white/10'
+              }`}
             />
           </div>
         </div>
@@ -612,14 +769,6 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         isOpen={subscription.isPaywallOpen}
         onClose={() => subscription.setIsPaywallOpen(false)}
         reason={subscription.paywallReason || 'limit_reached'}
-      />
-
-      {/* Auth Modal for Guest Limits */}
-      <AuthModal
-        isOpen={subscription.isAuthModalOpen}
-        onClose={() => subscription.setIsAuthModalOpen(false)}
-        onAuthSuccess={() => {}}
-        reason="guest_limit"
       />
 
       {/* Ambient Mixer Sheet */}
