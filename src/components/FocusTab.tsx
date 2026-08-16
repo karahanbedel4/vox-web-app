@@ -39,6 +39,7 @@ import { AmbientChannel } from './AmbientMixerSheet';
 import { fetchNewsByCategory } from '../lib/newsService';
 import { appStorage } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
+import { NativeAdCard } from './NativeAdCard';
 
 interface FocusTabProps {
   articles: Article[];
@@ -1318,112 +1319,117 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
           {/* Vertical News Cards Stream */}
           <div className="space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-[#1ed760]/30">
-            {displayArticles.map((article) => {
+            {displayArticles.map((article, index) => {
               const isSaved = bookmarkedIds.includes(article.id);
               const readDurationMin = Math.max(1, Math.floor((article.durationSeconds || 180) / 60));
+              const showAd = (index + 1) % 4 === 0;
 
               return (
-                <div
-                  key={article.id}
-                  className={`border rounded-2xl p-3.5 flex gap-3.5 transition-all shadow-sm group ${
-                    theme === 'light'
-                      ? 'bg-white border-slate-200 hover:border-[#1ed760]/50 hover:bg-slate-50/80'
-                      : 'bg-[#121814] border-white/5 hover:bg-[#161f19] hover:border-[#1ed760]/30'
-                  }`}
-                >
-                  {/* Left: News Thumbnail */}
-                  <div 
-                    onClick={() => onSelectArticle(article)}
-                    className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-white/5 cursor-pointer"
+                <React.Fragment key={article.id}>
+                  <div
+                    className={`border rounded-2xl p-3.5 flex gap-3.5 transition-all shadow-sm group ${
+                      theme === 'light'
+                        ? 'bg-white border-slate-200 hover:border-[#1ed760]/50 hover:bg-slate-50/80'
+                        : 'bg-[#121814] border-white/5 hover:bg-[#161f19] hover:border-[#1ed760]/30'
+                    }`}
                   >
-                    <img
-                      src={article.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=400&auto=format&fit=crop&q=80'}
-                      alt={article.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=400&auto=format&fit=crop&q=80';
-                      }}
-                    />
-                    
-                    <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[10px] font-mono font-bold text-emerald-400">
-                      {readDurationMin}m
-                    </span>
-                  </div>
-
-                  {/* Right: Details & Actions */}
-                  <div className="flex-1 flex flex-col justify-between min-w-0">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-[#1ed760] uppercase tracking-wider">
-                          {article.category || 'GÜNDEM'}
-                        </span>
-
-                        {onToggleBookmark && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenPaywall('bookmark_action');
-                            }}
-                            className={`p-1 rounded-lg transition-colors cursor-pointer ${
-                              isSaved ? 'text-[#1ed760]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                            }`}
-                            title="Haberleri kaydetmek için VOX iOS uygulamasını indirin"
-                          >
-                            <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-                          </button>
-                        )}
-                      </div>
-
-                      <h3
-                        onClick={() => onSelectArticle(article)}
-                        className={`font-bold text-xs sm:text-sm group-hover:text-[#1ed760] line-clamp-2 leading-snug cursor-pointer transition-colors ${
-                          theme === 'light' ? 'text-slate-900' : 'text-white'
-                        }`}
-                      >
-                        {article.title}
-                      </h3>
-
-                      <p className={`text-[11px] line-clamp-1 leading-relaxed ${
-                        theme === 'light' ? 'text-slate-600' : 'text-gray-400'
-                      }`}>
-                        {article.summary}
-                      </p>
+                    {/* Left: News Thumbnail */}
+                    <div 
+                      onClick={() => onSelectArticle(article)}
+                      className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-white/5 cursor-pointer"
+                    >
+                      <img
+                        src={article.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=400&auto=format&fit=crop&q=80'}
+                        alt={article.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=400&auto=format&fit=crop&q=80';
+                        }}
+                      />
+                      
+                      <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[10px] font-mono font-bold text-emerald-400">
+                        {readDurationMin}m
+                      </span>
                     </div>
 
-                    <div className={`flex items-center justify-between gap-2 pt-2 border-t mt-1 ${
-                      theme === 'light' ? 'border-slate-100' : 'border-white/5'
-                    }`}>
-                      <span className={`text-[10px] font-medium truncate max-w-[130px] sm:max-w-[160px] flex items-center gap-1 ${
-                        theme === 'light' ? 'text-slate-500' : 'text-gray-400'
-                      }`}>
-                        {article.sourceType === 'twitter' ? (
-                          <>
-                            <span className="text-[#1ed760] font-extrabold text-[11px]">𝕏</span>
-                            <span className={`font-semibold truncate ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
-                              {article.author || 'Özet Geç Haber'}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="truncate">{article.author || 'Anadolu Ajansı'}</span>
-                        )}
-                      </span>
+                    {/* Right: Details & Actions */}
+                    <div className="flex-1 flex flex-col justify-between min-w-0">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-[#1ed760] uppercase tracking-wider">
+                            {article.category || 'GÜNDEM'}
+                          </span>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
+                          {onToggleBookmark && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenPaywall('bookmark_action');
+                              }}
+                              className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                                isSaved ? 'text-[#1ed760]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                              }`}
+                              title="Haberleri kaydetmek için VOX iOS uygulamasını indirin"
+                            >
+                              <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                            </button>
+                          )}
+                        </div>
+
+                        <h3
                           onClick={() => onSelectArticle(article)}
-                          className={`py-1 px-3 border rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
-                            theme === 'light'
-                              ? 'bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200 hover:border-emerald-300'
-                              : 'bg-white/5 hover:bg-[#1ed760]/15 text-gray-300 hover:text-[#1ed760] border-white/10 hover:border-[#1ed760]/30'
+                          className={`font-bold text-xs sm:text-sm group-hover:text-[#1ed760] line-clamp-2 leading-snug cursor-pointer transition-colors ${
+                            theme === 'light' ? 'text-slate-900' : 'text-white'
                           }`}
                         >
-                          <BookOpen className="w-3.5 h-3.5 text-[#1ed760]" />
-                          <span>Metni Oku</span>
-                        </button>
+                          {article.title}
+                        </h3>
+
+                        <p className={`text-[11px] line-clamp-1 leading-relaxed ${
+                          theme === 'light' ? 'text-slate-600' : 'text-gray-400'
+                        }`}>
+                          {article.summary}
+                        </p>
+                      </div>
+
+                      <div className={`flex items-center justify-between gap-2 pt-2 border-t mt-1 ${
+                        theme === 'light' ? 'border-slate-100' : 'border-white/5'
+                      }`}>
+                        <span className={`text-[10px] font-medium truncate max-w-[130px] sm:max-w-[160px] flex items-center gap-1 ${
+                          theme === 'light' ? 'text-slate-500' : 'text-gray-400'
+                        }`}>
+                          {article.sourceType === 'twitter' ? (
+                            <>
+                              <span className="text-[#1ed760] font-extrabold text-[11px]">𝕏</span>
+                              <span className={`font-semibold truncate ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
+                                {article.author || 'Özet Geç Haber'}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="truncate">{article.author || 'Anadolu Ajansı'}</span>
+                          )}
+                        </span>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => onSelectArticle(article)}
+                            className={`py-1 px-3 border rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
+                              theme === 'light'
+                                ? 'bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200 hover:border-emerald-300'
+                                : 'bg-white/5 hover:bg-[#1ed760]/15 text-gray-300 hover:text-[#1ed760] border-white/10 hover:border-[#1ed760]/30'
+                            }`}
+                          >
+                            <BookOpen className="w-3.5 h-3.5 text-[#1ed760]" />
+                            <span>Metni Oku</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+
+                  {/* In-Feed Native Ad every 5 articles */}
+                  {showAd && <NativeAdCard key={`ad-focus-${article.id}-${index}`} variant="sidebar" />}
+                </React.Fragment>
               );
             })}
           </div>

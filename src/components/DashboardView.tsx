@@ -7,6 +7,7 @@ import { cacheTop3Articles } from '../lib/offlineService';
 import { useTheme } from '../lib/ThemeContext';
 import { VoxLogo } from './VoxLogo';
 import { XLogoIcon } from './XLogoIcon';
+import { NativeAdCard } from './NativeAdCard';
 
 export type CategoryType = 'Tümü' | 'Gündem' | 'Ekonomi' | 'Teknoloji' | 'Spor' | 'Dünya' | 'Sağlık';
 
@@ -316,129 +317,135 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       ) : (
         /* NEWS LIST VIEW */
         <div className="space-y-4">
-          {displayList.map(article => {
+          {displayList.map((article, index) => {
             const isBookmarked = bookmarkedIds.includes(article.id);
-            return (
-              <div
-                key={article.id}
-                className={`p-4 md:p-5 rounded-2xl flex flex-col md:flex-row gap-4 md:items-center justify-between transition-all group ${
-                  theme === 'light'
-                    ? 'bg-white border border-slate-200 hover:border-[#1ed760]/60 shadow-sm hover:shadow-md'
-                    : 'bg-[#161c23] border border-white/5 hover:border-[#1ed760]/30 shadow-sm hover:shadow-[0_0_20px_rgba(30,215,96,0.06)]'
-                }`}
-              >
-                {/* Thumbnail Image */}
-                <div
-                  onClick={() => onSelectArticle(article)}
-                  className="relative w-full md:w-32 h-36 md:h-28 rounded-xl overflow-hidden shrink-0 bg-[#0e1410] border border-white/5 cursor-pointer group-hover:scale-[1.02] transition-transform"
-                >
-                  <img
-                    src={sanitizeImageUrl(article.imageUrl) || getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
-                    alt={article.title}
-                    className="w-full h-full object-cover opacity-95 transition-opacity duration-300"
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
-                      if (target.src !== fallback) {
-                        target.src = fallback;
-                      }
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-                  {article.sourceType === 'twitter' && (
-                    <span className="absolute top-2 right-2 text-[10px] font-black text-white bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/15 shadow-sm">
-                      <XLogoIcon className="w-2.5 h-2.5 text-[#1ed760]" />
-                      <span>𝕏</span>
-                    </span>
-                  )}
-                  <span className="absolute bottom-2 left-2 text-[10px] font-mono text-[#1ed760] bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded font-bold border border-[#1ed760]/20">
-                    {Math.floor((article.durationSeconds || 90) / 60)} dk
-                  </span>
-                </div>
+            const showAd = (index + 1) % 4 === 0;
 
-                {/* News Details */}
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
-                        article.sourceType === 'twitter'
-                          ? 'text-[#1ed760] bg-[#1ed760]/10 border-[#1ed760]/30'
-                          : 'text-[#1ed760] bg-[#1ed760]/10 border-[#1ed760]/20'
-                      }`}>
-                        {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : (article.category || activeCategory)}
+            return (
+              <React.Fragment key={article.id}>
+                <div
+                  className={`p-4 md:p-5 rounded-2xl flex flex-col md:flex-row gap-4 md:items-center justify-between transition-all group ${
+                    theme === 'light'
+                      ? 'bg-white border border-slate-200 hover:border-[#1ed760]/60 shadow-sm hover:shadow-md'
+                      : 'bg-[#161c23] border border-white/5 hover:border-[#1ed760]/30 shadow-sm hover:shadow-[0_0_20px_rgba(30,215,96,0.06)]'
+                  }`}
+                >
+                  {/* Thumbnail Image */}
+                  <div
+                    onClick={() => onSelectArticle(article)}
+                    className="relative w-full md:w-32 h-36 md:h-28 rounded-xl overflow-hidden shrink-0 bg-[#0e1410] border border-white/5 cursor-pointer group-hover:scale-[1.02] transition-transform"
+                  >
+                    <img
+                      src={sanitizeImageUrl(article.imageUrl) || getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
+                      alt={article.title}
+                      className="w-full h-full object-cover opacity-95 transition-opacity duration-300"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                        if (target.src !== fallback) {
+                          target.src = fallback;
+                        }
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                    {article.sourceType === 'twitter' && (
+                      <span className="absolute top-2 right-2 text-[10px] font-black text-white bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/15 shadow-sm">
+                        <XLogoIcon className="w-2.5 h-2.5 text-[#1ed760]" />
+                        <span>𝕏</span>
                       </span>
-                      {article.sourceType === 'twitter' ? (
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                          theme === 'light' ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white/5 border-white/10 text-emerald-300'
+                    )}
+                    <span className="absolute bottom-2 left-2 text-[10px] font-mono text-[#1ed760] bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded font-bold border border-[#1ed760]/20">
+                      {Math.floor((article.durationSeconds || 90) / 60)} dk
+                    </span>
+                  </div>
+
+                  {/* News Details */}
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
+                          article.sourceType === 'twitter'
+                            ? 'text-[#1ed760] bg-[#1ed760]/10 border-[#1ed760]/30'
+                            : 'text-[#1ed760] bg-[#1ed760]/10 border-[#1ed760]/20'
                         }`}>
-                          <XLogoIcon className="w-3 h-3 text-[#1ed760]" />
-                          <span>{formatTwitterAuthor(article.author)}</span>
+                          {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : (article.category || activeCategory)}
                         </span>
-                      ) : (
-                        <span className={`text-xs font-mono ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                          {article.author || 'Anadolu Ajansı'}
-                        </span>
-                      )}
+                        {article.sourceType === 'twitter' ? (
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                            theme === 'light' ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white/5 border-white/10 text-emerald-300'
+                          }`}>
+                            <XLogoIcon className="w-3 h-3 text-[#1ed760]" />
+                            <span>{formatTwitterAuthor(article.author)}</span>
+                          </span>
+                        ) : (
+                          <span className={`text-xs font-mono ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                            {article.author || 'Anadolu Ajansı'}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => onOpenPaywall('bookmark_action')}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                          isBookmarked 
+                            ? 'text-[#1ed760] bg-[#1ed760]/10' 
+                            : theme === 'light' ? 'text-slate-400 hover:text-slate-700' : 'text-gray-500 hover:text-gray-300'
+                        }`}
+                        title="Haberleri kaydetmek için VOX iOS uygulamasını indirin"
+                      >
+                        <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-[#1ed760]' : ''}`} />
+                      </button>
                     </div>
 
-                    <button
-                      onClick={() => onOpenPaywall('bookmark_action')}
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                        isBookmarked 
-                          ? 'text-[#1ed760] bg-[#1ed760]/10' 
-                          : theme === 'light' ? 'text-slate-400 hover:text-slate-700' : 'text-gray-500 hover:text-gray-300'
-                      }`}
-                      title="Haberleri kaydetmek için VOX iOS uygulamasını indirin"
-                    >
-                      <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-[#1ed760]' : ''}`} />
-                    </button>
-                  </div>
-
-                  <h3
-                    onClick={() => onSelectArticle(article)}
-                    className={`font-display text-base md:text-lg font-bold group-hover:text-[#1ed760] transition-colors cursor-pointer leading-snug ${
-                      theme === 'light' ? 'text-slate-900' : 'text-white'
-                    }`}
-                  >
-                    {article.title}
-                  </h3>
-
-                  {/* Strictly constrained to 1 line summary */}
-                  <p className={`text-xs line-clamp-1 leading-relaxed ${
-                    theme === 'light' ? 'text-slate-600' : 'text-gray-400'
-                  }`}>
-                    {article.summary}
-                  </p>
-
-                  {/* Buttons Row */}
-                  <div className={`pt-2 flex flex-wrap items-center justify-between gap-3 border-t ${
-                    theme === 'light' ? 'border-slate-100' : 'border-white/5'
-                  }`}>
-                    {/* Read Text Button -> Opens Centered Modal */}
-                    <button
+                    <h3
                       onClick={() => onSelectArticle(article)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                        theme === 'light'
-                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
-                          : 'bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10'
+                      className={`font-display text-base md:text-lg font-bold group-hover:text-[#1ed760] transition-colors cursor-pointer leading-snug ${
+                        theme === 'light' ? 'text-slate-900' : 'text-white'
                       }`}
                     >
-                      <BookOpen className="w-3.5 h-3.5 text-[#1ed760]" />
-                      <span>Metni Oku</span>
-                    </button>
+                      {article.title}
+                    </h3>
 
-                    {/* HIGH-ENERGY CTA BUTTON -> Opens App Store Marketing Modal */}
-                    <button
-                      onClick={() => onOpenPaywall('limit_reached')}
-                      className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(249,115,22,0.3)] hover:shadow-[0_0_20px_rgba(249,115,22,0.45)] active:scale-95 cursor-pointer"
-                      title="Sesli dinlemek için iOS uygulamasını indirin"
-                    >
-                      <span> Uygulamada Dinle</span>
-                      <Lock className="w-3 h-3 text-white" />
-                    </button>
+                    {/* Strictly constrained to 1 line summary */}
+                    <p className={`text-xs line-clamp-1 leading-relaxed ${
+                      theme === 'light' ? 'text-slate-600' : 'text-gray-400'
+                    }`}>
+                      {article.summary}
+                    </p>
+
+                    {/* Buttons Row */}
+                    <div className={`pt-2 flex flex-wrap items-center justify-between gap-3 border-t ${
+                      theme === 'light' ? 'border-slate-100' : 'border-white/5'
+                    }`}>
+                      {/* Read Text Button -> Opens Centered Modal */}
+                      <button
+                        onClick={() => onSelectArticle(article)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                          theme === 'light'
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
+                            : 'bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10'
+                        }`}
+                      >
+                        <BookOpen className="w-3.5 h-3.5 text-[#1ed760]" />
+                        <span>Metni Oku</span>
+                      </button>
+
+                      {/* HIGH-ENERGY CTA BUTTON -> Opens App Store Marketing Modal */}
+                      <button
+                        onClick={() => onOpenPaywall('limit_reached')}
+                        className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(249,115,22,0.3)] hover:shadow-[0_0_20px_rgba(249,115,22,0.45)] active:scale-95 cursor-pointer"
+                        title="Sesli dinlemek için iOS uygulamasını indirin"
+                      >
+                        <span> Uygulamada Dinle</span>
+                        <Lock className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+
+                {/* In-Feed Native Ad every 5 articles */}
+                {showAd && <NativeAdCard key={`ad-feed-${article.id}-${index}`} variant="feed" />}
+              </React.Fragment>
             );
           })}
         </div>
