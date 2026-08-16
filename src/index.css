@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Geist', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --color-primary: var(--color-primary);
+  --color-on-primary: var(--color-on-primary);
+  --color-surface: var(--color-surface);
+  --color-surface-container: var(--color-surface-container);
+  --color-surface-container-high: var(--color-surface-container-high);
+  --color-surface-variant: var(--color-surface-variant);
+  --color-on-surface: var(--color-on-surface);
+  --color-on-surface-variant: var(--color-on-surface-variant);
+  --color-card-border: var(--color-card-border);
+  --color-card-bg: var(--color-card-bg);
+  --color-input-bg: var(--color-input-bg);
+  --color-input-border: var(--color-input-border);
+  --color-subcard-bg: var(--color-subcard-bg);
+  --color-pill-bg: var(--color-pill-bg);
+}
+
+:root {
+  --color-primary: #1ed760;
+  --color-on-primary: #05180c;
+  --color-surface: #0a0d0b;
+  --color-surface-container: #121814;
+  --color-surface-container-high: #1a221d;
+  --color-surface-variant: #222e27;
+  --color-on-surface: #f3f5f4;
+  --color-on-surface-variant: #9aa8a0;
+  --color-card-border: rgba(255, 255, 255, 0.08);
+  --color-card-bg: #121814;
+  --color-input-bg: rgba(0, 0, 0, 0.5);
+  --color-input-border: rgba(255, 255, 255, 0.12);
+  --color-subcard-bg: rgba(7, 12, 9, 0.6);
+  --color-pill-bg: rgba(18, 24, 20, 0.8);
+
+  /* Safe Area Inset Variables for Native iOS / Android */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+html.light, body.light, .light {
+  --color-primary: #059669;
+  --color-on-primary: #ffffff;
+  --color-surface: #f8fafc;
+  --color-surface-container: #ffffff;
+  --color-surface-container-high: #f1f5f9;
+  --color-surface-variant: #f1f5f9;
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #475569;
+  --color-card-border: #e2e8f0;
+  --color-card-bg: #ffffff;
+  --color-input-bg: #ffffff;
+  --color-input-border: #cbd5e1;
+  --color-subcard-bg: #f8fafc;
+  --color-pill-bg: #e2e8f0;
+}
+
+.vox-logo-text {
+  color: #ffffff;
+}
+
+html.light .vox-logo-text, body.light .vox-logo-text, .light .vox-logo-text {
+  color: #0f172a;
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .font-sans {
+    font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  /* iOS / Android Safe Area Utilities */
+  .pt-safe {
+    padding-top: max(16px, env(safe-area-inset-top, 16px));
+  }
+  .pb-safe {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  }
+  .pl-safe {
+    padding-left: max(16px, env(safe-area-inset-left, 16px));
+  }
+  .pr-safe {
+    padding-right: max(16px, env(safe-area-inset-right, 16px));
+  }
+  .mt-safe {
+    margin-top: env(safe-area-inset-top, 0px);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Global Native App Feel Rules */
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
+}
+
+html, body {
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* Modern, bold headings with tight letter spacing */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+/* Typography styles for parsed news HTML in Drawer */
+.news-prose {
+  color: #d1d5db;
+  font-size: 0.875rem;
+  line-height: 1.625;
+}
+.news-prose p {
+  margin-bottom: 0.75rem;
+}
+.news-prose ol, .news-prose ul {
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-left: 1.25rem;
+}
+.news-prose ol {
+  list-style-type: decimal;
+}
+.news-prose ul {
+  list-style-type: disc;
+}
+.news-prose li {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+.news-prose a {
+  color: #1ed760;
+  text-decoration: underline;
+}
+
+/* Allow text selection specifically for content reading and inputs */
+input, textarea, [contenteditable="true"], .selectable-text, article p, article h1, article h2, article h3 {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Custom scrollbars hidden for clean native app look */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Equalizer Bars Animation */
+@keyframes eqBar1 {
+  0%, 100% { height: 25%; }
+  50% { height: 100%; }
+}
+@keyframes eqBar2 {
+  0%, 100% { height: 80%; }
+  50% { height: 25%; }
+}
+@keyframes eqBar3 {
+  0%, 100% { height: 40%; }
+  50% { height: 95%; }
+}
+@keyframes eqBar4 {
+  0%, 100% { height: 85%; }
+  50% { height: 35%; }
+}
+
+.animate-eq-1 { animation: eqBar1 0.75s ease-in-out infinite; }
+.animate-eq-2 { animation: eqBar2 0.55s ease-in-out infinite; }
+.animate-eq-3 { animation: eqBar3 0.85s ease-in-out infinite; }
+.animate-eq-4 { animation: eqBar4 0.65s ease-in-out infinite; }
+
+
+

@@ -1,0 +1,12 @@
+{
+  "name": "VOX OZET - Odak, Haber - WEB",
+  "description": "Yapay zeka destekli haber özetleme, stüdyo seslendirmesi, ahşap yağmuru mikseri ve Focus Score takibi.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "notifications"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

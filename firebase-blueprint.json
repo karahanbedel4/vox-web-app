@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profiles",
+      "description": "User profile information, subscription state, focus score, and streak",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "isPremium": { "type": "boolean" },
+        "focusScore": { "type": "number" },
+        "streakCount": { "type": "number" },
+        "weeklyMinutes": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid"]
+    },
+    "articles": {
+      "title": "News Articles and Imports",
+      "description": "Processed and summarized news articles, YouTube imports, and RSS feeds",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "sourceUrl": { "type": "string" },
+        "sourceType": { "type": "string" },
+        "durationSeconds": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "author": { "type": "string" }
+      },
+      "required": ["title", "summary"]
+    },
+    "user_history": {
+      "title": "Listening History",
+      "description": "User listening playback history and seconds listened",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "articleId": { "type": "string" },
+        "listenedSeconds": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "articleId"]
+    },
+    "bookmarks": {
+      "title": "Saved Articles",
+      "description": "User saved/bookmarked articles",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "articleId": { "type": "string" },
+        "savedAt": { "type": "string" }
+      },
+      "required": ["userId", "articleId"]
+    }
+  }
+}
