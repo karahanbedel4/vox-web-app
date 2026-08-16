@@ -82,7 +82,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   const modalScrollRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLElement>(null);
 
-  // Scroll to top and close mobile drawer on route change
+  // Scroll to top, close mobile drawer, and track page view on route change
   useEffect(() => {
     setIsMobileDrawerOpen(false);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -92,6 +92,16 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       mainContentRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       mainContentRef.current.scrollTop = 0;
     }
+
+    // Google Analytics 4 SPA page view tracking
+    try {
+      if (typeof window !== 'undefined' && typeof (window as any).gtag === 'function') {
+        (window as any).gtag('config', 'G-88Y5LRRF66', {
+          page_path: location.pathname + location.search,
+          page_title: document.title
+        });
+      }
+    } catch (e) {}
   }, [location.pathname, location.search]);
 
   // Cookie Consent State
