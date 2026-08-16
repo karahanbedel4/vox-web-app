@@ -20,6 +20,7 @@ import {
 import { Article, UserProfile } from '../types';
 import { appStorage } from '../lib/storage';
 import { safeApiFetch } from '../lib/api';
+import { getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
 
 interface LibraryTabProps {
   articles: Article[];
@@ -372,7 +373,18 @@ export const LibraryTab: React.FC<LibraryTabProps> = ({
                 savedArticles.map(art => (
                   <div key={art.id} className="bg-subcard-bg border border-card-border p-3 rounded-2xl flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <img src={art.imageUrl || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=120&auto=format&fit=crop&q=80'} alt={art.title} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                      <img
+                        src={sanitizeImageUrl(art.imageUrl) || getTopicContextualImage(art.title, art.category) || DEFAULT_VOX_FALLBACK_IMAGE}
+                        alt={art.title}
+                        className="w-12 h-12 rounded-xl object-cover shrink-0"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          const fallback = getTopicContextualImage(art.title, art.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                          if (target.src !== fallback) {
+                            target.src = fallback;
+                          }
+                        }}
+                      />
                       <div className="truncate">
                         <p className="text-xs font-bold truncate">{art.title}</p>
                         <span className="text-[10px] text-on-surface-variant">{art.category} • {art.author || 'VOX AI'}</span>
@@ -517,7 +529,18 @@ export const LibraryTab: React.FC<LibraryTabProps> = ({
                 >
                   <div className="bg-surface-container border border-card-border p-3.5 rounded-2xl space-y-2 hover:border-emerald-500/40 transition-all shadow-sm">
                     <div className="flex items-start gap-3">
-                      <img src={art.imageUrl || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=160&auto=format&fit=crop&q=80'} alt={art.title} className="w-16 h-16 rounded-xl object-cover shrink-0" />
+                      <img
+                        src={sanitizeImageUrl(art.imageUrl) || getTopicContextualImage(art.title, art.category) || DEFAULT_VOX_FALLBACK_IMAGE}
+                        alt={art.title}
+                        className="w-16 h-16 rounded-xl object-cover shrink-0"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          const fallback = getTopicContextualImage(art.title, art.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                          if (target.src !== fallback) {
+                            target.src = fallback;
+                          }
+                        }}
+                      />
                       <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">{art.category}</span>

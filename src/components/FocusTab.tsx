@@ -23,9 +23,11 @@ import {
   Bookmark, 
   CheckCircle2,
   ArrowRight,
-  Wifi,
   Battery,
-  Signal
+  BatteryCharging,
+  Signal,
+  Calendar,
+  Clock
 } from 'lucide-react';
 import { Article } from '../types';
 import { triggerHapticImpact, triggerHapticNotification } from '../lib/haptics';
@@ -197,12 +199,63 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   // Custom Focus Goal & Tasks
   const [focusGoal, setFocusGoal] = useState<string>('Odaklanma Seansı');
   const [tasks, setTasks] = useState<{ id: string; text: string; done: boolean }[]>([
-    { id: '1', text: 'Öncelikli görevi tamamla', done: false }
+    { id: '1', text: 'İlk görevini yaz...', done: false }
   ]);
   const [newTaskText, setNewTaskText] = useState<string>('');
   const [isAddingTask, setIsAddingTask] = useState<boolean>(false);
   const [isEditingGoal, setIsEditingGoal] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  // Live Time, Date and Real Device Battery State for Phone Mockup
+  const [currentTime, setCurrentTime] = useState<string>(() => {
+    return new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  });
+  const [currentDateStr, setCurrentDateStr] = useState<string>(() => {
+    return new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'short' });
+  });
+  const [batteryInfo, setBatteryInfo] = useState<{ level: number; charging: boolean }>({
+    level: 88,
+    charging: false
+  });
+
+  useEffect(() => {
+    // Live clock and date ticker
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
+      setCurrentDateStr(now.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'short' }));
+    }, 1000);
+
+    // Battery Status API detection
+    let batteryInstance: any = null;
+    const syncBattery = (b: any) => {
+      if (!b) return;
+      const lvl = typeof b.level === 'number' ? Math.round(b.level * 100) : 88;
+      setBatteryInfo({
+        level: Math.max(1, Math.min(100, lvl)),
+        charging: Boolean(b.charging)
+      });
+    };
+
+    if (typeof navigator !== 'undefined' && 'getBattery' in navigator) {
+      (navigator as any).getBattery().then((battery: any) => {
+        batteryInstance = battery;
+        syncBattery(battery);
+        battery.addEventListener('levelchange', () => syncBattery(battery));
+        battery.addEventListener('chargingchange', () => syncBattery(battery));
+      }).catch(() => {});
+    }
+
+    return () => {
+      clearInterval(timer);
+      if (batteryInstance) {
+        try {
+          batteryInstance.removeEventListener('levelchange', () => {});
+          batteryInstance.removeEventListener('chargingchange', () => {});
+        } catch (e) {}
+      }
+    };
+  }, []);
 
   const toggleTaskDone = (id: string) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
@@ -345,6 +398,20 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     triggerHapticImpact('medium').catch(() => {});
 
     if (willRun) {
+      // Ask for browser notification permission on first start if not decided
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then((result) => {
+          setNotifPermission(result);
+          if (result === 'granted') {
+            setCookie('vox_push_consent', 'granted', 365);
+            setHasConsented(true);
+          } else if (result === 'denied') {
+            setCookie('vox_push_consent', 'denied', 365);
+            setHasConsented(true);
+          }
+        }).catch(() => {});
+      }
+
       const startTitle = sessionType === 'work' ? '🚀 Çalışma Başladı' : '☕ Mola Başladı';
       const currentMins = sessionType === 'work' ? workMinutes : breakMinutes;
       const startBody = sessionType === 'work' 
@@ -379,8 +446,8 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               // 1. Çalışma bitti -> Doğrudan Molaya Geç
               setCompletedSessions((s) => s + 1);
               sendPomodoroWebNotification(
-                '🎉 Çalışma Tamamlandı!',
-                `${workMinutes} dk çalışma bitti. ${breakMinutes} dk mola başladı.`
+                'VOX Odaklanma',
+                'Tebrikler! Seans bitti, şimdi kısa bir mola vakti ☕'
               );
 
               setSessionType('break');
@@ -567,25 +634,46 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               
               {/* Phone Top Status Bar */}
               <div className="flex items-center justify-between px-3 pt-1 pb-3 text-gray-400">
-                <span className="text-xs font-semibold tracking-tight text-gray-200">
-                  {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold tracking-tight text-white">
+                    {currentTime}
+                  </span>
+                </div>
                 
                 {/* Dynamic Island Pill */}
                 <div className="w-20 h-4 bg-black rounded-full border border-white/10 flex items-center justify-center">
                   <div className="w-2.5 h-2.5 rounded-full bg-neutral-900 border border-white/10 mr-1" />
                 </div>
 
+                {/* Status Bar Right: Signal + Device Battery Level & Charging Status (No WIFI) */}
                 <div className="flex items-center gap-1.5 text-gray-300">
-                  <Signal className="w-3.5 h-3.5" />
-                  <Wifi className="w-3.5 h-3.5" />
-                  <Battery className="w-4 h-4 text-[#1ed760]" />
+                  <Signal className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-[10px] font-mono font-bold text-gray-300">
+                    %{batteryInfo.level}
+                  </span>
+                  {batteryInfo.charging ? (
+                    <BatteryCharging className="w-4 h-4 text-[#1ed760] animate-pulse" title="Şarj Ediliyor" />
+                  ) : (
+                    <Battery className="w-4 h-4 text-[#1ed760]" title={`Pil Seviyesi: %${batteryInfo.level}`} />
+                  )}
                 </div>
               </div>
 
               {/* Phone Inner Screen Content */}
               <div className="space-y-4 pt-1 pb-1">
                 
+                {/* Dynamic Live Date Badge */}
+                <div className="flex items-center justify-between px-1.5 py-1 rounded-xl bg-white/[0.03] border border-white/5 text-[11px] text-gray-300">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <Calendar className="w-3.5 h-3.5 text-[#1ed760]" />
+                    <span className="capitalize">{currentDateStr}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-gray-400 font-mono">
+                    <Clock className="w-3 h-3 text-[#1ed760]" />
+                    <span>{currentTime}</span>
+                  </div>
+                </div>
+
                 {/* Clean Goal Title */}
                 <div className="px-1">
                   {isEditingGoal ? (

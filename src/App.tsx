@@ -28,6 +28,54 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { appStorage } from './lib/storage';
 import { AmbientChannel } from './components/AmbientMixerSheet';
 
+const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
+  {
+    id: 'yt-nature-rain',
+    name: 'Doğada Yağmur Sesi',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=3mst47Uu3IU',
+    youtubeId: '3mst47Uu3IU',
+    volume: 60,
+    active: false
+  },
+  {
+    id: 'yt-forest-birds',
+    name: 'Sakin Orman & Doğa Sesi',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=xNN7iTA57jM',
+    youtubeId: 'xNN7iTA57jM',
+    volume: 65,
+    active: false
+  },
+  {
+    id: 'yt-cozy-cafe',
+    name: 'Sakin Kafe Ambiyansı',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=gaGrHUekGrc',
+    youtubeId: 'gaGrHUekGrc',
+    volume: 55,
+    active: false
+  },
+  {
+    id: 'yt-thunder-rain',
+    name: 'Şimşek ve Fırtına Sesi',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=9JEL_n6egA8',
+    youtubeId: '9JEL_n6egA8',
+    volume: 70,
+    active: false
+  },
+  {
+    id: 'yt-deep-work',
+    name: 'Derin Çalışma Müziği',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=czMO-L42nnc',
+    youtubeId: 'czMO-L42nnc',
+    volume: 50,
+    active: false
+  }
+];
+
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -38,53 +86,29 @@ export default function App() {
   const [readingArticle, setReadingArticle] = useState<Article | null>(null);
   const [isAmbientMixerOpen, setIsAmbientMixerOpen] = useState<boolean>(false);
 
-  const [ambientChannels, setAmbientChannels] = useState<AmbientChannel[]>([
-    {
-      id: 'yt-nature-rain',
-      name: 'Doğada Yağmur Sesi',
-      type: 'youtube',
-      url: 'https://www.youtube.com/watch?v=3mst47Uu3IU',
-      youtubeId: '3mst47Uu3IU',
-      volume: 60,
-      active: false
-    },
-    {
-      id: 'yt-forest-birds',
-      name: 'Sakin Orman & Doğa Sesi',
-      type: 'youtube',
-      url: 'https://www.youtube.com/watch?v=xNN7iTA57jM',
-      youtubeId: 'xNN7iTA57jM',
-      volume: 65,
-      active: false
-    },
-    {
-      id: 'yt-cozy-cafe',
-      name: 'Sakin Kafe Ambiyansı',
-      type: 'youtube',
-      url: 'https://www.youtube.com/watch?v=gaGrHUekGrc',
-      youtubeId: 'gaGrHUekGrc',
-      volume: 55,
-      active: false
-    },
-    {
-      id: 'yt-thunder-rain',
-      name: 'Şimşek ve Fırtına Sesi',
-      type: 'youtube',
-      url: 'https://www.youtube.com/watch?v=9JEL_n6egA8',
-      youtubeId: '9JEL_n6egA8',
-      volume: 70,
-      active: false
-    },
-    {
-      id: 'yt-deep-work',
-      name: 'Derin Çalışma Müziği',
-      type: 'youtube',
-      url: 'https://www.youtube.com/watch?v=czMO-L42nnc',
-      youtubeId: 'czMO-L42nnc',
-      volume: 50,
-      active: false
-    }
-  ]);
+  const [ambientChannels, setAmbientChannels] = useState<AmbientChannel[]>(() => {
+    try {
+      const saved = appStorage.getItemSync('vox_ambient_channels');
+      if (saved) {
+        const parsed: AmbientChannel[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(c => ({ ...c, active: false }));
+        }
+      }
+    } catch (e) {}
+    return DEFAULT_AMBIENT_CHANNELS;
+  });
+
+  // Keep ambient channels and active channel persisted in storage & cookies
+  useEffect(() => {
+    try {
+      appStorage.setItemSync('vox_ambient_channels', JSON.stringify(ambientChannels));
+      const activeCh = ambientChannels.find(c => c.active && c.volume > 0);
+      if (activeCh) {
+        appStorage.setItemSync('vox_last_ambient_id', activeCh.id);
+      }
+    } catch (e) {}
+  }, [ambientChannels]);
 
   const subscription = useSubscription(user);
 
@@ -246,8 +270,20 @@ export default function App() {
               />
             }
           >
-            {/* Default Route -> Gündem */}
-            <RouterRoute path="/" element={<RouterNavigate to="/gundem" replace />} />
+            {/* Default Root Route -> Haber Akışı (Gündem) */}
+            <RouterRoute
+              path="/"
+              element={
+                <DashboardView
+                  category="Gündem"
+                  articles={articles}
+                  bookmarkedIds={bookmarkedIds}
+                  onToggleBookmark={handleToggleBookmark}
+                  onSelectArticle={(art) => setReadingArticle(art)}
+                  onOpenPaywall={handleOpenPaywallModalWithReason}
+                />
+              }
+            />
 
             {/* News Dashboard Routes */}
             <RouterRoute
@@ -349,7 +385,7 @@ export default function App() {
             />
 
             {/* Fallback Catch-all Route */}
-            <RouterRoute path="*" element={<RouterNavigate to="/gundem" replace />} />
+            <RouterRoute path="*" element={<RouterNavigate to="/" replace />} />
           </RouterRoute>
         </RouterRoutes>
       </Router>

@@ -23,7 +23,9 @@ import {
   Hash,
   MapPin,
   Plus,
-  ChevronRight
+  ChevronRight,
+  Menu,
+  Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Article, UserProfile, PlaybackState } from '../types';
@@ -31,11 +33,15 @@ import { ttsService } from '../lib/ttsService';
 import { AppStorePaywallModal } from './AppStorePaywallModal';
 import { AmbientMixerSheet, AmbientChannel } from './AmbientMixerSheet';
 import { AmbientNotificationBanner } from './AmbientControls';
-import { getTopicContextualImage } from '../lib/newsService';
+import { getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
 import { woodRainSynth } from '../lib/audioSynth';
 import { useTheme } from '../lib/ThemeContext';
 import { InfoModal, InfoModalType } from './InfoModal';
 import { VoxLogo } from './VoxLogo';
+import { appStorage, getCookie, setCookie } from '../lib/storage';
+
+const DEFAULT_FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e1217'/%3E%3Cpolygon points='8,8 16,24 24,8' fill='%231ed760'/%3E%3C/svg%3E";
+const PLAYING_FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e1217'/%3E%3Crect x='5' y='11' width='3.5' height='10' rx='1.75' fill='%231ed760'/%3E%3Crect x='11' y='6' width='3.5' height='20' rx='1.75' fill='%231ed760'/%3E%3Crect x='17' y='9' width='3.5' height='14' rx='1.75' fill='%231ed760'/%3E%3Crect x='23' y='13' width='3.5' height='6' rx='1.75' fill='%231ed760'/%3E%3C/svg%3E";
 
 interface PersistentLayoutProps {
   user: UserProfile | null;
@@ -71,30 +77,111 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [topNotificationText, setTopNotificationText] = useState<string | null>(null);
   const [infoModalType, setInfoModalType] = useState<InfoModalType>(null);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
   const modalScrollRef = useRef<HTMLDivElement>(null);
+  const mainContentRef = useRef<HTMLElement>(null);
+
+  // Scroll to top and close mobile drawer on route change
+  useEffect(() => {
+    setIsMobileDrawerOpen(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.body.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      mainContentRef.current.scrollTop = 0;
+    }
+  }, [location.pathname, location.search]);
+
+  // Cookie Consent State
+  const [showCookieBanner, setShowCookieBanner] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const stored = appStorage.getItemSync('vox_cookie_consent');
+    const cookie = getCookie('vox_cookie_consent');
+    return !(stored === 'accepted' || cookie === 'accepted');
+  });
+
+  const handleAcceptCookies = () => {
+    appStorage.setItemSync('vox_cookie_consent', 'accepted');
+    setCookie('vox_cookie_consent', 'accepted', 365);
+    setShowCookieBanner(false);
+  };
 
   // Active ambient channels
   const activeAmbientChannels = ambientChannels.filter(c => c.active && c.volume > 0);
   const isAmbientActive = activeAmbientChannels.length > 0;
+  const isAudioPlaying = playbackState.isPlaying || isAmbientActive;
+
+  // Global Dynamic Document Title & Favicon Effect (Persistent Audio State)
+  useEffect(() => {
+    const updateFavicon = (href: string) => {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+      }
+      link.href = href;
+    };
+
+    if (isAudioPlaying) {
+      document.title = '(🔊 Çalıyor) VOX | Odaklan';
+      updateFavicon(PLAYING_FAVICON);
+    } else {
+      const path = location.pathname;
+      let pageTitle = 'VOX | Oku, Dinle, Odaklan';
+      if (path === '/odaklan') pageTitle = 'VOX | Odaklan';
+      else if (path === '/kitaplik') pageTitle = 'VOX | Kitaplık';
+      else if (path === '/profil') pageTitle = 'VOX | Profil';
+      else if (path === '/teknoloji') pageTitle = 'VOX | Teknoloji Haberleri';
+      else if (path === '/ekonomi') pageTitle = 'VOX | Ekonomi Haberleri';
+      else if (path === '/' || path === '/gundem') pageTitle = 'VOX | Oku, Dinle, Odaklan';
+
+      document.title = pageTitle;
+      updateFavicon(DEFAULT_FAVICON);
+    }
+  }, [isAudioPlaying, location.pathname]);
   
+  // Track and persist last active ambient sound in localStorage and cookies
+  const [lastActiveAmbientId, setLastActiveAmbientId] = useState<string>(() => {
+    return appStorage.getItemSync('vox_last_ambient_id') || getCookie('vox_last_ambient_id') || 'yt-nature-rain';
+  });
+
+  useEffect(() => {
+    if (activeAmbientChannels.length > 0) {
+      const activeId = activeAmbientChannels[0].id;
+      setLastActiveAmbientId(activeId);
+      appStorage.setItemSync('vox_last_ambient_id', activeId);
+    }
+  }, [activeAmbientChannels]);
+
+  // Determine the primary or last played ambient channel
+  const lastAmbientChannel = ambientChannels.find(c => c.id === lastActiveAmbientId) || ambientChannels[0];
+
+  const getAmbientIcon = (id: string = '', name: string = '') => {
+    const n = (name + ' ' + id).toLowerCase();
+    if (n.includes('yağmur') || n.includes('rain')) return '🌧️';
+    if (n.includes('fırtına') || n.includes('şimşek') || n.includes('thunder')) return '⚡';
+    if (n.includes('orman') || n.includes('forest') || n.includes('kuş') || n.includes('doğa')) return '🌿';
+    if (n.includes('kafe') || n.includes('kahve') || n.includes('cafe')) return '☕';
+    if (n.includes('derin') || n.includes('çalışma') || n.includes('work') || n.includes('müzik')) return '🎧';
+    return '🍃';
+  };
+
   // Format ambient channel names with friendly icon
   const getAmbientDisplayTitle = () => {
-    if (activeAmbientChannels.length === 0) return '';
+    if (activeAmbientChannels.length === 0) {
+      if (lastAmbientChannel) {
+        return `${getAmbientIcon(lastAmbientChannel.id, lastAmbientChannel.name)} ${lastAmbientChannel.name}`;
+      }
+      return '';
+    }
     if (activeAmbientChannels.length === 1) {
       const ch = activeAmbientChannels[0];
-      const icon = ch.id.includes('rain') ? '🌧️' : ch.id.includes('forest') ? '🌿' : ch.id.includes('cafe') ? '☕' : ch.id.includes('thunder') ? '⚡' : '🎧';
-      return `${icon} ${ch.name}`;
+      return `${getAmbientIcon(ch.id, ch.name)} ${ch.name}`;
     }
     return `🌿 Çoklu Ambiyans (${activeAmbientChannels.length} Ses)`;
   };
-
-  // Keep track of the last active ambient channel id for toggle resume
-  const lastActiveAmbientIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (activeAmbientChannels.length > 0) {
-      lastActiveAmbientIdRef.current = activeAmbientChannels[0].id;
-    }
-  }, [activeAmbientChannels]);
 
   // Sync volume slider with active sound source
   useEffect(() => {
@@ -123,13 +210,26 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         ttsService.play();
       }
     } else if (isAmbientActive) {
-      // Pause all active ambient channels
+      // Pause all active ambient channels and remember the active one in cookies/storage
+      if (activeAmbientChannels.length > 0) {
+        const id = activeAmbientChannels[0].id;
+        setLastActiveAmbientId(id);
+        appStorage.setItemSync('vox_last_ambient_id', id);
+      }
       setAmbientChannels(prev => prev.map(c => ({ ...c, active: false })));
     } else {
-      // Resume previously active ambient channel or first channel
-      const targetId = lastActiveAmbientIdRef.current || (ambientChannels[0] && ambientChannels[0].id);
+      // Resume previously active ambient channel or first channel from cookie/storage
+      const targetId = lastActiveAmbientId || (ambientChannels[0] && ambientChannels[0].id);
       if (targetId) {
-        setAmbientChannels(prev => prev.map(c => c.id === targetId ? { ...c, active: true, volume: c.volume > 0 ? c.volume : (volume > 0 ? volume : 60) } : c));
+        setLastActiveAmbientId(targetId);
+        appStorage.setItemSync('vox_last_ambient_id', targetId);
+        setAmbientChannels(prev =>
+          prev.map(c =>
+            c.id === targetId
+              ? { ...c, active: true, volume: c.volume > 0 ? c.volume : (volume > 0 ? volume : 60) }
+              : c
+          )
+        );
       }
     }
   };
@@ -207,7 +307,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           {/* LOGO & BRANDING */}
           <div className="px-1 pt-1">
             <Link 
-              to="/gundem" 
+              to="/" 
               className="inline-flex items-center cursor-pointer group hover:opacity-90 transition-opacity" 
               title="VOX Ana Sayfası"
             >
@@ -219,10 +319,10 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           <nav className="flex flex-col gap-1.5 pt-1">
             {/* GÜNDEM */}
             <NavLink
-              to="/gundem"
+              to="/"
               className={({ isActive }) =>
                 `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
-                  isActive || location.pathname === '/' || location.pathname === '/teknoloji' || location.pathname === '/ekonomi'
+                  isActive || location.pathname === '/' || location.pathname === '/gundem' || location.pathname === '/teknoloji' || location.pathname === '/ekonomi'
                     ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`
@@ -390,43 +490,359 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         </div>
       </aside>
 
-      {/* MOBILE BOTTOM NAVIGATION BAR */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#121814]/95 backdrop-blur-xl border-t border-white/10 px-4 py-2.5 flex items-center justify-around text-xs">
-        <NavLink
-          to="/gundem"
-          className={({ isActive }) =>
-            `flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition-all ${
-              isActive || location.pathname === '/' || location.pathname === '/teknoloji' || location.pathname === '/ekonomi' ? 'text-[#1ed760] font-bold' : 'text-gray-400'
-            }`
-          }
-        >
-          <Newspaper className="w-5 h-5" />
-          <span className="text-[11px]">Haber Akışı</span>
-        </NavLink>
-
-        <NavLink
-          to="/odaklan"
-          className={({ isActive }) =>
-            `flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition-all ${
-              isActive ? 'text-[#1ed760] font-bold' : 'text-gray-400'
-            }`
-          }
-        >
-          <Target className="w-5 h-5" />
-          <span className="text-[11px]">Odaklan</span>
-        </NavLink>
-
+      {/* TOP MOBILE APP BAR (Bundle-Style: Hamburger Menu + VOX Brand Logo + Ambient/PRO Controls) */}
+      <header className={`md:hidden fixed top-0 left-0 right-0 z-40 h-14 px-3.5 flex items-center justify-between border-b backdrop-blur-xl transition-colors duration-300 ${
+        theme === 'light'
+          ? 'bg-white/95 border-slate-200 text-slate-900 shadow-sm'
+          : 'bg-[#121814]/95 border-white/10 text-white shadow-md'
+      }`}>
+        {/* Left: Hamburger Menu Button */}
         <button
-          onClick={toggleTheme}
-          className="flex flex-col items-center gap-1 py-1 px-4 rounded-xl text-gray-400 hover:text-white"
+          onClick={() => setIsMobileDrawerOpen(true)}
+          className="p-2 -ml-1 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
+          title="Menüyü Aç"
+          aria-label="Menüyü Aç"
         >
-          {theme === 'light' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-gray-400" />}
-          <span className="text-[11px]">{theme === 'light' ? 'Açık' : 'Koyu'}</span>
+          <Menu className="w-5 h-5 text-current" />
         </button>
-      </nav>
+
+        {/* Center: VOX Logo (Identical to Desktop) */}
+        <Link 
+          to="/" 
+          className="flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+          title="VOX Ana Sayfası"
+        >
+          <VoxLogo size="md" />
+        </Link>
+
+        {/* Right: Quick Controls (Ambient Sound / PRO Button) */}
+        <div className="flex items-center gap-1.5 -mr-1">
+          <button
+            onClick={() => setIsAmbientMixerOpen(true)}
+            className={`p-2 rounded-xl transition-all relative cursor-pointer ${
+              isAmbientActive 
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
+                : 'text-gray-400 hover:text-white hover:bg-white/10'
+            }`}
+            title="Doğa Sesleri Mikseri"
+            aria-label="Doğa Sesleri Mikseri"
+          >
+            <Headphones className="w-4 h-4" />
+            {isAmbientActive && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            )}
+          </button>
+
+          <button
+            onClick={() => onOpenPaywall('limit_reached')}
+            className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-black tracking-wider flex items-center gap-1 uppercase hover:bg-emerald-500/25 active:scale-95 transition-all"
+            title="VOX Premium"
+          >
+            <Sparkles className="w-3 h-3 fill-current" />
+            <span>PRO</span>
+          </button>
+        </div>
+      </header>
+
+      {/* SLIDE-OVER MOBILE SIDEBAR DRAWER */}
+      <AnimatePresence>
+        {isMobileDrawerOpen && (
+          <>
+            {/* Dark Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileDrawerOpen(false)}
+              className="md:hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm"
+            />
+
+            {/* Slide-in Drawer */}
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="md:hidden fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 bg-black border-r border-white/10 p-5 shadow-2xl overflow-y-auto text-white flex flex-col justify-between select-none"
+            >
+              <div className="flex flex-col gap-4">
+                {/* Header row with logo and close button */}
+                <div className="flex items-center justify-between pt-1 pb-3 border-b border-white/10">
+                  <Link 
+                    to="/" 
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className="inline-flex items-center cursor-pointer"
+                  >
+                    <VoxLogo size="md" textColor="light" />
+                  </Link>
+                  <button
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+                    title="Kapat"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Main Navigation */}
+                <nav className="flex flex-col gap-2 pt-1">
+                  <NavLink
+                    to="/"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                        isActive || location.pathname === '/' || location.pathname === '/gundem' || location.pathname === '/teknoloji' || location.pathname === '/ekonomi'
+                          ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Newspaper className="w-4 h-4 text-[#10b981]" />
+                      <span>GÜNDEM (Haber Akışı)</span>
+                    </div>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+                  </NavLink>
+
+                  <NavLink
+                    to="/odaklan"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                        isActive
+                          ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Target className="w-4 h-4 text-[#10b981]" />
+                      <span>ODAKLAN (Pomodoro)</span>
+                    </div>
+                  </NavLink>
+                </nav>
+
+                {/* Mobile App Download Prompt */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 space-y-2 mt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                      <span>📱</span>
+                      <span>Mobil Uygulama</span>
+                    </span>
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm">
+                      Yakında!
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 leading-snug">
+                    iOS App Store & Google Play'de çok yakında sizlerle!
+                  </p>
+                </div>
+              </div>
+
+              {/* Bottom Elements: Pro, Theme, Social, Links, Powered by */}
+              <div className="flex flex-col gap-3 pt-3 border-t border-white/10 mt-4">
+                {/* Premium Promo */}
+                <button
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    onOpenPaywall('limit_reached');
+                  }}
+                  className="flex items-center justify-between w-full p-3 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-[#121814] border border-emerald-500/30 text-left transition-all group shadow-md cursor-pointer active:scale-95"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shrink-0">
+                      <div className="w-full h-full bg-black rounded-[10px] flex items-center justify-center text-emerald-400">
+                        <Sparkles className="w-4 h-4 fill-emerald-400" />
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-white tracking-wide">VOX Premium</span>
+                        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">PRO</span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 truncate">Sınırsız Sesli Deneyim</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                </button>
+
+                {/* Theme Switch */}
+                <div className="flex items-center justify-between py-1 px-1">
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-gray-200">
+                    {theme === 'light' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-gray-400" />}
+                    <span className="tracking-wider">{theme === 'light' ? 'AÇIK TEMA' : 'KOYU TEMA'}</span>
+                  </div>
+                  <button
+                    onClick={toggleTheme}
+                    className={`w-12 h-6 rounded-full p-0.5 flex items-center transition-all cursor-pointer ${
+                      theme === 'light' ? 'bg-[#3b82f6] justify-end' : 'bg-white/20 justify-start'
+                    }`}
+                    title="Açık/Koyu Tema Değiştir"
+                  >
+                    <motion.div layout className="w-5 h-5 rounded-full bg-white shadow-md" />
+                  </button>
+                </div>
+
+                {/* Social Media Icons */}
+                <div className="flex items-center justify-between px-1 text-gray-400">
+                  <a href="https://threads.net/@voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"><Hash className="w-4 h-4" /></a>
+                  <a href="https://linkedin.com/company/voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"><Linkedin className="w-4 h-4" /></a>
+                  <a href="https://x.com/voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"><Twitter className="w-4 h-4" /></a>
+                  <a href="https://instagram.com/voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"><Instagram className="w-4 h-4" /></a>
+                </div>
+
+                {/* Informational links */}
+                <div className="space-y-1 text-[11px] text-gray-400 px-1">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('ads'); }} className="hover:text-white cursor-pointer">Reklam</button>
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('about'); }} className="hover:text-white cursor-pointer">Hakkımızda</button>
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('contact'); }} className="hover:text-white cursor-pointer">İletişim</button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('terms'); }} className="hover:text-white cursor-pointer">Kullanım Koşulları</button>
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('privacy'); }} className="hover:text-white cursor-pointer">Gizlilik Politikası</button>
+                  </div>
+                  <div>
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('impressum'); }} className="hover:text-white cursor-pointer">Künye</button>
+                  </div>
+                </div>
+
+                {/* Powered by Google AI Studio */}
+                <div className="flex items-center justify-between text-[10px] text-gray-500 font-mono pt-1 border-t border-white/10">
+                  <span>© 2026 VOX</span>
+                  <span className="text-gray-700">|</span>
+                  <span className="flex items-center gap-1 text-gray-300 font-medium">
+                    Powered by
+                    <span className="text-white font-black inline-flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded">
+                      <Sparkles className="w-3 h-3 text-[#4285F4] animate-pulse" />
+                      Google AI Studio
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* FLOATING EXPANDABLE MOBILE BOTTOM DOCK (Never hidden, always on top with smooth expanding animation) */}
+      <div className="md:hidden fixed bottom-3 left-3 right-3 z-50 pointer-events-none flex justify-center">
+        <nav className={`pointer-events-auto w-full max-w-sm h-14 rounded-full backdrop-blur-2xl border px-2 py-1.5 flex items-center justify-between shadow-2xl transition-all duration-300 ${
+          theme === 'light'
+            ? 'bg-white/95 border-slate-200 text-slate-700 shadow-slate-900/10'
+            : 'bg-[#101612]/95 border-white/10 text-gray-300'
+        }`}>
+          {/* TAB 1: GÜNDEM (Haber Akışı) */}
+          {(() => {
+            const isGundemActive = location.pathname === '/' || location.pathname === '/gundem' || location.pathname === '/teknoloji' || location.pathname === '/ekonomi';
+            return (
+              <NavLink
+                to="/"
+                className={`relative flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-full transition-all duration-300 active:scale-95 ${
+                  isGundemActive
+                    ? theme === 'light' ? 'text-white font-bold' : 'text-emerald-300 font-bold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {isGundemActive && (
+                  <motion.div
+                    layoutId="mobileActiveDockPill"
+                    className={`absolute inset-0 rounded-full shadow-sm ${
+                      theme === 'light'
+                        ? 'bg-emerald-800 text-white'
+                        : 'bg-[#143d2b] border border-emerald-500/40 text-emerald-300'
+                    }`}
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <div className="relative z-10 flex items-center gap-1.5">
+                  <Newspaper className="w-4 h-4 shrink-0" />
+                  <motion.span
+                    initial={false}
+                    animate={{ width: isGundemActive ? 'auto' : 0, opacity: isGundemActive ? 1 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-xs whitespace-nowrap overflow-hidden leading-none"
+                  >
+                    Gündem
+                  </motion.span>
+                </div>
+              </NavLink>
+            );
+          })()}
+
+          {/* TAB 2: ODAKLAN (Pomodoro) */}
+          {(() => {
+            const isFocusActive = location.pathname === '/odaklan';
+            return (
+              <NavLink
+                to="/odaklan"
+                className={`relative flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-full transition-all duration-300 active:scale-95 ${
+                  isFocusActive
+                    ? theme === 'light' ? 'text-white font-bold' : 'text-emerald-300 font-bold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {isFocusActive && (
+                  <motion.div
+                    layoutId="mobileActiveDockPill"
+                    className={`absolute inset-0 rounded-full shadow-sm ${
+                      theme === 'light'
+                        ? 'bg-emerald-800 text-white'
+                        : 'bg-[#143d2b] border border-emerald-500/40 text-emerald-300'
+                    }`}
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <div className="relative z-10 flex items-center gap-1.5">
+                  <Target className="w-4 h-4 shrink-0" />
+                  <motion.span
+                    initial={false}
+                    animate={{ width: isFocusActive ? 'auto' : 0, opacity: isFocusActive ? 1 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-xs whitespace-nowrap overflow-hidden leading-none"
+                  >
+                    Odaklan
+                  </motion.span>
+                </div>
+              </NavLink>
+            );
+          })()}
+
+          {/* TAB 3: AMBIYANS MİKSERİ */}
+          <button
+            onClick={() => setIsAmbientMixerOpen(true)}
+            className={`relative flex items-center justify-center gap-1.5 py-2 px-3 rounded-full transition-all active:scale-90 cursor-pointer ${
+              isAmbientActive
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                : 'text-gray-400 hover:text-white'
+            }`}
+            title="Doğa Sesleri Mikseri"
+            aria-label="Doğa Sesleri Mikseri"
+          >
+            <Headphones className="w-4 h-4 shrink-0" />
+            {isAmbientActive && (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+            )}
+          </button>
+
+          {/* TAB 4: TEMA DEĞİŞTİR */}
+          <button
+            onClick={toggleTheme}
+            className="flex items-center justify-center p-2 rounded-full text-gray-400 hover:text-white active:scale-90 transition-all cursor-pointer"
+            title="Açık/Koyu Tema Değiştir"
+            aria-label="Açık/Koyu Tema Değiştir"
+          >
+            {theme === 'light' ? (
+              <Sun className="w-4 h-4 text-amber-500" />
+            ) : (
+              <Moon className="w-4 h-4 text-gray-300" />
+            )}
+          </button>
+        </nav>
+      </div>
 
       {/* MAIN CONTENT AREA */}
-      <main className={`flex-1 ml-0 md:ml-72 lg:ml-80 pb-28 min-h-screen overflow-y-auto transition-colors duration-300 ${
+      <main ref={mainContentRef} className={`flex-1 ml-0 md:ml-72 lg:ml-80 pt-14 md:pt-0 pb-36 min-h-screen overflow-y-auto transition-colors duration-300 ${
         theme === 'light' ? 'bg-[#f4f6f8] text-slate-900' : 'bg-[#0a0d0b] text-gray-200'
       }`}>
         <Outlet />
@@ -438,8 +854,86 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         onClose={() => setInfoModalType(null)}
       />
 
-      {/* PERSISTENT BOTTOM AUDIO PLAYER (Fixed across all route changes) */}
-      <div className={`fixed bottom-0 left-0 md:left-72 lg:left-80 right-0 h-20 backdrop-blur-xl border-t z-40 flex items-center justify-between px-4 md:px-8 shadow-2xl transition-colors duration-300 ${
+      {/* MOBILE FLOATING MINI-PLAYER (Floats above mobile bottom nav without overlapping) */}
+      <AnimatePresence>
+        {(activeArticle || isAmbientActive || lastAmbientChannel) && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className={`md:hidden fixed bottom-20 left-3 right-3 z-40 rounded-2xl p-2.5 backdrop-blur-2xl border shadow-xl flex items-center justify-between gap-3 transition-colors ${
+              theme === 'light'
+                ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-900/10'
+                : 'bg-[#101712]/95 border-emerald-500/25 text-white shadow-black/80'
+            }`}
+          >
+            {/* Left: Thumbnail & Title */}
+            <div 
+              onClick={() => {
+                if (activeArticle) setReadingArticle(activeArticle);
+                else setIsAmbientMixerOpen(true);
+              }}
+              className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+            >
+              {activeArticle ? (
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400 overflow-hidden">
+                  {activeArticle.imageUrl ? (
+                    <img 
+                      src={sanitizeImageUrl(activeArticle.imageUrl)} 
+                      alt={activeArticle.title} 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        e.currentTarget.src = DEFAULT_VOX_FALLBACK_IMAGE;
+                      }}
+                    />
+                  ) : (
+                    <Headphones className="w-5 h-5 animate-pulse" />
+                  )}
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
+                  <div className="flex items-end gap-0.5 h-4">
+                    <div className="w-0.5 bg-emerald-400 rounded-full animate-eq-1" />
+                    <div className="w-0.5 bg-emerald-400 rounded-full animate-eq-2" />
+                    <div className="w-0.5 bg-emerald-400 rounded-full animate-eq-3" />
+                  </div>
+                </div>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[9px] font-bold uppercase text-emerald-400 tracking-wider truncate">
+                    {activeArticle ? (playbackState.isPlaying ? 'Dinleniyor' : 'Duraklatıldı') : 'Ambiyans Sesi'}
+                  </span>
+                </div>
+                <h4 className="text-xs font-bold truncate leading-tight mt-0.5">
+                  {activeArticle ? activeArticle.title : getAmbientDisplayTitle()}
+                </h4>
+              </div>
+            </div>
+
+            {/* Right: Quick Controls */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleTogglePlay}
+                className="w-9 h-9 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer"
+                title="Oynat / Duraklat"
+              >
+                {(playbackState.isPlaying || (!activeArticle && isAmbientActive)) ? (
+                  <Pause className="w-4 h-4 fill-current" />
+                ) : (
+                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                )}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* DESKTOP PERSISTENT BOTTOM AUDIO PLAYER (Hidden on mobile, pristine on desktop) */}
+      <div className={`hidden md:flex fixed bottom-0 left-72 lg:left-80 right-0 h-20 backdrop-blur-xl border-t z-40 items-center justify-between px-6 lg:px-8 shadow-2xl transition-colors duration-300 ${
         theme === 'light'
           ? 'bg-white/95 border-slate-200 text-slate-900'
           : 'bg-[#121814]/95 border-white/5 text-gray-200'
@@ -453,7 +947,18 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1ed760]/20 to-teal-500/20 border border-[#1ed760]/30 flex items-center justify-center shrink-0 text-[#1ed760] cursor-pointer hover:scale-105 transition-transform overflow-hidden"
               >
                 {activeArticle.imageUrl ? (
-                  <img src={activeArticle.imageUrl} alt={activeArticle.title} className="w-full h-full object-cover rounded-xl" />
+                  <img
+                    src={sanitizeImageUrl(activeArticle.imageUrl)}
+                    alt={activeArticle.title}
+                    className="w-full h-full object-cover rounded-xl"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      const fallback = getTopicContextualImage(activeArticle.title, activeArticle.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                      if (target.src !== fallback) {
+                        target.src = fallback;
+                      }
+                    }}
+                  />
                 ) : (
                   <Headphones className="w-6 h-6 animate-pulse" />
                 )}
@@ -480,7 +985,8 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             <>
               <div 
                 onClick={() => setIsAmbientMixerOpen(true)}
-                className="w-12 h-12 rounded-xl bg-[#1ed760]/20 border border-[#1ed760]/30 flex items-center justify-center shrink-0 text-[#1ed760] cursor-pointer relative overflow-hidden"
+                className="w-12 h-12 rounded-xl bg-[#1ed760]/20 border border-[#1ed760]/30 flex items-center justify-center shrink-0 text-[#1ed760] cursor-pointer relative overflow-hidden group hover:scale-105 transition-transform"
+                title="Gelişmiş Mikseri Aç"
               >
                 <div className="flex items-end gap-0.5 h-5">
                   <div className="w-1 bg-[#1ed760] rounded-full animate-eq-1" />
@@ -489,16 +995,43 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                   <div className="w-1 bg-[#1ed760] rounded-full animate-eq-4" />
                 </div>
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 cursor-pointer" onClick={() => setIsAmbientMixerOpen(true)}>
                 <span className="text-[10px] font-bold text-[#1ed760] uppercase tracking-wider flex items-center gap-1.5 truncate">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse"></span>
                   🌿 AMBİYANS SESLERİ
                 </span>
-                <h4 className={`text-xs font-bold truncate ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                <h4 className={`text-xs font-bold truncate hover:text-[#1ed760] transition-colors ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
                   {getAmbientDisplayTitle()}
                 </h4>
                 <p className={`text-[10px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                  Arka planda kesintisiz çalıyor
+                  Arka planda kesintisiz çalıyor • Mikser için dokunun
+                </p>
+              </div>
+            </>
+          ) : lastAmbientChannel ? (
+            <>
+              <div 
+                onClick={() => setIsAmbientMixerOpen(true)}
+                className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 hover:border-[#1ed760]/40 flex items-center justify-center shrink-0 text-gray-400 hover:text-[#1ed760] cursor-pointer relative overflow-hidden group transition-all"
+                title="Gelişmiş Mikseri Aç"
+              >
+                <div className="flex items-end gap-0.5 h-4 opacity-50">
+                  <div className="w-1 h-3 bg-gray-400 rounded-full" />
+                  <div className="w-1 h-2 bg-gray-400 rounded-full" />
+                  <div className="w-1 h-4 bg-gray-400 rounded-full" />
+                  <div className="w-1 h-2 bg-gray-400 rounded-full" />
+                </div>
+              </div>
+              <div className="min-w-0 cursor-pointer" onClick={() => setIsAmbientMixerOpen(true)}>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 truncate">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+                  DURAKLATILDI
+                </span>
+                <h4 className={`text-xs font-bold truncate hover:text-[#1ed760] transition-colors ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                  {getAmbientIcon(lastAmbientChannel.id, lastAmbientChannel.name)} {lastAmbientChannel.name}
+                </h4>
+                <p className={`text-[10px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                  Tekrar başlatmak için oynat'a dokunun • %{lastAmbientChannel.volume || 60}
                 </p>
               </div>
             </>
@@ -537,12 +1070,12 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
 
             <button
               onClick={handleTogglePlay}
-              disabled={!activeArticle && !isAmbientActive}
+              disabled={!activeArticle && !isAmbientActive && !lastAmbientChannel}
               className="w-10 h-10 rounded-full bg-[#1ed760] text-black font-bold flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(30,215,96,0.3)] disabled:opacity-40 cursor-pointer"
               title={
                 activeArticle
                   ? (playbackState.isPlaying ? 'Duraklat' : 'Oynat')
-                  : (isAmbientActive ? 'Ambiyans Sesini Duraklat' : 'Ambiyans Sesini Çal')
+                  : (isAmbientActive ? 'Ambiyans Sesini Duraklat' : `${lastAmbientChannel?.name || 'Doğa Sesi'} Başlat`)
               }
             >
               {(playbackState.isPlaying || (!activeArticle && isAmbientActive)) ? (
@@ -627,12 +1160,12 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               {/* TOP COVER IMAGE HERO WITH OVERLAY CONTROLS */}
               <div className="relative w-full h-60 sm:h-72 bg-[#1a221d] shrink-0 overflow-hidden">
                 <img
-                  src={readingArticle.imageUrl || getTopicContextualImage(readingArticle.title, readingArticle.category)}
+                  src={sanitizeImageUrl(readingArticle.imageUrl) || getTopicContextualImage(readingArticle.title, readingArticle.category) || DEFAULT_VOX_FALLBACK_IMAGE}
                   alt={readingArticle.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.currentTarget;
-                    const fallback = getTopicContextualImage(readingArticle.title, readingArticle.category);
+                    const fallback = getTopicContextualImage(readingArticle.title, readingArticle.category) || DEFAULT_VOX_FALLBACK_IMAGE;
                     if (target.src !== fallback) {
                       target.src = fallback;
                     }
@@ -770,6 +1303,42 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         onClose={() => subscription.setIsPaywallOpen(false)}
         reason={subscription.paywallReason || 'limit_reached'}
       />
+
+      {/* Floating Cookie Consent Banner */}
+      <AnimatePresence>
+        {showCookieBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.25 }}
+            className="fixed bottom-24 md:bottom-20 left-4 z-50 max-w-sm rounded-xl bg-surface-variant/90 backdrop-blur-md border border-[#1ed760]/30 shadow-2xl p-4 text-white"
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-xl shrink-0 mt-0.5" role="img" aria-label="cookie">🍪</span>
+              <div className="space-y-3 min-w-0 flex-1">
+                <p className="text-xs text-gray-200 leading-relaxed font-medium">
+                  Size daha iyi bir deneyim sunmak için çerezleri kullanıyoruz.
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleAcceptCookies}
+                    className="px-3.5 py-1.5 rounded-lg bg-[#1ed760] text-black font-bold text-xs hover:brightness-110 active:scale-95 transition-all shadow-[0_0_15px_rgba(30,215,96,0.3)] cursor-pointer"
+                  >
+                    Kabul Et
+                  </button>
+                  <button
+                    onClick={() => setInfoModalType('privacy')}
+                    className="text-xs text-gray-400 hover:text-white underline transition-colors cursor-pointer"
+                  >
+                    Gizlilik Politikası
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Ambient Mixer Sheet */}
       <AmbientMixerSheet

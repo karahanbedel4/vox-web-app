@@ -2175,16 +2175,16 @@ app.get('/api/news', async (req, res) => {
           const sourceMatch = itemStr.match(/<source[^>]*>([\s\S]*?)<\/source>/i);
           const linkMatch = itemStr.match(/<link>([\s\S]*?)<\/link>/i);
 
-          // Extract real image URL from all XML tags and enclosures
+          // Extract real image URL from all XML tags and enclosures aggressively
           let extractedImg = '';
           const mediaContent = itemStr.match(/<media:content[^>]+url=["']([^"']+)["']/i);
           const mediaThumb = itemStr.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
           const enclosure = itemStr.match(/<enclosure[^>]+url=["']([^"']+)["']/i);
           const imageTag = itemStr.match(/<image>[\s\S]*?<url>([^<]+)<\/url>/i) || itemStr.match(/<image>([^<]+)<\/image>/i);
           const imgTagMatch = itemStr.match(/<img[^>]+src=["']([^"']+)["']/i);
-          const htmlEntityImgMatch = itemStr.match(/&lt;img[^&]+src=&quot;([^&]+)&quot;/i) || itemStr.match(/&lt;img[^&]+src=["']([^"']+)["']/i);
+          const htmlEntityImgMatch = itemStr.match(/&lt;img[^&]+src=(?:&quot;|"|')([^&"']+)(?:&quot;|"|')/i);
 
-          if (enclosure && enclosure[1] && !enclosure[1].includes('.mp3') && !enclosure[1].includes('.m4a')) {
+          if (enclosure && enclosure[1] && !enclosure[1].includes('.mp3') && !enclosure[1].includes('.m4a') && !enclosure[1].includes('.wav')) {
             extractedImg = enclosure[1].trim();
           } else if (mediaContent && mediaContent[1]) {
             extractedImg = mediaContent[1].trim();
@@ -2200,6 +2200,8 @@ app.get('/api/news', async (req, res) => {
 
           if (extractedImg.startsWith('//')) {
             extractedImg = 'https:' + extractedImg;
+          } else if (extractedImg.startsWith('http://')) {
+            extractedImg = extractedImg.replace(/^http:\/\//i, 'https://');
           }
 
           let rawTitle = titleMatch ? cleanText(titleMatch[1]) : '';

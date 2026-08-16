@@ -1,71 +1,78 @@
 import React from 'react';
+import { useTheme } from '../lib/ThemeContext';
 
 interface VoxLogoProps {
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   showText?: boolean;
+  textColor?: 'dark' | 'light' | 'auto';
 }
 
 export const VoxLogo: React.FC<VoxLogoProps> = ({
   className = '',
   size = 'md',
   showText = true,
+  textColor = 'auto',
 }) => {
+  const { theme } = useTheme();
+
+  // Dimensions for the 2 pause bars symbol (||)
   const iconDimensions = {
-    sm: { width: 18, height: 22, barW: 5.5, barH: 20, rx: 2.75, gap: 4 },
-    md: { width: 24, height: 28, barW: 7, barH: 26, rx: 3.5, gap: 5 },
-    lg: { width: 32, height: 36, barW: 9.5, barH: 34, rx: 4.75, gap: 6 },
+    sm: { width: 16, height: 20, barW: 5, barH: 18, rx: 2.5, gap: 4 },
+    md: { width: 22, height: 26, barW: 6.5, barH: 22, rx: 3, gap: 5 },
+    lg: { width: 28, height: 32, barW: 8.5, barH: 28, rx: 4, gap: 6 },
+    xl: { width: 36, height: 40, barW: 11, barH: 36, rx: 5, gap: 7 },
   }[size];
 
   const textSize = {
-    sm: 'text-lg tracking-tight',
+    sm: 'text-xl tracking-tight',
     md: 'text-2xl tracking-tighter',
     lg: 'text-3xl tracking-tighter',
+    xl: 'text-4xl tracking-tighter',
   }[size];
 
+  const isDarkText = textColor === 'dark' || (textColor === 'auto' && theme === 'light');
+  const textClass = isDarkText ? 'text-slate-950' : 'text-white';
+
   return (
-    <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
-      {/* Symbol: Two vertical, thick, rounded rectangles with emerald gradient */}
+    <div className={`inline-flex items-center gap-2 select-none ${className}`}>
+      {/* The 2 Vertical Emerald Bars Symbol (Pause / Equalizer Icon) */}
       <svg
         width={iconDimensions.width}
         height={iconDimensions.height}
         viewBox={`0 0 ${iconDimensions.width} ${iconDimensions.height}`}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="shrink-0 drop-shadow-[0_2px_8px_rgba(16,185,129,0.3)]"
+        className="shrink-0"
       >
-        <defs>
-          <linearGradient id="vox-emerald-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#34d399" />
-            <stop offset="100%" stopColor="#10b981" />
-          </linearGradient>
-        </defs>
-        {/* Left Bar */}
+        {/* Left Bar (Deep Emerald) */}
         <rect
           x="0"
           y={(iconDimensions.height - iconDimensions.barH) / 2}
           width={iconDimensions.barW}
           height={iconDimensions.barH}
           rx={iconDimensions.rx}
-          fill="url(#vox-emerald-grad)"
+          fill="#10b981"
         />
-        {/* Right Bar */}
+        {/* Right Bar (Deep Emerald) */}
         <rect
           x={iconDimensions.barW + iconDimensions.gap}
           y={(iconDimensions.height - iconDimensions.barH) / 2}
           width={iconDimensions.barW}
           height={iconDimensions.barH}
           rx={iconDimensions.rx}
-          fill="url(#vox-emerald-grad)"
+          fill="#059669"
         />
       </svg>
 
-      {/* Text: "VOX" in heavy, bold sans-serif font in solid white */}
+      {/* Text: "VOX" */}
       {showText && (
-        <span className={`font-black font-sans text-white uppercase ${textSize} leading-none`}>
+        <span className={`font-black font-sans uppercase ${textClass} ${textSize} leading-none transition-colors duration-200`}>
           VOX
         </span>
       )}
     </div>
   );
 };
+
+

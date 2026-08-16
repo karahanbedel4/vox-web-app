@@ -7,7 +7,7 @@ import { ResumeBanner } from './ResumeBanner';
 import { StreakWidget } from './StreakWidget';
 import { StreakInfo } from '../lib/streakService';
 import { OfflineBanner } from './OfflineBanner';
-import { fetchNewsByCategory } from '../lib/newsService';
+import { fetchNewsByCategory, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
 import { cacheTop3Articles } from '../lib/offlineService';
 import { appStorage } from '../lib/storage';
 import { getArticlesPaginated } from '../lib/firebase';
@@ -447,9 +447,16 @@ export const ReadTab: React.FC<ReadTabProps> = ({
               <div className="relative rounded-2xl overflow-hidden border border-card-border bg-surface-container shadow-sm group">
                 <div className="relative aspect-[16/9] w-full overflow-hidden">
                   <img
-                    src={featuredArticle.imageUrl || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80'}
+                    src={sanitizeImageUrl(featuredArticle.imageUrl) || getTopicContextualImage(featuredArticle.title, featuredArticle.category) || DEFAULT_VOX_FALLBACK_IMAGE}
                     alt={featuredArticle.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-85"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      const fallback = getTopicContextualImage(featuredArticle.title, featuredArticle.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                      if (target.src !== fallback) {
+                        target.src = fallback;
+                      }
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
                   
@@ -658,9 +665,16 @@ export const ReadTab: React.FC<ReadTabProps> = ({
                     >
                       {article.imageUrl ? (
                         <img
-                          src={article.imageUrl}
+                          src={sanitizeImageUrl(article.imageUrl)}
                           alt={article.title}
                           className="w-full h-full object-cover opacity-90 absolute inset-0"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                            if (target.src !== fallback) {
+                              target.src = fallback;
+                            }
+                          }}
                         />
                       ) : (
                         <div className="flex flex-col items-center justify-center text-center">
@@ -842,9 +856,16 @@ export const ReadTab: React.FC<ReadTabProps> = ({
 
             {readingArticle.imageUrl && (
               <img
-                src={readingArticle.imageUrl}
+                src={sanitizeImageUrl(readingArticle.imageUrl)}
                 alt={readingArticle.title}
                 className="w-full h-44 rounded-2xl object-cover border border-white/10"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  const fallback = getTopicContextualImage(readingArticle.title, readingArticle.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                  if (target.src !== fallback) {
+                    target.src = fallback;
+                  }
+                }}
               />
             )}
 

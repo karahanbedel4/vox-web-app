@@ -1,5 +1,7 @@
 import { Article } from '../types';
 
+export const DEFAULT_VOX_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop&q=80';
+
 const TOPIC_PHOTOS: Record<string, string[]> = {
   police: [
     'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80',
@@ -54,8 +56,23 @@ const TOPIC_PHOTOS: Record<string, string[]> = {
   ]
 };
 
+/**
+ * Enforce HTTPS to prevent Mixed Content blocking on Vercel and secure browsers
+ */
+export function sanitizeImageUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== 'string') return '';
+  let trimmed = url.trim();
+  if (trimmed.startsWith('//')) {
+    return 'https:' + trimmed;
+  }
+  if (trimmed.startsWith('http://')) {
+    return trimmed.replace(/^http:\/\//i, 'https://');
+  }
+  return trimmed;
+}
+
 export function getTopicContextualImage(title: string = '', category: string = '', index: number = 0): string {
-  const t = title.toLowerCase();
+  const t = (title || '').toLowerCase();
   
   if (t.includes('operasyon') || t.includes('gözaltı') || t.includes('polis') || t.includes('mahkeme') || t.includes('suç') || t.includes('örgü') || t.includes('süleymancı') || t.includes('gözaltına')) {
     return TOPIC_PHOTOS.police[index % TOPIC_PHOTOS.police.length];
@@ -85,7 +102,7 @@ export function getTopicContextualImage(title: string = '', category: string = '
     return TOPIC_PHOTOS.auto[index % TOPIC_PHOTOS.auto.length];
   }
 
-  return TOPIC_PHOTOS.general[index % TOPIC_PHOTOS.general.length];
+  return TOPIC_PHOTOS.general[index % TOPIC_PHOTOS.general.length] || DEFAULT_VOX_FALLBACK_IMAGE;
 }
 
 const TOPIC_MAP: Record<string, string> = {
@@ -199,49 +216,111 @@ function parseGoogleNewsItem(item: any, defaultCategory: string = 'Gündem', ind
     }
   }
 
-  const rawHtml = item.description || item.content || item['content:encoded'] || '';
+  const rawHtml = item.description || item.content || item['content:encoded'] || item.summary || '';
 
-  // 1. EXTRACT ORIGINAL IMAGE THUMBNAIL
-  let extractedImage = item.thumbnail || item.image || item.imageUrl || '';
+  // 1. AGGRESSIVE IMAGE EXTRACTION
+  let extractedImage = '';
+
+  // Check direct thumbnail/image properties
+  if (item.thumbnail && typeof item.thumbnail === 'string') {
+    extractedImage = sanitizeImageUrl(item.thumbnail);
+  } else if (item.image && typeof item.image === 'string') {
+    extractedImage = sanitizeImageUrl(item.image);
+  } else if (item.imageUrl && typeof item.imageUrl === 'string') {
+    extractedImage = sanitizeImageUrl(item.imageUrl);
+  }
   
+  // Check enclosure
   if (!extractedImage && item.enclosure) {
-    if (typeof item.enclosure === 'string' && item.enclosure.startsWith('http')) {
-      extractedImage = item.enclosure;
-    } else if (item.enclosure.link && typeof item.enclosure.link === 'string' && item.enclosure.link.startsWith('http')) {
-      extractedImage = item.enclosure.link;
-    } else if (item.enclosure.url && typeof item.enclosure.url === 'string' && item.enclosure.url.startsWith('http')) {
-      extractedImage = item.enclosure.url;
+    if (typeof item.enclosure === 'string') {
+      extractedImage = sanitizeImageUrl(item.enclosure);
+    } else if (item.enclosure.url && typeof item.enclosure.url === 'string') {
+      extractedImage = sanitizeImageUrl(item.enclosure.url);
+    } else if (item.enclosure.link && typeof item.enclosure.link === 'string') {
+      extractedImage = sanitizeImageUrl(item.enclosure.link);
     }
   }
 
-  if (!extractedImage && (item['media:content'] || item.mediaContent)) {
-    const mc = item['media:content'] || item.mediaContent;
-    extractedImage = typeof mc === 'string' ? mc : mc?.url || mc?.[0]?.url || '';
+  // Check media:content and mediaContent
+  if (!extractedImage && (item['media:content'] || item.mediaContent || item.media)) {
+    const mc = item['media:content'] || item.mediaContent || item.media;
+    if (typeof mc === 'string') {
+      extractedImage = sanitizeImageUrl(mc);
+    } else if (mc?.url && typeof mc.url === 'string') {
+      extractedImage = sanitizeImageUrl(mc.url);
+    } else if (Array.isArray(mc) && mc[0]?.url) {
+      extractedImage = sanitizeImageUrl(mc[0].url);
+    } else if (mc?.['$']?.url) {
+      extractedImage = sanitizeImageUrl(mc['$'].url);
+    }
   }
 
+  // Check media:thumbnail and mediaThumbnail
   if (!extractedImage && (item['media:thumbnail'] || item.mediaThumbnail)) {
     const mt = item['media:thumbnail'] || item.mediaThumbnail;
-    extractedImage = typeof mt === 'string' ? mt : mt?.url || mt?.[0]?.url || '';
+    if (typeof mt === 'string') {
+      extractedImage = sanitizeImageUrl(mt);
+    } else if (mt?.url && typeof mt.url === 'string') {
+      extractedImage = sanitizeImageUrl(mt.url);
+    } else if (Array.isArray(mt) && mt[0]?.url) {
+      extractedImage = sanitizeImageUrl(mt[0].url);
+    } else if (mt?.['$']?.url) {
+      extractedImage = sanitizeImageUrl(mt['$'].url);
+    }
   }
 
-  // Regex scan in rawHtml for <img src="...">
-  if (!extractedImage && rawHtml) {
-    const imgMatches = rawHtml.match(/<img[^>]+src=["']([^"']+)["']/gi);
-    if (imgMatches) {
-      for (const tag of imgMatches) {
-        const srcMatch = tag.match(/src=["']([^"']+)["']/i);
-        if (srcMatch && srcMatch[1]) {
-          const url = srcMatch[1].trim();
-          if (url.startsWith('http') && !url.includes('cleardot') && !url.includes('1x1') && !url.includes('pixel') && !url.includes('favicon')) {
-            extractedImage = url;
-            break;
+  // Check content, content:encoded, and description HTML bodies with regex
+  const htmlCandidates = [
+    item['content:encoded'],
+    item.content,
+    item.description,
+    item.summary
+  ].filter(Boolean);
+
+  if (!extractedImage && htmlCandidates.length > 0) {
+    for (const htmlBlock of htmlCandidates) {
+      if (typeof htmlBlock !== 'string') continue;
+      
+      // Standard <img src="...">
+      const imgMatches = htmlBlock.match(/<img[^>]+src=["']([^"']+)["']/gi);
+      if (imgMatches) {
+        for (const tag of imgMatches) {
+          const srcMatch = tag.match(/src=["']([^"']+)["']/i);
+          if (srcMatch && srcMatch[1]) {
+            const url = sanitizeImageUrl(srcMatch[1]);
+            if (url.startsWith('https') && !url.includes('cleardot') && !url.includes('1x1') && !url.includes('pixel') && !url.includes('favicon') && !url.includes('rss2json')) {
+              extractedImage = url;
+              break;
+            }
           }
         }
       }
+      if (extractedImage) break;
+
+      // Encoded &lt;img src=&quot;...&quot;
+      const encodedImgMatches = htmlBlock.match(/&lt;img[^&]+src=(?:&quot;|"|')([^&"']+)(?:&quot;|"|')/gi);
+      if (encodedImgMatches) {
+        for (const tag of encodedImgMatches) {
+          const srcMatch = tag.match(/src=(?:&quot;|"|')([^&"']+)(?:&quot;|"|')/i);
+          if (srcMatch && srcMatch[1]) {
+            const url = sanitizeImageUrl(srcMatch[1]);
+            if (url.startsWith('https') && !url.includes('cleardot') && !url.includes('1x1') && !url.includes('pixel') && !url.includes('favicon')) {
+              extractedImage = url;
+              break;
+            }
+          }
+        }
+      }
+      if (extractedImage) break;
     }
   }
 
-  // If still no direct photo, assign smart contextual photography based on title keywords!
+  // Ensure any found image is HTTPS upgraded
+  if (extractedImage) {
+    extractedImage = sanitizeImageUrl(extractedImage);
+  }
+
+  // If still no direct photo or invalid, assign smart contextual photography based on title keywords & category!
   if (!extractedImage || typeof extractedImage !== 'string' || !extractedImage.startsWith('http')) {
     extractedImage = getTopicContextualImage(cleanTitle, item.category || defaultCategory, index);
   }
@@ -329,9 +408,10 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
       if (Array.isArray(articlesList) && articlesList.length > 0) {
         const parsed = articlesList.map((item: any, idx: number) => {
           if (item.id && item.title && item.content) {
+            const rawImg = item.imageUrl || item.image || item.thumbnail;
             return {
               ...item,
-              imageUrl: item.imageUrl || getTopicContextualImage(item.title, item.category || targetCategory, idx)
+              imageUrl: sanitizeImageUrl(rawImg) || getTopicContextualImage(item.title, item.category || targetCategory, idx)
             };
           }
           return parseGoogleNewsItem(item, targetCategory, idx);

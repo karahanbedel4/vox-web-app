@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe } from 'lucide-react';
 import { Article } from '../types';
-import { fetchNewsByCategory, searchGoogleNews, getTopicContextualImage } from '../lib/newsService';
+import { fetchNewsByCategory, searchGoogleNews, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
 import { getArticlesPaginated } from '../lib/firebase';
 import { cacheTop3Articles } from '../lib/offlineService';
 import { useTheme } from '../lib/ThemeContext';
+import { VoxLogo } from './VoxLogo';
 
 export type CategoryType = 'Tümü' | 'Gündem' | 'Ekonomi' | 'Teknoloji' | 'Spor' | 'Dünya' | 'Sağlık';
 
@@ -157,15 +158,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         theme === 'light' ? 'border-slate-200' : 'border-white/5'
       }`}>
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-[#1ed760]/15 border border-[#1ed760]/30 flex items-center justify-center text-[#1ed760] shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shrink-0">
             <Newspaper className="w-5 h-5" />
           </div>
           <div>
             <h1 className={`text-xl md:text-2xl font-black tracking-tight flex items-center gap-2 ${
-              theme === 'light' ? 'text-slate-900' : 'text-white'
+              theme === 'light' ? 'text-slate-950' : 'text-white'
             }`}>
               <span>Haber Akışı</span>
-              <span className="text-[11px] font-mono font-bold bg-[#1ed760]/15 text-[#1ed760] px-2.5 py-0.5 rounded-full border border-[#1ed760]/25">
+              <span className="text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                 {displayList.length} Haber
               </span>
             </h1>
@@ -189,8 +190,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               placeholder="Haberlerde ara..."
               className={`w-full rounded-xl pl-8 pr-8 py-2 text-xs focus:outline-none transition-all shadow-inner ${
                 theme === 'light'
-                  ? 'bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-[#1ed760]'
-                  : 'bg-[#121814] border border-white/10 text-white placeholder-gray-500 focus:border-[#1ed760]'
+                  ? 'bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-emerald-600'
+                  : 'bg-[#121814] border border-white/10 text-white placeholder-gray-500 focus:border-emerald-500'
               }`}
             />
             {searchQuery ? (
@@ -208,7 +209,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <button
             onClick={() => loadCategoryArticles(false)}
             disabled={isRefreshing}
-            className="bg-[#1ed760]/15 hover:bg-[#1ed760]/25 text-[#1ed760] border border-[#1ed760]/30 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 shrink-0 cursor-pointer"
+            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 shrink-0 cursor-pointer"
             title="Haberleri Yenile"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -228,9 +229,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 setActiveCategory(tab);
                 setGoogleSearchResults(null);
               }}
-              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 isActive
-                  ? 'bg-[#1ed760] text-black shadow-[0_0_15px_rgba(30,215,96,0.25)] scale-105'
+                  ? theme === 'light'
+                    ? 'bg-emerald-800 text-white shadow-sm border border-emerald-800'
+                    : 'bg-[#143d2b] text-emerald-300 border border-emerald-500/40 shadow-sm'
                   : theme === 'light'
                     ? 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
                     : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10'
@@ -249,9 +252,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         })}
 
         {googleSearchResults !== null && (
-          <div className="flex items-center gap-2 bg-[#1ed760]/20 border border-[#1ed760]/40 px-3 py-1 rounded-full text-xs font-bold text-[#1ed760]">
+          <div className="flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-bold text-emerald-400">
             <span>Arama Sonuçları ({googleSearchResults.length})</span>
-            <button onClick={handleClearSearch} className="hover:text-black cursor-pointer">
+            <button onClick={handleClearSearch} className="hover:text-white cursor-pointer">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -313,21 +316,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 >
                   {article.imageUrl ? (
                     <img
-                      src={article.imageUrl}
+                      src={sanitizeImageUrl(article.imageUrl)}
                       alt={article.title}
                       className="w-full h-full object-cover opacity-95 transition-opacity duration-300"
                       onError={(e) => {
                         const target = e.currentTarget;
-                        const fallback = getTopicContextualImage(article.title, article.category);
+                        const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
                         if (target.src !== fallback) {
                           target.src = fallback;
                         }
                       }}
                     />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
-                      <Newspaper className="w-8 h-8 text-[#1ed760]" />
-                    </div>
+                    <img
+                      src={getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
+                      alt={article.title}
+                      className="w-full h-full object-cover opacity-90"
+                    />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                   <span className="absolute bottom-2 left-2 text-[10px] font-mono text-[#1ed760] bg-black/70 px-2 py-0.5 rounded font-bold">

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, RotateCw, Volume2, Sparkles, CloudRain, ShieldCheck, ChevronUp, ChevronDown, X, Clock, Languages, Loader2, AlertTriangle, Youtube, ArrowRight, Sliders, Square } from 'lucide-react';
 import { Article } from '../types';
 import { PlaybackState } from '../lib/ttsService';
+import { getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
 
 interface ListenTabProps {
   playbackState: PlaybackState;
@@ -280,9 +281,16 @@ export const ListenTab: React.FC<ListenTabProps> = ({
       {/* Album Cover / Content Thumbnail */}
       <div className="my-3 relative max-w-[200px] mx-auto aspect-square rounded-3xl overflow-hidden border border-white/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group">
         <img
-          src={currentArticle.imageUrl || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80'}
+          src={sanitizeImageUrl(currentArticle.imageUrl) || getTopicContextualImage(currentArticle.title, currentArticle.category) || DEFAULT_VOX_FALLBACK_IMAGE}
           alt={currentArticle.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          onError={(e) => {
+            const target = e.currentTarget;
+            const fallback = getTopicContextualImage(currentArticle.title, currentArticle.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+            if (target.src !== fallback) {
+              target.src = fallback;
+            }
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">

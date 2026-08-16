@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Brand Logo & Compact Streak Badge */}
       <div className="flex items-center gap-2">
         <Link 
-          to="/gundem" 
+          to="/" 
           className="flex items-center gap-1.5 cursor-pointer group active:scale-95 transition-transform"
           title="Ana Sayfaya Git (Haber Akışı)"
         >

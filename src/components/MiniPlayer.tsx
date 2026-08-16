@@ -2,6 +2,7 @@ import React from 'react';
 import { Play, Pause, X, RotateCw, Volume2 } from 'lucide-react';
 import { Article } from '../types';
 import { PlaybackState } from '../lib/ttsService';
+import { getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
 
 interface MiniPlayerProps {
   playbackState: PlaybackState;
@@ -56,9 +57,16 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           <div className="relative shrink-0 w-11 h-11 rounded-xl overflow-hidden bg-surface-container border border-white/10 shadow-md">
             {currentArticle.imageUrl ? (
               <img
-                src={currentArticle.imageUrl}
+                src={sanitizeImageUrl(currentArticle.imageUrl)}
                 alt={currentArticle.title}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  const fallback = getTopicContextualImage(currentArticle.title, currentArticle.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                  if (target.src !== fallback) {
+                    target.src = fallback;
+                  }
+                }}
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary/30 to-surface-container flex items-center justify-center text-primary font-bold text-sm">
