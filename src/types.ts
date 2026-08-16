@@ -19,7 +19,7 @@ export interface UserProfile {
   createdAt?: string;
 }
 
-export type SourceType = 'youtube' | 'web' | 'rss' | 'ocr' | 'pdf' | 'text';
+export type SourceType = 'youtube' | 'web' | 'rss' | 'ocr' | 'pdf' | 'text' | 'twitter';
 
 export interface Article {
   id: string;

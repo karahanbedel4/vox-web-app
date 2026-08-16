@@ -6,6 +6,7 @@ import { getArticlesPaginated } from '../lib/firebase';
 import { cacheTop3Articles } from '../lib/offlineService';
 import { useTheme } from '../lib/ThemeContext';
 import { VoxLogo } from './VoxLogo';
+import { XLogoIcon } from './XLogoIcon';
 
 export type CategoryType = 'Tümü' | 'Gündem' | 'Ekonomi' | 'Teknoloji' | 'Spor' | 'Dünya' | 'Sağlık';
 
@@ -70,7 +71,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         }
       });
 
-      const finalArticles = Array.from(mergedMap.values());
+      const finalArticles = Array.from(mergedMap.values()).sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
       if (finalArticles.length > 0) {
         setLiveNews(finalArticles);
         cacheTop3Articles(finalArticles);
@@ -312,31 +315,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 {/* Thumbnail Image */}
                 <div
                   onClick={() => onSelectArticle(article)}
-                  className="relative w-full md:w-32 h-36 md:h-28 rounded-xl overflow-hidden shrink-0 bg-slate-100 border border-black/5 cursor-pointer group-hover:scale-[1.02] transition-transform"
+                  className="relative w-full md:w-32 h-36 md:h-28 rounded-xl overflow-hidden shrink-0 bg-[#0e1410] border border-white/5 cursor-pointer group-hover:scale-[1.02] transition-transform"
                 >
-                  {article.imageUrl ? (
-                    <img
-                      src={sanitizeImageUrl(article.imageUrl)}
-                      alt={article.title}
-                      className="w-full h-full object-cover opacity-95 transition-opacity duration-300"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
-                        if (target.src !== fallback) {
-                          target.src = fallback;
-                        }
-                      }}
-                    />
-                  ) : (
-                    <img
-                      src={getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
-                      alt={article.title}
-                      className="w-full h-full object-cover opacity-90"
-                    />
+                  <img
+                    src={sanitizeImageUrl(article.imageUrl) || getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
+                    alt={article.title}
+                    className="w-full h-full object-cover opacity-95 transition-opacity duration-300"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                      if (target.src !== fallback) {
+                        target.src = fallback;
+                      }
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                  {article.sourceType === 'twitter' && (
+                    <span className="absolute top-2 right-2 text-[10px] font-black text-white bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/15 shadow-sm">
+                      <XLogoIcon className="w-2.5 h-2.5 text-[#1ed760]" />
+                      <span>𝕏</span>
+                    </span>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  <span className="absolute bottom-2 left-2 text-[10px] font-mono text-[#1ed760] bg-black/70 px-2 py-0.5 rounded font-bold">
-                    {Math.floor((article.durationSeconds || 180) / 60)} dk
+                  <span className="absolute bottom-2 left-2 text-[10px] font-mono text-[#1ed760] bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded font-bold border border-[#1ed760]/20">
+                    {Math.floor((article.durationSeconds || 90) / 60)} dk
                   </span>
                 </div>
 
@@ -344,12 +345,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="flex-1 min-w-0 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#1ed760] bg-[#1ed760]/10 px-2.5 py-0.5 rounded-full border border-[#1ed760]/20">
-                        {article.category || activeCategory}
+                      <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
+                        article.sourceType === 'twitter'
+                          ? 'text-[#1ed760] bg-[#1ed760]/10 border-[#1ed760]/30'
+                          : 'text-[#1ed760] bg-[#1ed760]/10 border-[#1ed760]/20'
+                      }`}>
+                        {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : (article.category || activeCategory)}
                       </span>
-                      <span className={`text-xs font-mono ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                        {article.author || 'Reuters'}
-                      </span>
+                      {article.sourceType === 'twitter' ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-white bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
+                          <XLogoIcon className="w-3 h-3 text-[#1ed760]" />
+                          <span>{article.author?.startsWith('@') ? article.author : `@${article.author || 'ConflictTR'}`}</span>
+                        </span>
+                      ) : (
+                        <span className={`text-xs font-mono ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                          {article.author || 'Reuters'}
+                        </span>
+                      )}
                     </div>
 
                     <button

@@ -38,6 +38,7 @@ import { woodRainSynth } from '../lib/audioSynth';
 import { useTheme } from '../lib/ThemeContext';
 import { InfoModal, InfoModalType } from './InfoModal';
 import { VoxLogo } from './VoxLogo';
+import { XLogoIcon } from './XLogoIcon';
 import { appStorage, getCookie, setCookie } from '../lib/storage';
 
 const DEFAULT_FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e1217'/%3E%3Cpolygon points='8,8 16,24 24,8' fill='%231ed760'/%3E%3C/svg%3E";
@@ -1174,9 +1175,10 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-[#121814] via-[#121814]/40 to-transparent pointer-events-none" />
 
                 {/* Floating Category Badge */}
-                <div className="absolute top-4 left-4 z-10">
-                  <span className="text-xs font-extrabold text-[#1ed760] uppercase tracking-widest bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-[#1ed760]/30 shadow-lg">
-                    {readingArticle.category || 'GÜNDEM'}
+                <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+                  <span className="text-xs font-extrabold text-[#1ed760] uppercase tracking-widest bg-black/70 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-[#1ed760]/30 shadow-lg flex items-center gap-1.5">
+                    {readingArticle.sourceType === 'twitter' && <XLogoIcon className="w-3 h-3 text-[#1ed760]" />}
+                    <span>{readingArticle.sourceType === 'twitter' ? '𝕏 Twitter Canlı Akış' : (readingArticle.category || 'GÜNDEM')}</span>
                   </span>
                 </div>
 
@@ -1209,16 +1211,23 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                   </h1>
 
                   <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 font-mono">
-                    <span className="text-gray-300 font-semibold">{readingArticle.author || 'VOX Stüdyo / Haber'}</span>
+                    {readingArticle.sourceType === 'twitter' ? (
+                      <span className="inline-flex items-center gap-1 text-white bg-white/10 px-2.5 py-1 rounded-md font-bold border border-white/10">
+                        <XLogoIcon className="w-3 h-3 text-[#1ed760]" />
+                        <span>{readingArticle.author?.startsWith('@') ? readingArticle.author : `@${readingArticle.author || 'ConflictTR'}`}</span>
+                      </span>
+                    ) : (
+                      <span className="text-gray-300 font-semibold">{readingArticle.author || 'VOX Stüdyo / Haber'}</span>
+                    )}
                     <span>•</span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-[#1ed760]" />
-                      {Math.floor((readingArticle.durationSeconds || 180) / 60)} dk okuma
+                      {Math.floor((readingArticle.durationSeconds || 90) / 60)} dk okuma
                     </span>
-                    {readingArticle.publishedAt && (
+                    {readingArticle.createdAt && (
                       <>
                         <span>•</span>
-                        <span>{new Date(readingArticle.publishedAt).toLocaleDateString('tr-TR')}</span>
+                        <span>{new Date(readingArticle.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                       </>
                     )}
                   </div>
@@ -1228,7 +1237,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 <div className="bg-[#1ed760]/10 border border-[#1ed760]/30 p-4 sm:p-5 rounded-2xl space-y-2">
                   <div className="flex items-center gap-2 text-xs font-extrabold text-[#1ed760] uppercase tracking-wider">
                     <Sparkles className="w-4 h-4 text-[#1ed760]" />
-                    <span>Yapay Zeka Özeti</span>
+                    <span>{readingArticle.sourceType === 'twitter' ? '𝕏 Anlık Tweet Özeti' : 'Yapay Zeka Özeti'}</span>
                   </div>
                   <p className="text-xs sm:text-sm leading-relaxed text-gray-200 font-medium">
                     {readingArticle.summary}
@@ -1253,7 +1262,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 {/* Full Article Text */}
                 <div className="space-y-3 pt-2">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-white/5 pb-2">
-                    Tam Metin
+                    {readingArticle.sourceType === 'twitter' ? 'Haber ve Tweet Metni' : 'Tam Metin'}
                   </h3>
                   <div className="text-xs sm:text-sm leading-relaxed text-gray-300 space-y-3 font-sans">
                     {readingArticle.rawHtml && (readingArticle.rawHtml.includes('<p') || readingArticle.rawHtml.includes('<li') || readingArticle.rawHtml.includes('<ol') || readingArticle.rawHtml.includes('<ul')) ? (

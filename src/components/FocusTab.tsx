@@ -27,12 +27,14 @@ import {
   BatteryCharging,
   Signal,
   Calendar,
-  Clock
+  Clock,
+  Pencil
 } from 'lucide-react';
 import { Article } from '../types';
 import { triggerHapticImpact, triggerHapticNotification } from '../lib/haptics';
 import { AmbientChannel } from './AmbientMixerSheet';
 import { fetchNewsByCategory } from '../lib/newsService';
+import { appStorage } from '../lib/storage';
 
 interface FocusTabProps {
   articles: Article[];
@@ -196,15 +198,45 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [completedSessions, setCompletedSessions] = useState<number>(0);
   
-  // Custom Focus Goal & Tasks
-  const [focusGoal, setFocusGoal] = useState<string>('Odaklanma Seansı');
-  const [tasks, setTasks] = useState<{ id: string; text: string; done: boolean }[]>([
-    { id: '1', text: 'İlk görevini yaz...', done: false }
-  ]);
+  // Custom Focus Goal & Tasks with persistent storage
+  const [focusGoal, setFocusGoal] = useState<string>(() => {
+    try {
+      return appStorage.getItemSync('vox_focus_goal') || 'Odaklanma Seansı';
+    } catch (e) {
+      return 'Odaklanma Seansı';
+    }
+  });
+
+  const [tasks, setTasks] = useState<{ id: string; text: string; done: boolean }[]>(() => {
+    try {
+      const saved = appStorage.getItemSync('vox_focus_tasks');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+
   const [newTaskText, setNewTaskText] = useState<string>('');
   const [isAddingTask, setIsAddingTask] = useState<boolean>(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTaskText, setEditingTaskText] = useState<string>('');
   const [isEditingGoal, setIsEditingGoal] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  // Sync tasks & goal to appStorage
+  useEffect(() => {
+    try {
+      appStorage.setItemSync('vox_focus_tasks', JSON.stringify(tasks));
+    } catch (e) {}
+  }, [tasks]);
+
+  useEffect(() => {
+    try {
+      appStorage.setItemSync('vox_focus_goal', focusGoal);
+    } catch (e) {}
+  }, [focusGoal]);
 
   // Live Time, Date and Real Device Battery State for Phone Mockup
   const [currentTime, setCurrentTime] = useState<string>(() => {
@@ -264,12 +296,34 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
   const removeTask = (id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
+    if (editingTaskId === id) {
+      setEditingTaskId(null);
+      setEditingTaskText('');
+    }
+    triggerHapticImpact('light').catch(() => {});
+  };
+
+  const startEditingTask = (task: { id: string; text: string }) => {
+    setEditingTaskId(task.id);
+    setEditingTaskText(task.text);
+  };
+
+  const saveEditingTask = (id: string) => {
+    const clean = editingTaskText.trim();
+    if (!clean) {
+      removeTask(id);
+    } else {
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, text: clean } : t));
+    }
+    setEditingTaskId(null);
+    setEditingTaskText('');
     triggerHapticImpact('light').catch(() => {});
   };
 
   const addTask = () => {
     if (!newTaskText.trim()) return;
-    setTasks(prev => [...prev, { id: Date.now().toString(), text: newTaskText.trim(), done: false }]);
+    const newId = Date.now().toString();
+    setTasks(prev => [...prev, { id: newId, text: newTaskText.trim(), done: false }]);
     setNewTaskText('');
     setIsAddingTask(false);
     triggerHapticImpact('light').catch(() => {});
@@ -698,38 +752,96 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   )}
                 </div>
 
-                {/* Minimalist Tasks / To-Do Checklist */}
-                <div className="bg-[#0e1410] border border-white/5 rounded-2xl p-3 space-y-2.5">
-                  <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                {/* Minimalist Tasks / To-Do Checklist (Directly Editable) */}
+                <div className="bg-[#0e1410] border border-white/5 rounded-2xl p-3 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 px-1">
+                    <span>GÖREVLER ({tasks.filter(t => t.done).length}/{tasks.length})</span>
+                    <span className="text-[10px] text-gray-500">Düzenlemek için metne tıklayın</span>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
                     {tasks.map((task) => (
                       <div 
                         key={task.id}
-                        className="flex items-center justify-between gap-2 text-xs py-1 px-1.5 rounded-lg hover:bg-white/5 group transition-colors"
+                        className="flex items-center justify-between gap-2 text-xs py-1 px-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] group transition-all"
                       >
-                        <button
-                          onClick={() => toggleTaskDone(task.id)}
-                          className="flex items-center gap-2 text-left flex-1 min-w-0"
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                            task.done 
-                              ? 'bg-[#1ed760] border-[#1ed760] text-black' 
-                              : 'border-white/20 hover:border-white/40'
-                          }`}>
-                            {task.done && <CheckCircle2 className="w-3.5 h-3.5 fill-current" />}
+                        {editingTaskId === task.id ? (
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            <input
+                              type="text"
+                              value={editingTaskText}
+                              onChange={(e) => setEditingTaskText(e.target.value)}
+                              onBlur={() => saveEditingTask(task.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEditingTask(task.id);
+                                if (e.key === 'Escape') setEditingTaskId(null);
+                              }}
+                              autoFocus
+                              className="flex-1 bg-black/60 border border-[#1ed760] rounded px-2 py-0.5 text-xs text-white outline-none"
+                            />
+                            <button
+                              onMouseDown={() => saveEditingTask(task.id)}
+                              className="px-2 py-0.5 bg-[#1ed760] text-black font-bold text-[10px] rounded hover:brightness-110"
+                            >
+                              Kaydet
+                            </button>
                           </div>
-                          <span className={`truncate ${task.done ? 'line-through text-gray-500' : 'text-gray-200'}`}>
-                            {task.text}
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => removeTask(task.id)}
-                          className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-500 hover:text-red-400 transition-opacity"
-                          title="Sil"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => toggleTaskDone(task.id)}
+                              className="w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors"
+                              style={{
+                                borderColor: task.done ? '#1ed760' : 'rgba(255,255,255,0.2)',
+                                backgroundColor: task.done ? '#1ed760' : 'transparent'
+                              }}
+                              title={task.done ? 'Tamamlandı olarak işaretlendi' : 'Tamamla'}
+                            >
+                              {task.done && <CheckCircle2 className="w-3.5 h-3.5 text-black fill-current" />}
+                            </button>
+
+                            <div 
+                              onClick={() => startEditingTask(task)}
+                              className="flex-1 min-w-0 cursor-text py-0.5 px-1 rounded hover:bg-white/5 transition-colors"
+                              title="Görevi düzenlemek için tıklayın"
+                            >
+                              <span className={`block truncate ${task.done ? 'line-through text-gray-500' : 'text-gray-200 hover:text-white'}`}>
+                                {task.text}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={() => startEditingTask(task)}
+                                className="p-1 text-gray-400 hover:text-[#1ed760] transition-colors"
+                                title="Düzenle"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeTask(task.id)}
+                                className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                                title="Sil"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
+
+                    {tasks.length === 0 && !isAddingTask && (
+                      <div 
+                        onClick={() => setIsAddingTask(true)}
+                        className="text-xs text-gray-500 hover:text-gray-300 py-2 px-2 border border-dashed border-white/10 rounded-lg text-center cursor-pointer transition-colors"
+                      >
+                        + İlk görevini buraya yazmak için tıkla...
+                      </div>
+                    )}
                   </div>
 
                   {/* Add Task Input Row */}
@@ -739,8 +851,8 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         type="text"
                         value={newTaskText}
                         onChange={(e) => setNewTaskText(e.target.value)}
-                        placeholder="| Görev yazın..."
-                        className="flex-1 bg-white/5 border border-[#1ed760]/40 rounded-lg px-2.5 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
+                        placeholder="Görev yazın (Enter)..."
+                        className="flex-1 bg-black/40 border border-[#1ed760]/50 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-gray-500 outline-none focus:border-[#1ed760]"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') addTask();
@@ -748,19 +860,32 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         }}
                       />
                       <button
+                        type="button"
                         onClick={addTask}
-                        className="py-1 px-2.5 bg-[#1ed760] text-black rounded-lg text-xs font-bold hover:brightness-110"
+                        className="py-1.5 px-3 bg-[#1ed760] text-black rounded-lg text-xs font-bold hover:brightness-110 transition-all shrink-0 cursor-pointer"
                       >
                         Ekle
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingTask(false);
+                          setNewTaskText('');
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                        title="İptal"
+                      >
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => setIsAddingTask(true)}
-                      className="w-full text-left text-xs text-gray-500 hover:text-gray-300 py-1 px-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                      className="w-full text-left text-xs text-gray-400 hover:text-white py-1 px-2 rounded-lg transition-colors flex items-center gap-1.5 hover:bg-white/5 cursor-pointer"
                     >
-                      <span className="text-[#1ed760] font-bold">+</span>
-                      <span>| Görev veya not ekle...</span>
+                      <span className="text-[#1ed760] font-bold text-sm">+</span>
+                      <span>Yeni görev veya not ekle...</span>
                     </button>
                   )}
                 </div>

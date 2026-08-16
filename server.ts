@@ -1994,86 +1994,80 @@ Respond ONLY with valid JSON:
 // 4. Dynamic News Feed API Endpoint (lang=tr, by category)
 app.get('/api/news', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const category = (req.query.category as string) || 'Tümü';
     const lang = (req.query.lang as string) || 'tr';
 
-    // Map categories to open Turkish RSS feeds with rich media enclosures and Google News TR
+    // Map categories to high-reliability Turkish RSS feeds (Google News TR & TRT Haber are prioritized for 100% uptime from datacenter IPs)
     const feedMap: Record<string, string[]> = {
       'Teknoloji': [
+        'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=tr&gl=TR&ceid=TR:tr',
+        'https://www.trthaber.com/xml_mobile/rss2/bilim_teknoloji.xml',
         'https://www.webtekno.com/rss.xml',
         'https://shiftdelete.net/feed',
-        'https://www.haberturk.com/rss/kategori/teknoloji.xml',
-        'https://www.aa.com.tr/tr/rss/default?cat=bilim-teknoloji',
-        'https://www.donanimhaber.com/rss/tum/',
-        'https://www.ntv.com.tr/teknoloji.rss',
-        'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=tr&gl=TR&ceid=TR:tr'
+        'https://news.google.com/rss/search?q=yapay+zeka+teknoloji&hl=tr&gl=TR&ceid=TR:tr'
       ],
       'Ekonomi': [
+        'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=tr&gl=TR&ceid=TR:tr',
+        'https://www.trthaber.com/xml_mobile/rss2/ekonomi.xml',
         'https://www.bloomberght.com/rss',
-        'https://www.haberturk.com/rss/kategori/ekonomi.xml',
-        'https://www.aa.com.tr/tr/rss/default?cat=ekonomi',
-        'https://www.ntv.com.tr/ekonomi.rss',
-        'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=tr&gl=TR&ceid=TR:tr'
+        'https://news.google.com/rss/search?q=ekonomi+borsa+faiz&hl=tr&gl=TR&ceid=TR:tr'
       ],
       'Finans': [
+        'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=tr&gl=TR&ceid=TR:tr',
         'https://www.bloomberght.com/rss',
-        'https://www.haberturk.com/rss/kategori/ekonomi.xml',
-        'https://www.aa.com.tr/tr/rss/default?cat=ekonomi',
-        'https://news.google.com/rss/search?q=finans+borsa+piyasalar&hl=tr&gl=TR&ceid=TR:tr'
+        'https://news.google.com/rss/search?q=finans+piyasa+dolar+altin&hl=tr&gl=TR&ceid=TR:tr'
       ],
       'Dünya': [
+        'https://news.google.com/rss/headlines/section/topic/WORLD?hl=tr&gl=TR&ceid=TR:tr',
         'https://feeds.bbci.co.uk/turkce/rss.xml',
-        'https://www.aa.com.tr/tr/rss/default?cat=dunya',
-        'https://www.haberturk.com/rss/kategori/dunya.xml',
-        'https://www.ntv.com.tr/dunya.rss',
-        'https://news.google.com/rss/headlines/section/topic/WORLD?hl=tr&gl=TR&ceid=TR:tr'
+        'https://www.trthaber.com/xml_mobile/rss2/dunya.xml'
       ],
       'Kültür & Sanat': [
-        'https://www.aa.com.tr/tr/rss/default?cat=kultur-sanat',
-        'https://www.haberturk.com/rss/kategori/kultur-sanat.xml',
-        'https://www.ntv.com.tr/sanat.rss',
-        'https://news.google.com/rss/search?q=kultur+sanat+sinema+tiyatro&hl=tr&gl=TR&ceid=TR:tr'
+        'https://news.google.com/rss/search?q=kultur+sanat+sinema+tiyatro&hl=tr&gl=TR&ceid=TR:tr',
+        'https://www.trthaber.com/xml_mobile/rss2/kultur_sanat.xml',
+        'https://www.ntv.com.tr/sanat.rss'
       ],
       'Etik & Bilim': [
-        'https://www.aa.com.tr/tr/rss/default?cat=bilim-teknoloji',
-        'https://www.webtekno.com/rss.xml',
-        'https://www.aa.com.tr/tr/rss/default?cat=saglik',
-        'https://www.ntv.com.tr/saglik.rss'
+        'https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=tr&gl=TR&ceid=TR:tr',
+        'https://news.google.com/rss/search?q=bilim+uzay+tip&hl=tr&gl=TR&ceid=TR:tr',
+        'https://www.webtekno.com/rss.xml'
       ],
       'Sürdürülebilirlik': [
-        'https://www.aa.com.tr/tr/rss/default?cat=cevre',
-        'https://www.haberturk.com/rss/kategori/ekonomi.xml',
-        'https://news.google.com/rss/search?q=surdurulebilirlik+iklim+cevre&hl=tr&gl=TR&ceid=TR:tr'
+        'https://news.google.com/rss/search?q=surdurulebilirlik+iklim+yenilenebilir+enerji&hl=tr&gl=TR&ceid=TR:tr',
+        'https://news.google.com/rss/search?q=cevre+doga+iklim&hl=tr&gl=TR&ceid=TR:tr'
       ],
       'Felsefe': [
-        'https://feeds.bbci.co.uk/turkce/rss.xml',
-        'https://www.webtekno.com/rss.xml',
-        'https://news.google.com/rss/search?q=felsefe+dusunce+analiz&hl=tr&gl=TR&ceid=TR:tr'
+        'https://news.google.com/rss/search?q=felsefe+dusunce+analiz&hl=tr&gl=TR&ceid=TR:tr',
+        'https://feeds.bbci.co.uk/turkce/rss.xml'
       ],
       'Gündem': [
-        'https://www.aa.com.tr/tr/rss/default?cat=gundem',
-        'https://www.haberturk.com/rss/kategori/gundem.xml',
-        'https://www.ntv.com.tr/gundem.rss',
-        'https://www.sozcu.com.tr/feeds-son-dakika',
-        'https://www.trthaber.com/gundem_articles.rss',
+        'https://news.google.com/rss/headlines/section/topic/NATION?hl=tr&gl=TR&ceid=TR:tr',
+        'https://www.trthaber.com/xml_mobile/rss2/manset.xml',
+        'https://www.trthaber.com/xml_mobile/rss2/gundem.xml',
         'https://feeds.bbci.co.uk/turkce/rss.xml',
-        'https://news.google.com/rss/headlines/section/topic/NATION?hl=tr&gl=TR&ceid=TR:tr'
+        'https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr'
       ],
       'Spor': [
-        'https://www.ntvspor.net/rss/haber',
-        'https://www.aa.com.tr/tr/rss/default?cat=spor',
-        'https://www.haberturk.com/rss/kategori/spor.xml',
-        'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=tr&gl=TR&ceid=TR:tr'
+        'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=tr&gl=TR&ceid=TR:tr',
+        'https://www.trthaber.com/xml_mobile/rss2/spor.xml',
+        'https://www.ntvspor.net/rss/haber'
+      ],
+      'Sağlık': [
+        'https://news.google.com/rss/headlines/section/topic/HEALTH?hl=tr&gl=TR&ceid=TR:tr',
+        'https://www.trthaber.com/xml_mobile/rss2/saglik.xml'
       ],
       'Tümü': [
-        'https://www.aa.com.tr/tr/rss/default?cat=gundem',
-        'https://www.haberturk.com/rss/kategori/gundem.xml',
-        'https://www.ntv.com.tr/gundem.rss',
-        'https://www.webtekno.com/rss.xml',
-        'https://shiftdelete.net/feed',
-        'https://www.haberturk.com/rss/kategori/ekonomi.xml',
+        'https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr',
+        'https://news.google.com/rss/headlines/section/topic/NATION?hl=tr&gl=TR&ceid=TR:tr',
+        'https://www.trthaber.com/xml_mobile/rss2/manset.xml',
+        'https://www.trthaber.com/xml_mobile/rss2/gundem.xml',
         'https://feeds.bbci.co.uk/turkce/rss.xml',
-        'https://www.sozcu.com.tr/feeds-son-dakika'
+        'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=tr&gl=TR&ceid=TR:tr',
+        'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=tr&gl=TR&ceid=TR:tr'
       ]
     };
 
@@ -2250,6 +2244,17 @@ app.get('/api/news', async (req, res) => {
           let fullContent = contentMatch ? cleanText(contentMatch[1]) : '';
           const sourceUrl = linkMatch ? linkMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
 
+          const pubDateMatch = itemStr.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || itemStr.match(/<dc:date>([\s\S]*?)<\/dc:date>/i);
+          let itemDate = new Date().toISOString();
+          if (pubDateMatch && pubDateMatch[1]) {
+            try {
+              const d = new Date(cleanText(pubDateMatch[1]));
+              if (!isNaN(d.getTime())) {
+                itemDate = d.toISOString();
+              }
+            } catch (e) {}
+          }
+
           if (title && title.length > 4) {
             const finalSummary = summary || `${title} hakkındaki en son gelişmeler.`;
             const finalContent = fullContent || `${title}.\n\n${finalSummary}\n\nBu haber ${author} tarafından yayınlanmış olup VOX Akıllı Okuma Modu ile dinlenmeye hazırdır.`;
@@ -2284,7 +2289,7 @@ app.get('/api/news', async (req, res) => {
               sourceType: 'rss',
               sourceUrl: sourceUrl,
               durationSeconds: Math.max(150, Math.min(480, (finalSummary.length + finalContent.length) * 2)),
-              createdAt: new Date().toISOString(),
+              createdAt: itemDate,
               keyPoints: [title, `Kaynak: ${author || publisherName}`, `Kategori: ${itemCategory}`]
             });
           }
@@ -2313,6 +2318,9 @@ app.get('/api/news', async (req, res) => {
         });
       }
     });
+
+    // Sort by publication time (newest first)
+    newsArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
     // Curated dynamic fallback if RSS returned empty
     if (newsArticles.length === 0) {
@@ -2385,6 +2393,200 @@ app.get('/api/news', async (req, res) => {
     });
   } catch (err: unknown) {
     console.error('News feed error:', err);
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+// Server-side Anti-Ban Cache for Twitter feeds (5 minutes TTL)
+let serverTwitterCache: { timestamp: number; tweets: any[] } = {
+  timestamp: 0,
+  tweets: []
+};
+
+// 4.1 Twitter (X) Feed Aggregator Endpoint (@ozetgechaber, @ConflictTR, @vaziyetcomtr)
+app.get('/api/tweets', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    const accounts = [
+      {
+        handle: '@ConflictTR',
+        username: 'ConflictTR',
+        name: 'Conflict TR',
+        category: 'Gündem',
+        url: 'https://x.com/ConflictTR'
+      },
+      {
+        handle: '@ozetgechaber',
+        username: 'ozetgechaber',
+        name: 'Özet Geç Haber',
+        category: 'Teknoloji',
+        url: 'https://x.com/ozetgechaber'
+      },
+      {
+        handle: '@vaziyetcomtr',
+        username: 'vaziyetcomtr',
+        name: 'Vaziyet',
+        category: 'Ekonomi',
+        url: 'https://x.com/vaziyetcomtr'
+      }
+    ];
+
+    const now = Date.now();
+    const accountFilter = req.query.account as string;
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+    // Check server memory cache
+    if (serverTwitterCache.tweets.length > 0 && (now - serverTwitterCache.timestamp < CACHE_TTL)) {
+      let filtered = serverTwitterCache.tweets;
+      if (accountFilter) {
+        filtered = filtered.filter(t => t.author.toLowerCase().includes(accountFilter.toLowerCase()));
+      }
+      return res.json({
+        success: true,
+        cached: true,
+        accounts: accounts.map(a => a.handle),
+        tweets: filtered
+      });
+    }
+
+    // Helper to clean tweet text in Node
+    const cleanText = (raw: string) => {
+      let text = (raw || '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/https?:\/\/t\.co\/[a-zA-Z0-9_-]+/gi, '')
+        .replace(/https?:\/\/[^\s]+/gi, '')
+        .replace(/pic\.twitter\.com\/[a-zA-Z0-9_-]+/gi, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&apos;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+      let title = sentences[0] || text;
+      title = title.replace(/^\[.*?\]\s*/, '').trim();
+      if (title.length > 110) title = title.substring(0, 107) + '...';
+      return { title, summary: text, content: text };
+    };
+
+    // Helper to parse XML items with regex (no npm packages)
+    const parseRssXml = (xml: string, acc: typeof accounts[0]) => {
+      const items: any[] = [];
+      const itemRegex = /<item[\s\S]*?<\/item>/gi;
+      const matches = xml.match(itemRegex) || [];
+
+      matches.forEach((itemBlock, idx) => {
+        const titleMatch = itemBlock.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        const descMatch = itemBlock.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
+        const pubDateMatch = itemBlock.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i) || itemBlock.match(/<dc:date[^>]*>([\s\S]*?)<\/dc:date>/i);
+        const linkMatch = itemBlock.match(/<link[^>]*>([\s\S]*?)<\/link>/i) || itemBlock.match(/<guid[^>]*>([\s\S]*?)<\/guid>/i);
+
+        const rawTitle = titleMatch ? titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1') : '';
+        const rawDesc = descMatch ? descMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1') : '';
+        const rawPubDate = pubDateMatch ? pubDateMatch[1] : '';
+        const link = linkMatch ? linkMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1').trim() : `https://x.com/${acc.username}`;
+
+        // Image extraction
+        let imageUrl = '';
+        const mediaMatch = itemBlock.match(/url=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp|gif)[^"']*)["']/i);
+        if (mediaMatch) {
+          imageUrl = mediaMatch[1];
+        } else if (rawDesc.includes('<img')) {
+          const imgMatch = rawDesc.match(/<img[^>]+src=["']([^"']+)["']/i);
+          if (imgMatch) imageUrl = imgMatch[1];
+        }
+
+        const combined = rawDesc && rawDesc.length > rawTitle.length ? rawDesc : (rawTitle || rawDesc);
+        const { title, summary, content } = cleanText(combined);
+
+        if (summary && summary.length > 5) {
+          let pubDateISO = new Date().toISOString();
+          if (rawPubDate) {
+            try {
+              const d = new Date(rawPubDate);
+              if (!isNaN(d.getTime())) pubDateISO = d.toISOString();
+            } catch (e) {}
+          }
+
+          items.push({
+            id: `tweet_${acc.username}_${idx}_${Date.now()}`,
+            title,
+            summary,
+            content: `${content}\n\nBu anlık bilgilendirme ve sıcak gelişme, VOX Akıllı Akış motoru ile Twitter (𝕏) üzerinden canlı olarak aktarılmıştır.`,
+            category: acc.category,
+            author: acc.handle,
+            sourceType: 'twitter',
+            sourceUrl: link.startsWith('http') ? link : `https://x.com/${acc.username}`,
+            imageUrl: imageUrl || undefined,
+            durationSeconds: Math.max(60, Math.min(180, Math.round(summary.length * 0.4))),
+            createdAt: pubDateISO,
+            keyPoints: [title, `Kaynak: 𝕏 ${acc.handle}`, `Kategori: ${acc.category}`]
+          });
+        }
+      });
+
+      return items;
+    };
+
+    // Fetch from free Nitter / RSSHub mirrors in parallel
+    const fetchedPromises = accounts.map(async (acc) => {
+      const mirrors = [
+        `https://nitter.poast.org/${acc.username}/rss`,
+        `https://nitter.privacydev.net/${acc.username}/rss`,
+        `https://rsshub.app/twitter/user/${acc.username}`
+      ];
+
+      for (const mirror of mirrors) {
+        try {
+          const response = await fetch(mirror, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; VoxBot/1.0; +https://vox.ai)'
+            },
+            signal: AbortSignal.timeout(4000)
+          });
+          if (response.ok) {
+            const xml = await response.text();
+            const items = parseRssXml(xml, acc);
+            if (items.length > 0) return items;
+          }
+        } catch (e) {}
+      }
+      return [];
+    });
+
+    const results = await Promise.all(fetchedPromises);
+    const allTweets: any[] = [];
+    results.forEach(list => {
+      if (Array.isArray(list)) allTweets.push(...list);
+    });
+
+    if (allTweets.length > 0) {
+      allTweets.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      serverTwitterCache = {
+        timestamp: now,
+        tweets: allTweets
+      };
+    }
+
+    let outList = allTweets.length > 0 ? allTweets : serverTwitterCache.tweets;
+    if (accountFilter) {
+      outList = outList.filter(t => t.author.toLowerCase().includes(accountFilter.toLowerCase()));
+    }
+
+    res.json({
+      success: true,
+      accounts: accounts.map(a => a.handle),
+      tweets: outList
+    });
+  } catch (err: unknown) {
+    console.error('Twitter API endpoint error:', err);
     res.status(500).json({ success: false, error: (err as Error).message });
   }
 });

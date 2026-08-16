@@ -1,4 +1,5 @@
 import { Article } from '../types';
+import { appStorage } from './storage';
 
 export const DEFAULT_VOX_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop&q=80';
 
@@ -390,16 +391,366 @@ function parseGoogleNewsItem(item: any, defaultCategory: string = 'Gündem', ind
 }
 
 /**
- * Fetch dynamic Turkish news by category with local /api/news & direct RSS fallback
+ * Target Twitter Accounts for Zero-Cost Real-Time RSS Stream
+ */
+export interface TargetTwitterAccount {
+  handle: string;
+  username: string;
+  category: string;
+  name: string;
+}
+
+export const TARGET_TWITTER_ACCOUNTS: TargetTwitterAccount[] = [
+  {
+    handle: '@ozetgechaber',
+    username: 'ozetgechaber',
+    category: 'Teknoloji',
+    name: 'Özet Geç Haber'
+  },
+  {
+    handle: '@ConflictTR',
+    username: 'ConflictTR',
+    category: 'Gündem',
+    name: 'Conflict TR'
+  },
+  {
+    handle: '@vaziyetcomtr',
+    username: 'vaziyetcomtr',
+    category: 'Ekonomi',
+    name: 'Vaziyet'
+  }
+];
+
+// Anti-Ban Cache Configuration (5 minutes = 300 seconds = 300,000 ms)
+const TWITTER_CACHE_KEY = 'vox_twitter_feed_cache_v2';
+const TWITTER_CACHE_TTL_MS = 5 * 60 * 1000;
+
+let inMemoryTwitterCache: { timestamp: number; articles: Article[] } | null = null;
+
+/**
+ * Clean tweet text by removing raw t.co links, HTML tags, trailing hashtags, and messy symbols
+ */
+export function cleanTweetText(rawText: string): { cleanTitle: string; cleanSummary: string; cleanContent: string } {
+  if (!rawText) {
+    return { cleanTitle: '', cleanSummary: '', cleanContent: '' };
+  }
+
+  let text = rawText
+    // Remove HTML tags
+    .replace(/<[^>]+>/gi, ' ')
+    // Remove t.co and generic URLs
+    .replace(/https?:\/\/t\.co\/[a-zA-Z0-9_-]+/gi, '')
+    .replace(/https?:\/\/[^\s]+/gi, '')
+    .replace(/pic\.twitter\.com\/[a-zA-Z0-9_-]+/gi, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Split into sentences for title and body
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+  let cleanTitle = sentences[0] || text;
+  
+  // Clean prefix like "SON DAKİKA:", "ÖZET:", "GELİŞME:"
+  cleanTitle = cleanTitle.replace(/^\[.*?\]\s*/, '').trim();
+  if (cleanTitle.length > 110) {
+    cleanTitle = cleanTitle.substring(0, 107) + '...';
+  }
+
+  const cleanSummary = text;
+  const cleanContent = `${text}\n\nBu anlık bilgilendirme ve sıcak gelişme, VOX Akıllı Akış motoru ile Twitter (𝕏) üzerinden canlı olarak aktarılmıştır.`;
+
+  return { cleanTitle, cleanSummary, cleanContent };
+}
+
+/**
+ * Parse Twitter RSS XML using the browser's built-in DOMParser
+ */
+function parseTwitterXmlWithDOM(xmlString: string, account: TargetTwitterAccount): Article[] {
+  if (!xmlString || typeof xmlString !== 'string') return [];
+  const articles: Article[] = [];
+
+  try {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+
+    const parseError = xmlDoc.querySelector('parsererror');
+    if (parseError) {
+      return [];
+    }
+
+    const items = xmlDoc.querySelectorAll('item');
+    items.forEach((item, index) => {
+      const titleElem = item.querySelector('title');
+      const descElem = item.querySelector('description');
+      const pubDateElem = item.querySelector('pubDate') || item.querySelector('dc\\:date');
+      const linkElem = item.querySelector('link') || item.querySelector('guid');
+
+      const rawTitle = titleElem?.textContent || '';
+      const rawDesc = descElem?.textContent || '';
+      const rawPubDate = pubDateElem?.textContent || '';
+      const link = linkElem?.textContent?.trim() || `https://x.com/${account.username}`;
+
+      // Extract image:
+      // 1. media:content or media:thumbnail
+      let mediaUrl = '';
+      const mediaContent = item.getElementsByTagName('media:content')[0] || item.getElementsByTagName('media:thumbnail')[0];
+      if (mediaContent) {
+        mediaUrl = mediaContent.getAttribute('url') || '';
+      }
+      // 2. enclosure
+      if (!mediaUrl) {
+        const enclosure = item.querySelector('enclosure');
+        if (enclosure && (enclosure.getAttribute('type')?.includes('image') || enclosure.getAttribute('url')?.match(/\.(jpeg|jpg|png|webp|gif)/i))) {
+          mediaUrl = enclosure.getAttribute('url') || '';
+        }
+      }
+      // 3. <img> tag in raw description
+      if (!mediaUrl && rawDesc.includes('<img')) {
+        const imgMatch = rawDesc.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch && imgMatch[1]) {
+          mediaUrl = imgMatch[1];
+        }
+      }
+
+      // Combine text to get complete narrative
+      const combinedRaw = rawDesc && rawDesc.length > rawTitle.length ? rawDesc : (rawTitle || rawDesc);
+      const { cleanTitle, cleanSummary, cleanContent } = cleanTweetText(combinedRaw);
+
+      if (cleanSummary && cleanSummary.length > 5) {
+        let pubDateISO = new Date().toISOString();
+        if (rawPubDate) {
+          try {
+            const parsedD = new Date(rawPubDate);
+            if (!isNaN(parsedD.getTime())) {
+              pubDateISO = parsedD.toISOString();
+            }
+          } catch (e) {}
+        }
+
+        const id = `tweet_${account.username}_${index}_${pubDateISO.replace(/[^0-9]/g, '')}`;
+
+        articles.push({
+          id,
+          title: cleanTitle,
+          summary: cleanSummary,
+          content: cleanContent,
+          category: account.category,
+          author: account.handle,
+          sourceType: 'twitter' as const,
+          sourceUrl: link.startsWith('http') ? link : `https://x.com/${account.username}`,
+          imageUrl: mediaUrl ? sanitizeImageUrl(mediaUrl) : (getTopicContextualImage(cleanTitle, account.category, index) || DEFAULT_VOX_FALLBACK_IMAGE),
+          durationSeconds: Math.max(60, Math.min(180, Math.round(cleanSummary.length * 0.4))),
+          createdAt: pubDateISO,
+          keyPoints: [
+            cleanTitle,
+            `Kaynak: 𝕏 ${account.handle}`,
+            `Kategori: ${account.category}`,
+            'Canlı Twitter (𝕏) Akışı'
+          ]
+        });
+      }
+    });
+  } catch (err) {
+    console.warn(`DOMParser error for ${account.handle}:`, err);
+  }
+
+  return articles;
+}
+
+/**
+ * Real-time Zero-Cost Twitter (X) Fetcher with 5-Minute Anti-Ban Cache
+ */
+export async function fetchRealTweets(category?: string, forceRefresh = false): Promise<Article[]> {
+  const now = Date.now();
+
+  // 1. Anti-Ban Cache Check (5-minute TTL)
+  if (!forceRefresh) {
+    // A. Check in-memory cache first
+    if (inMemoryTwitterCache && (now - inMemoryTwitterCache.timestamp < TWITTER_CACHE_TTL_MS)) {
+      const cached = inMemoryTwitterCache.articles;
+      if (cached && cached.length > 0) {
+        if (category && category !== 'Tümü') {
+          return cached.filter(t => t.category.toLowerCase() === category.toLowerCase());
+        }
+        return cached;
+      }
+    }
+
+    // B. Check persistent localStorage cache
+    try {
+      const stored = appStorage.getItemSync(TWITTER_CACHE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (
+          parsed &&
+          parsed.timestamp &&
+          (now - parsed.timestamp < TWITTER_CACHE_TTL_MS) &&
+          Array.isArray(parsed.articles) &&
+          parsed.articles.length > 0
+        ) {
+          inMemoryTwitterCache = parsed;
+          if (category && category !== 'Tümü') {
+            return parsed.articles.filter((t: Article) => t.category.toLowerCase() === category.toLowerCase());
+          }
+          return parsed.articles;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Fetch fresh real tweets using free RSS + CORS Proxy + DOMParser
+  const fetchedArticles: Article[] = [];
+
+  const fetchPromises = TARGET_TWITTER_ACCOUNTS.map(async (account) => {
+    const rssEndpoints = [
+      `https://nitter.poast.org/${account.username}/rss`,
+      `https://nitter.privacydev.net/${account.username}/rss`,
+      `https://rsshub.app/twitter/user/${account.username}`
+    ];
+
+    // Try CORS proxy with DOMParser
+    for (const rssUrl of rssEndpoints) {
+      try {
+        const alloriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+        const res = await fetch(alloriginsUrl, { signal: AbortSignal.timeout(4500) });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.contents) {
+            const parsed = parseTwitterXmlWithDOM(json.contents, account);
+            if (parsed.length > 0) return parsed;
+          }
+        }
+      } catch (e) {
+        try {
+          const corsProxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(rssUrl)}`;
+          const res = await fetch(corsProxyUrl, { signal: AbortSignal.timeout(4500) });
+          if (res.ok) {
+            const xmlText = await res.text();
+            const parsed = parseTwitterXmlWithDOM(xmlText, account);
+            if (parsed.length > 0) return parsed;
+          }
+        } catch (e2) {}
+      }
+    }
+
+    // Direct /api/tweets proxy
+    try {
+      const res = await fetch(`/api/tweets?account=${account.username}&_t=${now}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.tweets || []);
+        if (Array.isArray(list) && list.length > 0) {
+          return list.map((item: any) => {
+            const { cleanTitle, cleanSummary, cleanContent } = cleanTweetText(item.content || item.summary || item.text || item.title);
+            return {
+              id: item.id || `tweet_${account.username}_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+              title: item.title || cleanTitle,
+              summary: cleanSummary,
+              content: cleanContent,
+              category: account.category,
+              author: account.handle,
+              sourceType: 'twitter' as const,
+              sourceUrl: item.sourceUrl || `https://x.com/${account.username}`,
+              imageUrl: item.imageUrl || getTopicContextualImage(item.title || cleanTitle, account.category) || DEFAULT_VOX_FALLBACK_IMAGE,
+              durationSeconds: item.durationSeconds || 90,
+              createdAt: item.createdAt || new Date().toISOString(),
+              keyPoints: [cleanTitle, `Kaynak: 𝕏 ${account.handle}`, `Kategori: ${account.category}`]
+            };
+          });
+        }
+      }
+    } catch (e) {}
+
+    return [];
+  });
+
+  try {
+    const results = await Promise.all(fetchPromises);
+    results.forEach(list => {
+      if (Array.isArray(list)) fetchedArticles.push(...list);
+    });
+  } catch (err) {
+    console.warn('fetchRealTweets aggregation error:', err);
+  }
+
+  // 3. Process fetched results and update Anti-Ban Cache
+  if (fetchedArticles.length > 0) {
+    // Sort strictly newest first
+    fetchedArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+    const cachePayload = { timestamp: now, articles: fetchedArticles };
+    inMemoryTwitterCache = cachePayload;
+    try {
+      appStorage.setItemSync(TWITTER_CACHE_KEY, JSON.stringify(cachePayload));
+    } catch (e) {}
+
+    if (category && category !== 'Tümü') {
+      return fetchedArticles.filter(t => t.category.toLowerCase() === category.toLowerCase());
+    }
+    return fetchedArticles;
+  }
+
+  // Fallback to previous cache if temporary network outage
+  try {
+    const stored = appStorage.getItemSync(TWITTER_CACHE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && Array.isArray(parsed.articles) && parsed.articles.length > 0) {
+        if (category && category !== 'Tümü') {
+          return parsed.articles.filter((t: Article) => t.category.toLowerCase() === category.toLowerCase());
+        }
+        return parsed.articles;
+      }
+    }
+  } catch (e) {}
+
+  return [];
+}
+
+/**
+ * Fetch Twitter News wrapper (calls fetchRealTweets)
+ */
+export async function fetchTwitterNews(category?: string): Promise<Article[]> {
+  return fetchRealTweets(category, false);
+}
+
+/**
+ * Fetch dynamic Turkish news by category with local /api/news, Twitter aggregation & direct RSS fallback
  */
 export async function fetchNewsByCategory(category: string = 'Tümü', lang: string = 'tr'): Promise<Article[]> {
   const targetCategory = category === 'Tümü' ? 'Gündem' : category;
   const articles: Article[] = [];
 
-  // 1. Primary: Fetch from local VOX /api/news endpoint with rich media extraction
+  // 1. Fetch Twitter Feed from @ozetgechaber, @ConflictTR, @vaziyetcomtr (Zero-Cost Free RSS + 5-min Anti-Ban Cache)
+  let twitterArticles: Article[] = [];
   try {
-    const queryParam = category && category !== 'Tümü' ? `?category=${encodeURIComponent(category)}&lang=${lang}` : `?lang=${lang}`;
-    const res = await fetch(`/api/news${queryParam}`);
+    twitterArticles = await fetchTwitterNews(category);
+  } catch (e) {
+    console.warn('Twitter news fetch error:', e);
+    twitterArticles = [];
+  }
+
+  // 2. Fetch from local VOX /api/news endpoint with rich media extraction
+  try {
+    const queryParam = category && category !== 'Tümü' 
+      ? `?category=${encodeURIComponent(category)}&lang=${lang}&_t=${Date.now()}` 
+      : `?lang=${lang}&_t=${Date.now()}`;
+    const res = await fetch(`/api/news${queryParam}`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
     
     if (res.ok) {
       const data = await res.json();
@@ -423,47 +774,38 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
     console.warn('/api/news fetch error, falling back to direct RSS:', err);
   }
 
-  // If local /api/news returned items, return immediately
-  if (articles.length > 0) {
-    const uniqueMap = new Map<string, Article>();
-    articles.forEach(a => {
-      if (a.title && !uniqueMap.has(a.title.toLowerCase().trim())) {
-        uniqueMap.set(a.title.toLowerCase().trim(), a);
-      }
-    });
-    return Array.from(uniqueMap.values());
-  }
-
-  // 2. Fetch from Direct Turkish News RSS Feeds (NTV, BBC Türkçe, Webtekno, Bloomberg, etc.)
-  const directUrls = CATEGORY_DIRECT_RSS[category] || CATEGORY_DIRECT_RSS['Tümü'];
-  
-  const rssPromises = directUrls.map(async (rssUrl, i) => {
-    try {
-      const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status === 'ok' && Array.isArray(data.items)) {
-          return data.items.map((item: any, idx: number) => 
-            parseGoogleNewsItem(item, targetCategory, i * 10 + idx)
-          );
+  // 3. Fallback to Direct Turkish News RSS Feeds if /api/news was empty
+  if (articles.length === 0) {
+    const directUrls = CATEGORY_DIRECT_RSS[category] || CATEGORY_DIRECT_RSS['Tümü'];
+    
+    const rssPromises = directUrls.map(async (rssUrl, i) => {
+      try {
+        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'ok' && Array.isArray(data.items)) {
+            return data.items.map((item: any, idx: number) => 
+              parseGoogleNewsItem(item, targetCategory, i * 10 + idx)
+            );
+          }
         }
+      } catch (e) {
+        console.warn(`Direct RSS fetch error for ${rssUrl}:`, e);
       }
-    } catch (e) {
-      console.warn(`Direct RSS fetch error for ${rssUrl}:`, e);
-    }
-    return [];
-  });
-
-  try {
-    const rssResults = await Promise.all(rssPromises);
-    rssResults.forEach(list => {
-      if (Array.isArray(list)) articles.push(...list);
+      return [];
     });
-  } catch (err) {
-    console.warn('Direct RSS parallel fetch error:', err);
+
+    try {
+      const rssResults = await Promise.all(rssPromises);
+      rssResults.forEach(list => {
+        if (Array.isArray(list)) articles.push(...list);
+      });
+    } catch (err) {
+      console.warn('Direct RSS parallel fetch error:', err);
+    }
   }
 
-  // 3. Fallback to Google News RSS
+  // 4. Fallback to Google News RSS if still empty
   if (articles.length === 0) {
     try {
       const rssTopic = TOPIC_MAP[category] || '';
@@ -484,15 +826,23 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
     }
   }
 
+  // 5. Aggregate Web RSS articles + Twitter articles into one single array
+  const allCombined = [...twitterArticles, ...articles];
+
   // Deduplicate by title
   const uniqueMap = new Map<string, Article>();
-  articles.forEach(a => {
+  allCombined.forEach(a => {
     if (a.title && !uniqueMap.has(a.title.toLowerCase().trim())) {
       uniqueMap.set(a.title.toLowerCase().trim(), a);
     }
   });
 
-  return Array.from(uniqueMap.values());
+  // Sort strictly chronologically (newest first)
+  const sortedArticles = Array.from(uniqueMap.values()).sort(
+    (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+  );
+
+  return sortedArticles;
 }
 
 /**
