@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
@@ -2123,7 +2124,7 @@ app.get('/api/news', async (req, res) => {
     const defaultImages = [
       'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80',
       'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=80'
+      'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=600&auto=format&fit=crop&q=80'
     ];
 
     const imageList = categoryImages[category] || defaultImages;
@@ -2731,6 +2732,34 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
   });
 });
 
+function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: string): string {
+  const isEnglish = reqPath.startsWith('/en') || reqPath === '/focus' || queryLang === 'en';
+  const isFocus = reqPath === '/odaklan' || reqPath === '/focus' || reqPath.includes('/focus');
+
+  const title = isEnglish
+    ? (isFocus ? 'VOX Focus | Read Less, Listen More, Focus Better' : 'VOX | Read Less, Listen More, Focus Better')
+    : (isFocus ? 'VOX | Odaklan' : 'VOX | Oku, Dinle, Odaklan');
+
+  const description = isEnglish
+    ? 'Read less. Listen more. Focus better.'
+    : 'Daha az oku. Daha çok dinle. Daha iyi odaklan.';
+
+  const url = `https://voxozet.com${reqPath}`;
+  const locale = isEnglish ? 'en_US' : 'tr_TR';
+
+  return template
+    .replace(/<title>.*?<\/title>/, `<title>${title}</title>`)
+    .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${title}" />`)
+    .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${description}" />`)
+    .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${title}" />`)
+    .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${description}" />`)
+    .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${url}" />`)
+    .replace(/<meta property="og:locale" content=".*?" \/>/, `<meta property="og:locale" content="${locale}" />`)
+    .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${title}" />`)
+    .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${description}" />`)
+    .replace(/<meta name="twitter:url" content=".*?" \/>/, `<meta name="twitter:url" content="${url}" />`);
+}
+
 // Serve frontend with Vite middleware in development or static dist in production
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
@@ -2738,12 +2767,37 @@ async function startServer() {
       server: { middlewareMode: true },
       appType: 'spa',
     });
+
+    // Handle HTML requests to provide accurate dynamic OpenGraph metadata for preview crawlers
+    app.use(async (req, res, next) => {
+      if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.includes('.')) {
+        return next();
+      }
+
+      try {
+        const rawTemplate = await fs.promises.readFile(path.join(process.cwd(), 'index.html'), 'utf-8');
+        const queryLang = typeof req.query.lang === 'string' ? req.query.lang : undefined;
+        const localizedTemplate = getLocalizedMetaHtml(rawTemplate, req.path, queryLang);
+        const transformedHtml = await vite.transformIndexHtml(req.originalUrl, localizedTemplate);
+        res.status(200).set({ 'Content-Type': 'text/html; charset=utf-8' }).end(transformedHtml);
+      } catch (err) {
+        next(err);
+      }
+    });
+
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    app.get('*', async (req, res) => {
+      try {
+        const rawTemplate = await fs.promises.readFile(path.join(distPath, 'index.html'), 'utf-8');
+        const queryLang = typeof req.query.lang === 'string' ? req.query.lang : undefined;
+        const localizedHtml = getLocalizedMetaHtml(rawTemplate, req.path, queryLang);
+        res.status(200).set({ 'Content-Type': 'text/html; charset=utf-8' }).send(localizedHtml);
+      } catch (err) {
+        res.sendFile(path.join(distPath, 'index.html'));
+      }
     });
   }
 

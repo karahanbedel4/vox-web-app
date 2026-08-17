@@ -31,7 +31,8 @@ import {
   Target,
   Trophy,
   Check,
-  Volume2
+  Volume2,
+  Sparkles
 } from 'lucide-react';
 import { Article } from '../types';
 import { triggerHapticImpact, triggerHapticNotification } from '../lib/haptics';
@@ -39,7 +40,6 @@ import { AmbientChannel } from './AmbientMixerSheet';
 import { fetchNewsByCategory } from '../lib/newsService';
 import { appStorage } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
-import { NativeAdCard } from './NativeAdCard';
 
 interface FocusTabProps {
   articles: Article[];
@@ -70,18 +70,22 @@ function getCookie(name: string): string | null {
 }
 
 /**
- * Synthesizes a serene Tibetan Mindfulness Bell / Chime sound using Web Audio API.
- * Fundamental 528Hz (Focus/Healing pitch) with rich harmonic overtones.
+ * Synthesizes a serene Mindfulness Bell / Chime sound using Web Audio API.
+ * High-clarity fundamental frequency with rich harmonic resonance and echo.
  */
 function playMindfulnessBell() {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
     const now = ctx.currentTime;
 
-    const freqs = [528, 1056, 1584];
-    const gains = [0.4, 0.15, 0.08];
+    // Harmonic bell frequencies (528Hz healing/focus pitch + harmonics)
+    const freqs = [528, 1056, 1584, 2112];
+    const gains = [0.45, 0.2, 0.1, 0.05];
 
     freqs.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
@@ -91,33 +95,33 @@ function playMindfulnessBell() {
       osc.frequency.setValueAtTime(freq, now);
 
       gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.linearRampToValueAtTime(gains[idx], now + 0.04);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 3.8);
+      gainNode.gain.linearRampToValueAtTime(gains[idx], now + 0.03);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 3.2);
 
       osc.connect(gainNode);
       gainNode.connect(ctx.destination);
 
       osc.start(now);
-      osc.stop(now + 4.0);
+      osc.stop(now + 3.3);
     });
 
-    // Echo ring
+    // Pleasant secondary harmonic echo
     setTimeout(() => {
       try {
         const echoNow = ctx.currentTime;
         const osc = ctx.createOscillator();
         const gainNode = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(528, echoNow);
+        osc.frequency.setValueAtTime(792, echoNow);
         gainNode.gain.setValueAtTime(0.0001, echoNow);
-        gainNode.gain.linearRampToValueAtTime(0.15, echoNow + 0.03);
-        gainNode.gain.exponentialRampToValueAtTime(0.0001, echoNow + 2.5);
+        gainNode.gain.linearRampToValueAtTime(0.18, echoNow + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, echoNow + 2.0);
         osc.connect(gainNode);
         gainNode.connect(ctx.destination);
         osc.start(echoNow);
-        osc.stop(echoNow + 2.6);
+        osc.stop(echoNow + 2.1);
       } catch {}
-    }, 250);
+    }, 180);
 
   } catch (err) {
     console.warn('Mindfulness chime audio synthesis notice:', err);
@@ -126,37 +130,47 @@ function playMindfulnessBell() {
 
 /**
  * Sends a browser Web Push Notification if permission is granted.
+ * Clicking the notification brings the user back to the Focus page.
  */
-function sendPomodoroWebNotification(title: string, body: string) {
+function sendPomodoroWebNotification(title: string, body: string, targetPath: string = '/odaklan') {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
 
   if (Notification.permission === 'granted') {
     try {
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then((reg) => {
-          reg.showNotification(title, {
-            body,
-            icon: '/favicon.ico',
-            badge: '/favicon.ico',
-            tag: 'pomodoro-notification'
-          } as NotificationOptions).catch(() => {
-            new Notification(title, { body, icon: '/favicon.ico' });
-          });
-        });
-      } else {
-        new Notification(title, { body, icon: '/favicon.ico' });
-      }
+      const notificationOptions: NotificationOptions = {
+        body,
+        icon: '/apple-touch-icon.png',
+        badge: '/apple-touch-icon.png',
+        tag: 'pomodoro-notification',
+        requireInteraction: false
+      };
+
+      const notif = new Notification(title, notificationOptions);
+
+      notif.onclick = function (event) {
+        event.preventDefault();
+        try {
+          window.focus();
+          if (window.parent && window.parent !== window) {
+            window.parent.focus();
+          }
+        } catch {}
+
+        if (window.location.pathname !== targetPath) {
+          window.history.pushState(null, '', targetPath);
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        }
+        notif.close();
+      };
+      fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, body })
+      }).catch(() => {});
     } catch (err) {
       console.warn('Web notification send notice:', err);
     }
   }
-
-  // Also post to backend push API endpoint
-  fetch('/api/push/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, body })
-  }).catch(() => {});
 }
 
 /**
@@ -176,6 +190,127 @@ function getChannelIconComponent(name: string = '', id: string = '') {
   
   return Music;
 }
+
+// Horizontal Music Shelf Data Model (Spotify / Apple Music Architecture)
+export interface ShelfTrack {
+  id: string;
+  name: string;
+  subtitle: string;
+  youtubeId: string;
+}
+
+export interface MusicShelf {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tracks: ShelfTrack[];
+}
+
+export const MUSIC_SHELVES: MusicShelf[] = [
+  {
+    id: 'nature',
+    title: 'Doğa & Ambiyans',
+    subtitle: 'Sakinleştirici doğa sesleri ve yağmur tonları',
+    icon: CloudRain,
+    tracks: [
+      {
+        id: 'yt-nature-rain',
+        name: 'Doğada Yağmur Sesi',
+        subtitle: 'Doğa & Yağmur',
+        youtubeId: '3mst47Uu3IU'
+      },
+      {
+        id: 'yt-forest-birds',
+        name: 'Sakin Orman & Kuş Sesi',
+        subtitle: 'Orman & Kuşlar',
+        youtubeId: 'xNN7iTA57jM'
+      },
+      {
+        id: 'yt-thunder-rain',
+        name: 'Şimşek ve Fırtına Sesi',
+        subtitle: 'Gece Fırtınası',
+        youtubeId: '9JEL_n6egA8'
+      },
+      {
+        id: 'yt-ocean-waves',
+        name: 'Okyanus & Dalga Sesi',
+        subtitle: 'Sahil Dalgaları',
+        youtubeId: 'bn9F19Hi1Lk'
+      },
+      {
+        id: 'yt-campfire-night',
+        name: 'Gece & Kamp Ateşi Sesi',
+        subtitle: 'Çıtırdayan Ateş',
+        youtubeId: 'L_LUpnjgPso'
+      },
+      {
+        id: 'yt-cozy-cafe',
+        name: 'Sakin Kafe Ambiyansı',
+        subtitle: 'Kahve Dükkanı',
+        youtubeId: 'gaGrHUekGrc'
+      }
+    ]
+  },
+  {
+    id: 'lofi',
+    title: 'Lo-Fi Odaklanma',
+    subtitle: 'Ritmik chillhop ve derin konsantrasyon beats',
+    icon: Music,
+    tracks: [
+      {
+        id: 'yt-lofi-rain',
+        name: 'Lo-Fi & Yağmur',
+        subtitle: 'Chillhop Yağmur',
+        youtubeId: 'sF80I-TQiW0'
+      },
+      {
+        id: 'yt-lofi-chill',
+        name: 'Lo-Fi Chill',
+        subtitle: 'Huzurlu Beats',
+        youtubeId: 'fsPRybb-xXg'
+      },
+      {
+        id: 'yt-deep-work',
+        name: 'Derin Çalışma Müziği',
+        subtitle: 'Binaural Focus',
+        youtubeId: 'czMO-L42nnc'
+      }
+    ]
+  },
+  {
+    id: 'epic',
+    title: 'Epik & Sinema',
+    subtitle: 'Efsanevi film temaları ve atmosferik tınılar',
+    icon: Sparkles,
+    tracks: [
+      {
+        id: 'yt-shire-study',
+        name: 'Shire Sakin Çalışma',
+        subtitle: 'Lord of the Rings',
+        youtubeId: 'HFlxEM6zZsc'
+      },
+      {
+        id: 'yt-lotr-soundtrack',
+        name: 'Yüzüklerin Efendisi Müzikleri',
+        subtitle: 'Orta Dünya Temaları',
+        youtubeId: 'FrWuCPgsp_c'
+      },
+      {
+        id: 'yt-hp-ambient',
+        name: 'Harry Potter Ambiyans',
+        subtitle: 'Hogwarts Kütüphanesi',
+        youtubeId: 'BQrxsyGTztM'
+      },
+      {
+        id: 'yt-hp-seasons',
+        name: 'Harry Potter Mevsimler',
+        subtitle: 'Büyülü Mevsimler',
+        youtubeId: 'FZXWmqVorQc'
+      }
+    ]
+  }
+];
 
 // Preset cycle options (Clean paired sets)
 const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6];
@@ -399,6 +534,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   const [isLoadingLiveFeed, setIsLoadingLiveFeed] = useState<boolean>(false);
 
   const timerRef = useRef<number | null>(null);
+  const endTimeRef = useRef<number | null>(null);
 
   // Check initial notification permission
   useEffect(() => {
@@ -449,8 +585,8 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
         triggerHapticNotification('success').catch(() => {});
         sendPomodoroWebNotification(
-          '🔔 VOX Bildirimleri Aktif!',
-          'Çalışma ve mola geçişlerinde anlık bildirim alacaksınız.'
+          'VOX Odaklanma',
+          '🔔 Bildirimler aktif! Seans ve mola geçişlerinde anlık bildirim alacaksınız.'
         );
       } else if (result === 'denied') {
         setCookie('vox_push_consent', 'denied', 365);
@@ -466,12 +602,6 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     setHasConsented(true);
   };
 
-  const testBellAndNotification = () => {
-    playMindfulnessBell();
-    triggerHapticNotification('success').catch(() => {});
-    showTemporaryStatus('🔔 Tibet çan sesi çalındı');
-  };
-
   const showTemporaryStatus = (msg: string) => {
     setStatusMessage(msg);
     setTimeout(() => {
@@ -484,6 +614,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     setWorkMinutes(mins);
     if (sessionType === 'work' && !isRunning) {
       setTimeLeft(mins * 60);
+      endTimeRef.current = null;
     }
     triggerHapticImpact('light').catch(() => {});
   };
@@ -493,6 +624,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     setBreakMinutes(mins);
     if (sessionType === 'break' && !isRunning) {
       setTimeLeft(mins * 60);
+      endTimeRef.current = null;
     }
     triggerHapticImpact('light').catch(() => {});
   };
@@ -503,6 +635,9 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     triggerHapticImpact('medium').catch(() => {});
 
     if (willRun) {
+      // Calculate target end timestamp for exact countdown regardless of background tab throttling
+      endTimeRef.current = Date.now() + timeLeft * 1000;
+
       // Ask for browser notification permission on first start if not decided
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().then((result) => {
@@ -517,20 +652,22 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         }).catch(() => {});
       }
 
-      const startTitle = sessionType === 'work' ? '🚀 Çalışma Başladı' : '☕ Mola Başladı';
+      const startTitle = 'VOX Odaklanma';
       const currentMins = sessionType === 'work' ? workMinutes : breakMinutes;
       const startBody = sessionType === 'work' 
-        ? `${currentMins} dakikalık odaklanma seansı başladı.` 
-        : `${currentMins} dakikalık dinlenme başladı.`;
+        ? `🎯 ${currentMins} dakikalık odaklanma seansı başladı.` 
+        : `☕ ${currentMins} dakikalık dinlenme başladı.`;
       sendPomodoroWebNotification(startTitle, startBody);
       showTemporaryStatus(sessionType === 'work' ? '🎯 Çalışma Başladı' : '☕ Mola Başladı');
     } else {
+      endTimeRef.current = null;
       showTemporaryStatus('⏸️ Duraklatıldı');
     }
   };
 
   const resetTimer = () => {
     setIsRunning(false);
+    endTimeRef.current = null;
     if (timerRef.current) clearInterval(timerRef.current);
     setSessionType('work');
     setTimeLeft(workMinutes * 60);
@@ -538,50 +675,75 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     showTemporaryStatus('🔄 Sıfırlandı');
   };
 
-  // AUTOMATIC TRANSITION EFFECT (Çalışma bitince -> Dinlenme, Dinlenme bitince -> Çalışma)
+  // ACCURATE TIMESTAMP-BASED TIMER WITH BACKGROUND TAB THROTTLING RESILIENCE
   useEffect(() => {
-    if (isRunning) {
-      timerRef.current = window.setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            playMindfulnessBell();
-            triggerHapticNotification('success').catch(() => {});
-
-            if (sessionType === 'work') {
-              // 1. Çalışma bitti -> Doğrudan Molaya Geç
-              setCompletedSessions((s) => s + 1);
-              sendPomodoroWebNotification(
-                'VOX Odaklanma',
-                'Tebrikler! Seans bitti, şimdi kısa bir mola vakti ☕'
-              );
-
-              setSessionType('break');
-              showTemporaryStatus(`☕ Mola başladı (${breakMinutes} dk)`);
-              return breakMinutes * 60;
-
-            } else {
-              // 2. Mola bitti -> Doğrudan Çalışmaya Geç
-              sendPomodoroWebNotification(
-                '🔔 Mola Bitti!',
-                `${breakMinutes} dk mola tamamlandı. ${workMinutes} dk yeni çalışma seansı başladı.`
-              );
-
-              setSessionType('work');
-              showTemporaryStatus(`🎯 Yeni çalışma başladı (${workMinutes} dk)`);
-              return workMinutes * 60;
-            }
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
+    if (!isRunning) {
       if (timerRef.current) clearInterval(timerRef.current);
+      return;
     }
+
+    if (!endTimeRef.current) {
+      endTimeRef.current = Date.now() + timeLeft * 1000;
+    }
+
+    const tick = () => {
+      if (!endTimeRef.current) return;
+      const remainingMs = endTimeRef.current - Date.now();
+      const remainingSecs = Math.max(0, Math.ceil(remainingMs / 1000));
+
+      if (remainingSecs <= 0) {
+        playMindfulnessBell();
+        triggerHapticNotification('success').catch(() => {});
+
+        if (sessionType === 'work') {
+          // 1. Çalışma bitti -> Doğrudan Molaya Geç
+          setCompletedSessions((s) => s + 1);
+          sendPomodoroWebNotification(
+            'VOX Odaklanma',
+            `Tebrikler! ${workMinutes} dakikalık odaklanma seansını tamamladın, şimdi kısa bir mola vakti ☕`
+          );
+
+          setSessionType('break');
+          showTemporaryStatus(`☕ Mola başladı (${breakMinutes} dk)`);
+          const nextSecs = breakMinutes * 60;
+          endTimeRef.current = Date.now() + nextSecs * 1000;
+          setTimeLeft(nextSecs);
+
+        } else {
+          // 2. Mola bitti -> Doğrudan Çalışmaya Geç
+          sendPomodoroWebNotification(
+            'VOX Odaklanma',
+            `🔔 ${breakMinutes} dakikalık mola bitti! Yeni ${workMinutes} dakikalık odaklanma seansı başladı 🎯`
+          );
+
+          setSessionType('work');
+          showTemporaryStatus(`🎯 Yeni çalışma başladı (${workMinutes} dk)`);
+          const nextSecs = workMinutes * 60;
+          endTimeRef.current = Date.now() + nextSecs * 1000;
+          setTimeLeft(nextSecs);
+        }
+      } else {
+        setTimeLeft(remainingSecs);
+      }
+    };
+
+    tick();
+    timerRef.current = window.setInterval(tick, 500);
+
+    // Sync immediately when user switches back to this tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isRunning && endTimeRef.current) {
+        tick();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isRunning, sessionType, workMinutes, breakMinutes]);
+  }, [isRunning, sessionType, workMinutes, breakMinutes, timeLeft]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -843,19 +1005,23 @@ export const FocusTab: React.FC<FocusTabProps> = ({
             </div>
           </div>
 
-          {/* MODERN PHONE FRAME MOCKUP (Matching Uploaded Screenshot Aesthetic) */}
-          <div className="relative mx-auto max-w-[370px] sm:max-w-[400px]">
+          {/* POMODORO CONTROLLER (Responsive: iPhone Mockup on Desktop >= md, Clean Native Card on Mobile < md) */}
+          <div className="relative mx-auto w-full md:max-w-[400px]">
             
-            {/* Ambient Glow Behind Phone */}
+            {/* Ambient Glow Behind Phone / Card */}
             <div className={`absolute -inset-4 rounded-[50px] blur-3xl transition-opacity duration-1000 pointer-events-none opacity-35 ${
               sessionType === 'work' ? 'bg-gradient-to-b from-[#1ed760]/20 via-emerald-950/20 to-black' : 'bg-gradient-to-b from-amber-500/20 via-orange-950/20 to-black'
             }`} />
 
-            {/* Phone Outer Chassis */}
-            <div className="relative bg-[#0a0d0b] border-[6px] border-[#1d2620] rounded-[48px] p-4 shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_35px_rgba(30,215,96,0.12)] overflow-hidden">
+            {/* Chassis: Desktop uses iPhone frame with border-[6px], Mobile uses clean native card */}
+            <div className={`relative transition-all overflow-hidden ${
+              theme === 'light'
+                ? 'bg-white border border-slate-200 shadow-xl rounded-3xl p-4 sm:p-5 md:border-[6px] md:border-slate-800 md:rounded-[48px] md:bg-[#0a0d0b] md:p-4 md:shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_35px_rgba(30,215,96,0.12)]'
+                : 'bg-[#121814] border border-white/10 shadow-2xl rounded-3xl p-4 sm:p-5 md:border-[6px] md:border-[#1d2620] md:rounded-[48px] md:bg-[#0a0d0b] md:p-4 md:shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_35px_rgba(30,215,96,0.12)]'
+            }`}>
               
-              {/* Phone Top Status Bar */}
-              <div className="flex items-center justify-between px-3 pt-1 pb-3 text-gray-400">
+              {/* Desktop Top Status Bar (Hidden on Mobile) */}
+              <div className="hidden md:flex items-center justify-between px-3 pt-1 pb-3 text-gray-400">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold tracking-tight text-white">
                     {currentTime}
@@ -867,7 +1033,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   <div className="w-2.5 h-2.5 rounded-full bg-neutral-900 border border-white/10 mr-1" />
                 </div>
 
-                {/* Status Bar Right: Signal + Device Battery Level & Charging Status (No WIFI) */}
+                {/* Status Bar Right: Signal + Device Battery Level & Charging Status */}
                 <div className="flex items-center gap-1.5 text-gray-300">
                   <Signal className="w-3.5 h-3.5 text-gray-400" />
                   <span className="text-[10px] font-mono font-bold text-gray-300">
@@ -881,18 +1047,25 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 </div>
               </div>
 
-              {/* Phone Inner Screen Content */}
+              {/* Inner Screen Content */}
               <div className="space-y-4 pt-1 pb-1">
                 
                 {/* Dynamic Live Date Badge */}
-                <div className="flex items-center justify-between px-1.5 py-1 rounded-xl bg-white/[0.03] border border-white/5 text-[11px] text-gray-300">
+                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-black/20 dark:bg-white/[0.03] border border-black/5 dark:border-white/5 text-[11px] text-gray-600 dark:text-gray-300">
                   <div className="flex items-center gap-1.5 font-medium">
                     <Calendar className="w-3.5 h-3.5 text-[#1ed760]" />
                     <span className="capitalize">{currentDateStr}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-[10px] text-gray-400 font-mono">
-                    <Clock className="w-3 h-3 text-[#1ed760]" />
-                    <span>{currentTime}</span>
+                  <div className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 font-mono">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-[#1ed760]" />
+                      <span>{currentTime}</span>
+                    </span>
+                    {/* Mobile Battery Display */}
+                    <span className="md:hidden flex items-center gap-1">
+                      <Battery className="w-3.5 h-3.5 text-[#1ed760]" />
+                      <span>%{batteryInfo.level}</span>
+                    </span>
                   </div>
                 </div>
 
@@ -904,7 +1077,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       value={focusGoal}
                       onChange={(e) => setFocusGoal(e.target.value)}
                       placeholder="Odaklanma hedefi..."
-                      className="w-full bg-white/10 border border-[#1ed760]/50 rounded-xl px-3 py-1.5 text-xl font-bold text-white outline-none"
+                      className="w-full bg-black/10 dark:bg-white/10 border border-[#1ed760]/50 rounded-xl px-3 py-1.5 text-xl font-bold text-slate-900 dark:text-white outline-none"
                       autoFocus
                       onBlur={() => setIsEditingGoal(false)}
                       onKeyDown={(e) => e.key === 'Enter' && setIsEditingGoal(false)}
@@ -912,7 +1085,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   ) : (
                     <h2 
                       onClick={() => setIsEditingGoal(true)}
-                      className="font-serif text-2xl font-bold text-white tracking-tight leading-snug cursor-pointer hover:text-[#1ed760] transition-colors"
+                      className="font-serif text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-snug cursor-pointer hover:text-[#1ed760] transition-colors"
                       title="Hedefi düzenlemek için tıklayın"
                     >
                       {focusGoal}
@@ -921,17 +1094,17 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 </div>
 
                 {/* Minimalist Tasks / To-Do Checklist (Directly Editable) */}
-                <div className="bg-[#0e1410] border border-white/5 rounded-2xl p-3 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 px-1">
+                <div className="bg-slate-50 dark:bg-[#0e1410] border border-slate-200 dark:border-white/5 rounded-2xl p-3 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-gray-500 dark:text-gray-400 px-1">
                     <span>GÖREVLER ({tasks.filter(t => t.done).length}/{tasks.length})</span>
-                    <span className="text-[10px] text-gray-500">Düzenlemek için metne tıklayın</span>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">Düzenlemek için metne tıklayın</span>
                   </div>
 
                   <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
                     {tasks.map((task) => (
                       <div 
                         key={task.id}
-                        className="flex items-center justify-between gap-2 text-xs py-1 px-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] group transition-all"
+                        className="flex items-center justify-between gap-2 text-xs py-1 px-2 rounded-lg bg-white dark:bg-white/[0.03] border border-slate-100 dark:border-transparent hover:bg-slate-100 dark:hover:bg-white/[0.06] group transition-all"
                       >
                         {editingTaskId === task.id ? (
                           <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -945,7 +1118,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                                 if (e.key === 'Escape') setEditingTaskId(null);
                               }}
                               autoFocus
-                              className="flex-1 bg-black/60 border border-[#1ed760] rounded px-2 py-0.5 text-xs text-white outline-none"
+                              className="flex-1 bg-white dark:bg-black/60 border border-[#1ed760] rounded px-2 py-0.5 text-xs text-slate-900 dark:text-white outline-none"
                             />
                             <button
                               onMouseDown={() => saveEditingTask(task.id)}
@@ -961,7 +1134,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                               onClick={() => toggleTaskDone(task.id)}
                               className="w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors"
                               style={{
-                                borderColor: task.done ? '#1ed760' : 'rgba(255,255,255,0.2)',
+                                borderColor: task.done ? '#1ed760' : 'rgba(150,150,150,0.3)',
                                 backgroundColor: task.done ? '#1ed760' : 'transparent'
                               }}
                               title={task.done ? 'Tamamlandı olarak işaretlendi' : 'Tamamla'}
@@ -971,10 +1144,10 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
                             <div 
                               onClick={() => startEditingTask(task)}
-                              className="flex-1 min-w-0 cursor-text py-0.5 px-1 rounded hover:bg-white/5 transition-colors"
+                              className="flex-1 min-w-0 cursor-text py-0.5 px-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                               title="Görevi düzenlemek için tıklayın"
                             >
-                              <span className={`block truncate ${task.done ? 'line-through text-gray-500' : 'text-gray-200 hover:text-white'}`}>
+                              <span className={`block truncate ${task.done ? 'line-through text-gray-400 dark:text-gray-500' : 'text-slate-800 dark:text-gray-200 hover:text-[#1ed760]'}`}>
                                 {task.text}
                               </span>
                             </div>
@@ -1005,7 +1178,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     {tasks.length === 0 && !isAddingTask && (
                       <div 
                         onClick={() => setIsAddingTask(true)}
-                        className="text-xs text-gray-500 hover:text-gray-300 py-2 px-2 border border-dashed border-white/10 rounded-lg text-center cursor-pointer transition-colors"
+                        className="text-xs text-gray-500 hover:text-gray-400 dark:text-gray-500 dark:hover:text-gray-300 py-2 px-2 border border-dashed border-slate-300 dark:border-white/10 rounded-lg text-center cursor-pointer transition-colors"
                       >
                         + İlk görevini buraya yazmak için tıkla...
                       </div>
@@ -1020,7 +1193,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         value={newTaskText}
                         onChange={(e) => setNewTaskText(e.target.value)}
                         placeholder="Görev yazın (Enter)..."
-                        className="flex-1 bg-black/40 border border-[#1ed760]/50 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-gray-500 outline-none focus:border-[#1ed760]"
+                        className="flex-1 bg-white dark:bg-black/40 border border-[#1ed760]/50 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 outline-none focus:border-[#1ed760]"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') addTask();
@@ -1040,7 +1213,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                           setIsAddingTask(false);
                           setNewTaskText('');
                         }}
-                        className="p-1.5 text-gray-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
                         title="İptal"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -1050,7 +1223,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsAddingTask(true)}
-                      className="w-full text-left text-xs text-gray-400 hover:text-white py-1 px-2 rounded-lg transition-colors flex items-center gap-1.5 hover:bg-white/5 cursor-pointer"
+                      className="w-full text-left text-xs text-gray-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white py-1 px-2 rounded-lg transition-colors flex items-center gap-1.5 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                     >
                       <span className="text-[#1ed760] font-bold text-sm">+</span>
                       <span>Yeni görev veya not ekle...</span>
@@ -1083,7 +1256,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       </span>
                     </div>
 
-                    {/* Round Indicator inside Phone */}
+                    {/* Round Indicator */}
                     <div className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono font-bold text-emerald-400" title="Geçerli Seans / Hedef">
                       {Math.min(targetRounds, completedSessions + 1)}/{targetRounds} Tur
                     </div>
@@ -1148,128 +1321,177 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
               </div>
 
-              {/* Bottom Home Bar */}
-              <div className="w-32 h-1 bg-white/20 rounded-full mx-auto mt-3" />
+              {/* Desktop Home Bar */}
+              <div className="hidden md:block w-32 h-1 bg-white/20 rounded-full mx-auto mt-3" />
             </div>
           </div>
 
-          {/* DOĞA SESLERİ & AMBİYANS */}
-          <section className="space-y-4 pt-2">
+          {/* SPOTIFY / APPLE MUSIC STYLE HORIZONTAL ALBUM SHELVES */}
+          <section className="space-y-6 pt-2">
             <div className={`flex items-center justify-between border-b pb-3 ${
               theme === 'light' ? 'border-slate-200' : 'border-white/10'
             }`}>
               <div className="flex items-center gap-2">
                 <Headphones className="w-5 h-5 text-[#1ed760]" />
-                <h2 className={`font-display text-base md:text-lg font-bold ${
-                  theme === 'light' ? 'text-slate-900' : 'text-white'
-                }`}>
-                  Doğa Sesleri & Ambiyans
-                </h2>
+                <div>
+                  <h2 className={`font-display text-base md:text-lg font-bold ${
+                    theme === 'light' ? 'text-slate-900' : 'text-white'
+                  }`}>
+                    Odaklanma Müzikleri & Ambiyans
+                  </h2>
+                  <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                    Arka planda kesintisiz çalan özel ses atmosferleri
+                  </p>
+                </div>
               </div>
 
               <button
                 onClick={onOpenAmbientMixer}
-                className="px-3 py-1.5 rounded-xl bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30 text-xs font-bold hover:bg-[#1ed760]/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                className="px-3 py-1.5 rounded-xl bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30 text-xs font-bold hover:bg-[#1ed760]/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
               >
                 <Sliders className="w-3.5 h-3.5" />
-                <span>Gelişmiş Mikser</span>
+                <span className="hidden sm:inline">Gelişmiş Mikser</span>
+                <span className="sm:hidden">Mikser</span>
               </button>
             </div>
 
-            {/* Sound Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {ambientChannels.slice(0, 6).map((channel) => {
-                const isPlayingThis = channel.active && channel.volume > 0;
-                const IconComponent = getChannelIconComponent(channel.name, channel.id);
+            {/* 3 Horizontal Shelves */}
+            <div className="space-y-6">
+              {MUSIC_SHELVES.map((shelf) => {
+                const ShelfIcon = shelf.icon;
 
                 return (
-                  <div
-                    key={channel.id}
-                    onClick={() => onToggleAmbientChannel(channel.id)}
-                    className={`border p-4 rounded-2xl flex flex-col justify-between gap-3 cursor-pointer transition-all ${
-                      isPlayingThis
-                        ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/50 shadow-md scale-[1.01]'
-                        : theme === 'light'
-                          ? 'bg-white border-slate-200 hover:border-emerald-500/40 hover:bg-slate-50 shadow-sm'
-                          : 'bg-[#121814] border-white/10 hover:border-emerald-500/40 hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 min-w-0 pr-2">
-                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors shrink-0 relative overflow-hidden ${
-                          isPlayingThis 
-                            ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/30' 
-                            : theme === 'light'
-                              ? 'bg-slate-100 text-emerald-600'
-                              : 'bg-white/5 text-[#1ed760]'
+                  <div key={shelf.id} className="space-y-2.5">
+                    {/* Shelf Header */}
+                    <div className="flex items-center justify-between px-0.5">
+                      <div className="flex items-center gap-2">
+                        <ShelfIcon className="w-4 h-4 text-[#1ed760]" />
+                        <h3 className={`text-sm font-bold tracking-tight ${
+                          theme === 'light' ? 'text-slate-900' : 'text-white'
                         }`}>
-                          {isPlayingThis ? (
-                            <div className="flex items-end gap-0.5 h-4">
-                              <div className="w-1 bg-black rounded-full animate-eq-1" />
-                              <div className="w-1 bg-black rounded-full animate-eq-2" />
-                              <div className="w-1 bg-black rounded-full animate-eq-3" />
-                              <div className="w-1 bg-black rounded-full animate-eq-4" />
-                            </div>
-                          ) : (
-                            <IconComponent className="w-5 h-5" />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className={`text-xs font-bold truncate ${
-                              theme === 'light' ? 'text-slate-900' : 'text-white'
-                            }`}>
-                              {channel.name}
-                            </h3>
-                            {isPlayingThis && (
-                              <span className="text-[9px] font-extrabold text-emerald-500 dark:text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shrink-0">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                                Çalıyor
-                              </span>
-                            )}
-                          </div>
-                          <span className={`text-[10px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                            {isPlayingThis ? `Ses Seviyesi: %${channel.volume}` : 'Çalmak için dokunun'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                        isPlayingThis 
-                          ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30' 
-                          : theme === 'light'
-                            ? 'bg-slate-100 text-slate-600 hover:text-slate-900'
-                            : 'bg-white/5 text-gray-400 hover:text-white'
-                      }`}>
-                        {isPlayingThis ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                          {shelf.title}
+                        </h3>
+                        <span className={`text-[11px] hidden sm:inline ${
+                          theme === 'light' ? 'text-slate-400' : 'text-gray-500'
+                        }`}>
+                          • {shelf.subtitle}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Inline Volume Slider */}
-                    {isPlayingThis && onVolumeChange && (
-                      <div 
-                        className="flex items-center gap-2 pt-2 border-t border-emerald-500/20"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Volume2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={channel.volume}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            onVolumeChange(channel.id, parseFloat(e.target.value));
-                          }}
-                          className={`w-full h-1 rounded-lg appearance-none cursor-pointer accent-emerald-500 ${
-                            theme === 'light' ? 'bg-slate-200' : 'bg-white/20'
-                          }`}
-                        />
-                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 w-8 text-right shrink-0">
-                          %{channel.volume}
-                        </span>
-                      </div>
-                    )}
+                    {/* Horizontal Scrollable Album Cards Shelf */}
+                    <div className="flex overflow-x-auto snap-x snap-mandatory space-x-3.5 sm:space-x-4 pb-3 pt-1 scrollbar-thin scrollbar-thumb-emerald-500/20">
+                      {shelf.tracks.map((track) => {
+                        const channelState = ambientChannels.find(
+                          (c) => c.id === track.id || c.youtubeId === track.youtubeId
+                        );
+                        const isPlaying = Boolean(channelState && channelState.active && channelState.volume > 0);
+                        const volume = channelState ? channelState.volume : 60;
+
+                        return (
+                          <div
+                            key={track.id}
+                            onClick={() => onToggleAmbientChannel(track.id)}
+                            className="group relative shrink-0 w-32 sm:w-36 md:w-40 snap-start flex flex-col cursor-pointer transition-all duration-300"
+                          >
+                            {/* Square Cover Artwork Container */}
+                            <div className={`relative aspect-square w-full rounded-2xl overflow-hidden shadow-md bg-neutral-900 border transition-all duration-300 ${
+                              isPlaying
+                                ? 'border-[#1ed760] ring-2 ring-[#1ed760] shadow-xl shadow-[#1ed760]/25 scale-[1.02]'
+                                : theme === 'light'
+                                  ? 'border-slate-200 hover:border-[#1ed760]/50 hover:shadow-lg group-hover:scale-[1.02]'
+                                  : 'border-white/10 hover:border-[#1ed760]/50 hover:shadow-lg group-hover:scale-[1.02]'
+                            }`}>
+                              
+                              {/* Background Artwork */}
+                              <img
+                                src={`https://img.youtube.com/vi/${track.youtubeId}/mqdefault.jpg`}
+                                alt={track.name}
+                                className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                                  isPlaying ? 'opacity-90' : 'opacity-75 group-hover:opacity-90'
+                                }`}
+                                loading="lazy"
+                                onError={(e) => {
+                                  // Fallback gradient if thumbnail fails
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+
+                              {/* Subtle Aesthetic Vignette Gradient */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent pointer-events-none" />
+
+                              {/* Playing Animation Equalizer / Status Badge */}
+                              {isPlaying && (
+                                <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-[#1ed760]/50 text-[10px] font-black text-[#1ed760]">
+                                  <div className="flex items-end gap-0.5 h-3">
+                                    <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-1" />
+                                    <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-2" />
+                                    <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-3" />
+                                    <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-4" />
+                                  </div>
+                                  <span>Çalıyor</span>
+                                </div>
+                              )}
+
+                              {/* Big Play / Pause Action Button (Always Visible or On Hover) */}
+                              <div className={`absolute bottom-2.5 right-2.5 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-xl ${
+                                isPlaying
+                                  ? 'bg-[#1ed760] text-black scale-100 opacity-100 shadow-[#1ed760]/40'
+                                  : 'bg-black/75 backdrop-blur-md text-white border border-white/20 opacity-90 group-hover:opacity-100 group-hover:scale-110 group-hover:bg-[#1ed760] group-hover:text-black group-hover:border-[#1ed760]'
+                              }`}>
+                                {isPlaying ? (
+                                  <Pause className="w-4 h-4 fill-current" />
+                                ) : (
+                                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Track Info (Spotify-Style Typography) */}
+                            <div className="mt-2 space-y-0.5 px-0.5">
+                              <h4 className={`text-xs font-bold truncate leading-tight transition-colors ${
+                                isPlaying
+                                  ? 'text-[#1ed760]'
+                                  : theme === 'light'
+                                    ? 'text-slate-900 group-hover:text-[#1ed760]'
+                                    : 'text-white group-hover:text-[#1ed760]'
+                              }`}>
+                                {track.name}
+                              </h4>
+                              <p className={`text-[11px] truncate ${
+                                theme === 'light' ? 'text-slate-500' : 'text-gray-400'
+                              }`}>
+                                {track.subtitle}
+                              </p>
+
+                              {/* Mini volume indicator when playing */}
+                              {isPlaying && onVolumeChange && (
+                                <div 
+                                  className="pt-1 flex items-center gap-1.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Volume2 className="w-3 h-3 text-[#1ed760] shrink-0" />
+                                  <input
+                                    type="range"
+                                    min={0}
+                                    max={100}
+                                    value={volume}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      onVolumeChange(track.id, parseFloat(e.target.value));
+                                    }}
+                                    className="w-full h-1 rounded-lg appearance-none cursor-pointer accent-[#1ed760] bg-white/20"
+                                  />
+                                  <span className="text-[9px] font-mono text-[#1ed760] shrink-0">
+                                    %{volume}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}
@@ -1319,117 +1541,112 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
           {/* Vertical News Cards Stream */}
           <div className="space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-[#1ed760]/30">
-            {displayArticles.map((article, index) => {
+            {displayArticles.map((article) => {
               const isSaved = bookmarkedIds.includes(article.id);
               const readDurationMin = Math.max(1, Math.floor((article.durationSeconds || 180) / 60));
-              const showAd = (index + 1) % 4 === 0;
 
               return (
-                <React.Fragment key={article.id}>
-                  <div
-                    className={`border rounded-2xl p-3.5 flex gap-3.5 transition-all shadow-sm group ${
-                      theme === 'light'
-                        ? 'bg-white border-slate-200 hover:border-[#1ed760]/50 hover:bg-slate-50/80'
-                        : 'bg-[#121814] border-white/5 hover:bg-[#161f19] hover:border-[#1ed760]/30'
-                    }`}
+                <div
+                  key={article.id}
+                  className={`border rounded-2xl p-3.5 flex gap-3.5 transition-all shadow-sm group ${
+                    theme === 'light'
+                      ? 'bg-white border-slate-200 hover:border-[#1ed760]/50 hover:bg-slate-50/80'
+                      : 'bg-[#121814] border-white/5 hover:bg-[#161f19] hover:border-[#1ed760]/30'
+                  }`}
+                >
+                  {/* Left: News Thumbnail */}
+                  <div 
+                    onClick={() => onSelectArticle(article)}
+                    className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-white/5 cursor-pointer"
                   >
-                    {/* Left: News Thumbnail */}
-                    <div 
-                      onClick={() => onSelectArticle(article)}
-                      className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-white/5 cursor-pointer"
-                    >
-                      <img
-                        src={article.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=400&auto=format&fit=crop&q=80'}
-                        alt={article.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=400&auto=format&fit=crop&q=80';
-                        }}
-                      />
-                      
-                      <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[10px] font-mono font-bold text-emerald-400">
-                        {readDurationMin}m
-                      </span>
-                    </div>
+                    <img
+                      src={article.imageUrl || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&auto=format&fit=crop&q=80'}
+                      alt={article.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&auto=format&fit=crop&q=80';
+                      }}
+                    />
+                    
+                    <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[10px] font-mono font-bold text-emerald-400">
+                      {readDurationMin}m
+                    </span>
+                  </div>
 
-                    {/* Right: Details & Actions */}
-                    <div className="flex-1 flex flex-col justify-between min-w-0">
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black text-[#1ed760] uppercase tracking-wider">
-                            {article.category || 'GÜNDEM'}
-                          </span>
-
-                          {onToggleBookmark && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onOpenPaywall('bookmark_action');
-                              }}
-                              className={`p-1 rounded-lg transition-colors cursor-pointer ${
-                                isSaved ? 'text-[#1ed760]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                              }`}
-                              title="Haberleri kaydetmek için VOX iOS uygulamasını indirin"
-                            >
-                              <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-                            </button>
-                          )}
-                        </div>
-
-                        <h3
-                          onClick={() => onSelectArticle(article)}
-                          className={`font-bold text-xs sm:text-sm group-hover:text-[#1ed760] line-clamp-2 leading-snug cursor-pointer transition-colors ${
-                            theme === 'light' ? 'text-slate-900' : 'text-white'
-                          }`}
-                        >
-                          {article.title}
-                        </h3>
-
-                        <p className={`text-[11px] line-clamp-1 leading-relaxed ${
-                          theme === 'light' ? 'text-slate-600' : 'text-gray-400'
-                        }`}>
-                          {article.summary}
-                        </p>
-                      </div>
-
-                      <div className={`flex items-center justify-between gap-2 pt-2 border-t mt-1 ${
-                        theme === 'light' ? 'border-slate-100' : 'border-white/5'
-                      }`}>
-                        <span className={`text-[10px] font-medium truncate max-w-[130px] sm:max-w-[160px] flex items-center gap-1 ${
-                          theme === 'light' ? 'text-slate-500' : 'text-gray-400'
-                        }`}>
-                          {article.sourceType === 'twitter' ? (
-                            <>
-                              <span className="text-[#1ed760] font-extrabold text-[11px]">𝕏</span>
-                              <span className={`font-semibold truncate ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
-                                {article.author || 'Özet Geç Haber'}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="truncate">{article.author || 'Anadolu Ajansı'}</span>
-                          )}
+                  {/* Right: Details & Actions */}
+                  <div className="flex-1 flex flex-col justify-between min-w-0">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-[#1ed760] uppercase tracking-wider">
+                          {article.category || 'GÜNDEM'}
                         </span>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        {onToggleBookmark && (
                           <button
-                            onClick={() => onSelectArticle(article)}
-                            className={`py-1 px-3 border rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
-                              theme === 'light'
-                                ? 'bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200 hover:border-emerald-300'
-                                : 'bg-white/5 hover:bg-[#1ed760]/15 text-gray-300 hover:text-[#1ed760] border-white/10 hover:border-[#1ed760]/30'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenPaywall('bookmark_action');
+                            }}
+                            className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                              isSaved ? 'text-[#1ed760]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
                             }`}
+                            title="Haberleri kaydetmek için VOX iOS uygulamasını indirin"
                           >
-                            <BookOpen className="w-3.5 h-3.5 text-[#1ed760]" />
-                            <span>Metni Oku</span>
+                            <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
                           </button>
-                        </div>
+                        )}
+                      </div>
+
+                      <h3
+                        onClick={() => onSelectArticle(article)}
+                        className={`font-bold text-xs sm:text-sm group-hover:text-[#1ed760] line-clamp-2 leading-snug cursor-pointer transition-colors ${
+                          theme === 'light' ? 'text-slate-900' : 'text-white'
+                        }`}
+                      >
+                        {article.title}
+                      </h3>
+
+                      <p className={`text-[11px] line-clamp-1 leading-relaxed ${
+                        theme === 'light' ? 'text-slate-600' : 'text-gray-400'
+                      }`}>
+                        {article.summary}
+                      </p>
+                    </div>
+
+                    <div className={`flex items-center justify-between gap-2 pt-2 border-t mt-1 ${
+                      theme === 'light' ? 'border-slate-100' : 'border-white/5'
+                    }`}>
+                      <span className={`text-[10px] font-medium truncate max-w-[130px] sm:max-w-[160px] flex items-center gap-1 ${
+                        theme === 'light' ? 'text-slate-500' : 'text-gray-400'
+                      }`}>
+                        {article.sourceType === 'twitter' ? (
+                          <>
+                            <span className="text-[#1ed760] font-extrabold text-[11px]">𝕏</span>
+                            <span className={`font-semibold truncate ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
+                              {article.author || 'Özet Geç Haber'}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="truncate">{article.author || 'Anadolu Ajansı'}</span>
+                        )}
+                      </span>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => onSelectArticle(article)}
+                          className={`py-1 px-3 border rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
+                            theme === 'light'
+                              ? 'bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200 hover:border-emerald-300'
+                              : 'bg-white/5 hover:bg-[#1ed760]/15 text-gray-300 hover:text-[#1ed760] border-white/10 hover:border-[#1ed760]/30'
+                          }`}
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-[#1ed760]" />
+                          <span>Metni Oku</span>
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                  {/* In-Feed Native Ad every 5 articles */}
-                  {showAd && <NativeAdCard key={`ad-focus-${article.id}-${index}`} variant="sidebar" />}
-                </React.Fragment>
+                </div>
               );
             })}
           </div>

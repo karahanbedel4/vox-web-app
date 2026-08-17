@@ -319,7 +319,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="space-y-4">
           {displayList.map((article, index) => {
             const isBookmarked = bookmarkedIds.includes(article.id);
-            const showAd = (index + 1) % 4 === 0;
+            // Strictly guard ad injection: Only when loading is finished, data is present, and every 3rd article
+            const isFeedReady = !isLoading && !isSearchingGoogle && displayList.length > 0;
+            const showAd = isFeedReady && (index + 1) % 3 === 0;
 
             return (
               <React.Fragment key={article.id}>
@@ -443,7 +445,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </div>
                 </div>
 
-                {/* In-Feed Native Ad every 5 articles */}
+                {/* In-Feed Native Ad every 3 articles - only rendered when feed is fully loaded */}
                 {showAd && <NativeAdCard key={`ad-feed-${article.id}-${index}`} variant="feed" />}
               </React.Fragment>
             );

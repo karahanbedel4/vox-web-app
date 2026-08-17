@@ -29,6 +29,7 @@ import { appStorage } from './lib/storage';
 import { AmbientChannel } from './components/AmbientMixerSheet';
 
 const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
+  // 1. DOĞA & AMBİYANS
   {
     id: 'yt-nature-rain',
     name: 'Doğada Yağmur Sesi',
@@ -48,30 +49,12 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
     active: false
   },
   {
-    id: 'yt-cozy-cafe',
-    name: 'Sakin Kafe Ambiyansı',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=gaGrHUekGrc',
-    youtubeId: 'gaGrHUekGrc',
-    volume: 55,
-    active: false
-  },
-  {
     id: 'yt-thunder-rain',
     name: 'Şimşek ve Fırtına Sesi',
     type: 'youtube',
     url: 'https://www.youtube.com/watch?v=9JEL_n6egA8',
     youtubeId: '9JEL_n6egA8',
     volume: 60,
-    active: false
-  },
-  {
-    id: 'yt-deep-work',
-    name: 'Derin Çalışma Müziği',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=czMO-L42nnc',
-    youtubeId: 'czMO-L42nnc',
-    volume: 50,
     active: false
   },
   {
@@ -90,6 +73,82 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
     url: 'https://www.youtube.com/watch?v=L_LUpnjgPso',
     youtubeId: 'L_LUpnjgPso',
     volume: 55,
+    active: false
+  },
+  {
+    id: 'yt-cozy-cafe',
+    name: 'Sakin Kafe Ambiyansı',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=gaGrHUekGrc',
+    youtubeId: 'gaGrHUekGrc',
+    volume: 55,
+    active: false
+  },
+
+  // 2. LO-FI ODAKLANMA
+  {
+    id: 'yt-lofi-rain',
+    name: 'Lo-Fi & Yağmur',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=sF80I-TQiW0',
+    youtubeId: 'sF80I-TQiW0',
+    volume: 60,
+    active: false
+  },
+  {
+    id: 'yt-lofi-chill',
+    name: 'Lo-Fi Chill',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=fsPRybb-xXg',
+    youtubeId: 'fsPRybb-xXg',
+    volume: 60,
+    active: false
+  },
+  {
+    id: 'yt-deep-work',
+    name: 'Derin Çalışma Müziği',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=czMO-L42nnc',
+    youtubeId: 'czMO-L42nnc',
+    volume: 55,
+    active: false
+  },
+
+  // 3. EPİK & SİNEMA
+  {
+    id: 'yt-shire-study',
+    name: 'Shire Sakin Çalışma',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=HFlxEM6zZsc',
+    youtubeId: 'HFlxEM6zZsc',
+    volume: 60,
+    active: false
+  },
+  {
+    id: 'yt-lotr-soundtrack',
+    name: 'Yüzüklerin Efendisi Müzikleri',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=FrWuCPgsp_c',
+    youtubeId: 'FrWuCPgsp_c',
+    volume: 60,
+    active: false
+  },
+  {
+    id: 'yt-hp-ambient',
+    name: 'Harry Potter Ambiyans',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=BQrxsyGTztM',
+    youtubeId: 'BQrxsyGTztM',
+    volume: 60,
+    active: false
+  },
+  {
+    id: 'yt-hp-seasons',
+    name: 'Harry Potter Mevsimler',
+    type: 'youtube',
+    url: 'https://www.youtube.com/watch?v=FZXWmqVorQc',
+    youtubeId: 'FZXWmqVorQc',
+    volume: 60,
     active: false
   }
 ];
@@ -110,7 +169,9 @@ export default function App() {
       if (saved) {
         const parsed: AmbientChannel[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id.startsWith('yt-')) {
-          return parsed.map(c => ({ ...c, active: false }));
+          const existingIds = new Set(parsed.map(c => c.id));
+          const newChannels = DEFAULT_AMBIENT_CHANNELS.filter(c => !existingIds.has(c.id));
+          return [...parsed.map(c => ({ ...c, active: false })), ...newChannels];
         }
       }
     } catch (e) {}

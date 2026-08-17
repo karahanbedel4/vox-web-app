@@ -140,18 +140,34 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       updateFavicon(PLAYING_FAVICON);
     } else {
       const path = location.pathname;
-      let pageTitle = 'VOX | Oku, Dinle, Odaklan';
-      if (path === '/odaklan') pageTitle = 'VOX | Odaklan';
-      else if (path === '/kitaplik') pageTitle = 'VOX | Kitaplık';
-      else if (path === '/profil') pageTitle = 'VOX | Profil';
-      else if (path === '/teknoloji') pageTitle = 'VOX | Teknoloji Haberleri';
-      else if (path === '/ekonomi') pageTitle = 'VOX | Ekonomi Haberleri';
-      else if (path === '/' || path === '/gundem') pageTitle = 'VOX | Oku, Dinle, Odaklan';
+      const isEnglish = path.startsWith('/en') || path === '/focus' || location.search.includes('lang=en');
+      
+      let pageTitle = isEnglish ? 'VOX | Read Less, Listen More, Focus Better' : 'VOX | Oku, Dinle, Odaklan';
+      if (path === '/odaklan' || path === '/focus' || path === '/en/focus') {
+        pageTitle = isEnglish ? 'VOX Focus | Read Less, Listen More, Focus Better' : 'VOX | Odaklan';
+      } else if (path === '/kitaplik' || path === '/en/library') {
+        pageTitle = isEnglish ? 'VOX | Library' : 'VOX | Kitaplık';
+      } else if (path === '/profil' || path === '/en/profile') {
+        pageTitle = isEnglish ? 'VOX | Profile' : 'VOX | Profil';
+      } else if (path === '/teknoloji' || path === '/en/tech') {
+        pageTitle = isEnglish ? 'VOX | Tech News' : 'VOX | Teknoloji Haberleri';
+      } else if (path === '/ekonomi' || path === '/en/economy') {
+        pageTitle = isEnglish ? 'VOX | Economy News' : 'VOX | Ekonomi Haberleri';
+      }
 
       document.title = pageTitle;
       updateFavicon(DEFAULT_FAVICON);
+
+      // Update meta description dynamically for single-page navigation
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute(
+          'content',
+          isEnglish ? 'Read less. Listen more. Focus better.' : 'Daha az oku. Daha çok dinle. Daha iyi odaklan.'
+        );
+      }
     }
-  }, [isAudioPlaying, location.pathname]);
+  }, [isAudioPlaying, location.pathname, location.search]);
   
   // Track and persist last active ambient sound in localStorage and cookies
   const [lastActiveAmbientId, setLastActiveAmbientId] = useState<string>(() => {
