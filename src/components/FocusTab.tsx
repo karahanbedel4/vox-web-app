@@ -40,6 +40,7 @@ import { AmbientChannel } from './AmbientMixerSheet';
 import { fetchNewsByCategory } from '../lib/newsService';
 import { appStorage } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
+import { woodRainSynth } from '../lib/audioSynth';
 
 interface FocusTabProps {
   articles: Article[];
@@ -1391,7 +1392,10 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         return (
                           <div
                             key={track.id}
-                            onClick={() => onToggleAmbientChannel(track.id)}
+                            onClick={() => {
+                              woodRainSynth.unlockAudioContext();
+                              onToggleAmbientChannel(track.id);
+                            }}
                             className="group relative shrink-0 w-32 sm:w-36 md:w-40 snap-start flex flex-col cursor-pointer transition-all duration-300"
                           >
                             {/* Square Cover Artwork Container */}

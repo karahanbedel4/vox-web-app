@@ -27,13 +27,14 @@ import { subscribeNetworkStatus, cacheTop3Articles, getCachedOfflineArticles } f
 import { onAuthStateChanged } from 'firebase/auth';
 import { appStorage } from './lib/storage';
 import { AmbientChannel } from './components/AmbientMixerSheet';
+import { woodRainSynth } from './lib/audioSynth';
 
 const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   // 1. DOĞA & AMBİYANS
   {
     id: 'yt-nature-rain',
     name: 'Doğada Yağmur Sesi',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=3mst47Uu3IU',
     youtubeId: '3mst47Uu3IU',
     volume: 65,
@@ -42,7 +43,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-forest-birds',
     name: 'Sakin Orman & Kuş Sesi',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=xNN7iTA57jM',
     youtubeId: 'xNN7iTA57jM',
     volume: 65,
@@ -51,7 +52,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-thunder-rain',
     name: 'Şimşek ve Fırtına Sesi',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=9JEL_n6egA8',
     youtubeId: '9JEL_n6egA8',
     volume: 60,
@@ -60,7 +61,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-ocean-waves',
     name: 'Okyanus & Dalga Sesi',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=bn9F19Hi1Lk',
     youtubeId: 'bn9F19Hi1Lk',
     volume: 60,
@@ -69,7 +70,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-campfire-night',
     name: 'Gece & Kamp Ateşi Sesi',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=L_LUpnjgPso',
     youtubeId: 'L_LUpnjgPso',
     volume: 55,
@@ -78,7 +79,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-cozy-cafe',
     name: 'Sakin Kafe Ambiyansı',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=gaGrHUekGrc',
     youtubeId: 'gaGrHUekGrc',
     volume: 55,
@@ -89,7 +90,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-lofi-rain',
     name: 'Lo-Fi & Yağmur',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=sF80I-TQiW0',
     youtubeId: 'sF80I-TQiW0',
     volume: 60,
@@ -98,7 +99,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-lofi-chill',
     name: 'Lo-Fi Chill',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=fsPRybb-xXg',
     youtubeId: 'fsPRybb-xXg',
     volume: 60,
@@ -107,7 +108,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-deep-work',
     name: 'Derin Çalışma Müziği',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=czMO-L42nnc',
     youtubeId: 'czMO-L42nnc',
     volume: 55,
@@ -118,7 +119,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-shire-study',
     name: 'Shire Sakin Çalışma',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=HFlxEM6zZsc',
     youtubeId: 'HFlxEM6zZsc',
     volume: 60,
@@ -127,7 +128,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-lotr-soundtrack',
     name: 'Yüzüklerin Efendisi Müzikleri',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=FrWuCPgsp_c',
     youtubeId: 'FrWuCPgsp_c',
     volume: 60,
@@ -136,7 +137,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-hp-ambient',
     name: 'Harry Potter Ambiyans',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=BQrxsyGTztM',
     youtubeId: 'BQrxsyGTztM',
     volume: 60,
@@ -145,7 +146,7 @@ const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
   {
     id: 'yt-hp-seasons',
     name: 'Harry Potter Mevsimler',
-    type: 'youtube',
+    type: 'synth',
     url: 'https://www.youtube.com/watch?v=FZXWmqVorQc',
     youtubeId: 'FZXWmqVorQc',
     volume: 60,
@@ -165,13 +166,13 @@ export default function App() {
 
   const [ambientChannels, setAmbientChannels] = useState<AmbientChannel[]>(() => {
     try {
-      const saved = appStorage.getItemSync('vox_ambient_channels_v4');
+      const saved = appStorage.getItemSync('vox_ambient_channels_v5');
       if (saved) {
         const parsed: AmbientChannel[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id.startsWith('yt-')) {
           const existingIds = new Set(parsed.map(c => c.id));
           const newChannels = DEFAULT_AMBIENT_CHANNELS.filter(c => !existingIds.has(c.id));
-          return [...parsed.map(c => ({ ...c, active: false })), ...newChannels];
+          return [...parsed.map(c => ({ ...c, type: 'synth' as const, active: false })), ...newChannels];
         }
       }
     } catch (e) {}
@@ -181,7 +182,7 @@ export default function App() {
   // Keep ambient channels and active channel persisted in storage & cookies
   useEffect(() => {
     try {
-      appStorage.setItemSync('vox_ambient_channels_v4', JSON.stringify(ambientChannels));
+      appStorage.setItemSync('vox_ambient_channels_v5', JSON.stringify(ambientChannels));
       const activeCh = ambientChannels.find(c => c.active && c.volume > 0);
       if (activeCh) {
         appStorage.setItemSync('vox_last_ambient_id', activeCh.id);
@@ -306,6 +307,7 @@ export default function App() {
   };
 
   const handleToggleAmbientChannel = (id: string) => {
+    woodRainSynth.unlockAudioContext();
     setAmbientChannels(prev =>
       prev.map(ch => {
         if (ch.id === id) {
@@ -319,6 +321,7 @@ export default function App() {
   };
 
   const handleAmbientVolumeChange = (id: string, vol: number) => {
+    woodRainSynth.unlockAudioContext();
     setAmbientChannels(prev =>
       prev.map(ch => {
         if (ch.id === id) {

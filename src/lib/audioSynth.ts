@@ -1,22 +1,25 @@
 /**
- * WoodRainSynth - Web Audio API Client-Side Ambient Generator & Sound Engine
+ * WoodRainSynth - Web Audio API Client-Side Ambient Generator & Music Soundscape Engine
  * Synthesizes zero-latency nature sounds & ambient soundscapes directly in the browser:
  * - Rain (Doğada Yağmur)
  * - Forest & Birds (Sakin Orman & Kuş Sesleri)
  * - Ocean Waves (Okyanus & Dalga Sesleri)
  * - Wood Rain (Ahşap Üstü Yağmur Damlaları)
  * - Thunder & Storm (Şimşek ve Fırtına)
- * - Night Crickets (Gece & Ağustos Böceği)
+ * - Night & Campfire (Gece & Kamp Ateşi)
  * - Cozy Cafe (Sakin Kafe Ambiyansı)
- * - Deep Focus Noise (Derin Odaklanma Brown/White Noise)
+ * - Deep Focus Noise / Binaural Beats (Derin Odaklanma)
+ * - Lo-Fi Chill & Lo-Fi Rain (Chillhop Akorları & Ritim)
+ * - Epic / Cinema Soundtracks (Shire, LOTR, Harry Potter Büyülü Atmosferleri)
  *
- * 100% Client-Side Web Audio API, Zero Network Data, Works completely offline and on all mobile browsers.
+ * 100% Client-Side Web Audio API, Zero Network Data, iOS WebKit Certified (Safari & Chrome on iOS).
  */
 
 export class WoodRainSynthEngine {
   private ctx: AudioContext | null = null;
   private isRunning: boolean = false;
   private masterGain: GainNode | null = null;
+  private isUnlocked: boolean = false;
 
   // Sound channel gain nodes
   private channelGains: Map<string, GainNode> = new Map();
@@ -27,6 +30,14 @@ export class WoodRainSynthEngine {
 
   constructor() {
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      // Mobile Touch/Click AudioContext & WebKit Unlock
+      const unlockAudio = () => {
+        this.unlockAudioContext();
+      };
+      window.addEventListener('touchstart', unlockAudio, { passive: true });
+      window.addEventListener('touchend', unlockAudio, { passive: true });
+      window.addEventListener('click', unlockAudio, { passive: true });
+
       // Handle mobile visibility change
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
@@ -35,17 +46,25 @@ export class WoodRainSynthEngine {
           this.resume();
         }
       });
-
-      // Mobile Touch/Click AudioContext Unlock
-      const unlockAudio = () => {
-        if (this.ctx && this.ctx.state === 'suspended') {
-          this.ctx.resume().catch(() => {});
-        }
-      };
-      window.addEventListener('touchstart', unlockAudio, { passive: true });
-      window.addEventListener('touchend', unlockAudio, { passive: true });
-      window.addEventListener('click', unlockAudio, { passive: true });
     }
+  }
+
+  public unlockAudioContext() {
+    try {
+      const ctx = this.initCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      if (!this.isUnlocked && ctx) {
+        // Play an inaudible 1-sample buffer to permanently unlock iOS WebKit audio pipeline
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+        this.isUnlocked = true;
+      }
+    } catch (e) {}
   }
 
   public suspend() {
@@ -76,6 +95,7 @@ export class WoodRainSynthEngine {
 
   public start() {
     this.initCtx();
+    this.unlockAudioContext();
     if (this.isRunning) return;
     this.isRunning = true;
 
@@ -85,9 +105,16 @@ export class WoodRainSynthEngine {
     this.startOceanWavesSynth();
     this.startWoodRainSynth();
     this.startThunderSynth();
-    this.startNightRainSynth();
+    this.startNightCampfireSynth();
     this.startCafeSynth();
     this.startBrownNoiseSynth();
+    this.startLofiChillSynth();
+    this.startLofiRainSynth();
+    this.startDeepWorkSynth();
+    this.startShireStudySynth();
+    this.startLotrSoundtrackSynth();
+    this.startHpAmbientSynth();
+    this.startHpSeasonsSynth();
   }
 
   public stop() {
@@ -116,6 +143,7 @@ export class WoodRainSynthEngine {
 
   public setChannelVolume(channelId: string, volume: number) {
     this.initCtx();
+    this.unlockAudioContext();
     if (!this.isRunning && volume > 0) {
       this.start();
     }
@@ -147,15 +175,28 @@ export class WoodRainSynthEngine {
 
   private normalizeChannelId(id: string): string {
     const clean = id.toLowerCase().replace(/^(yt-|synth-)/, '');
+    
+    // Lo-Fi & Focus
+    if (clean.includes('lofi-rain') || (clean.includes('lofi') && clean.includes('rain'))) return 'lofirain';
+    if (clean.includes('lofi') || clean.includes('chill')) return 'lofichill';
+    if (clean.includes('deep-work') || clean.includes('binaural') || clean.includes('derin')) return 'deepwork';
+    
+    // Cinema & Epic
+    if (clean.includes('shire')) return 'shire';
+    if (clean.includes('lotr') || clean.includes('yuzuk')) return 'lotr';
+    if (clean.includes('hp-seasons') || (clean.includes('potter') && clean.includes('mevsim'))) return 'hpseasons';
+    if (clean.includes('hp-') || clean.includes('potter') || clean.includes('hogwarts')) return 'hpambient';
+
+    // Nature & Ambience
     if (clean.includes('rain') || clean.includes('yagmur')) {
       if (clean.includes('wood') || clean.includes('ahsap')) return 'woodrain';
-      if (clean.includes('thunder') || clean.includes('simsek')) return 'thunder';
+      if (clean.includes('thunder') || clean.includes('simsek') || clean.includes('firtina')) return 'thunder';
       return 'rain';
     }
-    if (clean.includes('forest') || clean.includes('orman') || clean.includes('bird')) return 'forest';
+    if (clean.includes('forest') || clean.includes('orman') || clean.includes('bird') || clean.includes('kus')) return 'forest';
     if (clean.includes('wave') || clean.includes('ocean') || clean.includes('dalga') || clean.includes('deniz')) return 'waves';
     if (clean.includes('thunder') || clean.includes('storm') || clean.includes('firtina')) return 'thunder';
-    if (clean.includes('night') || clean.includes('gece') || clean.includes('bocek')) return 'night';
+    if (clean.includes('night') || clean.includes('gece') || clean.includes('bocek') || clean.includes('camp') || clean.includes('ates')) return 'night';
     if (clean.includes('cafe') || clean.includes('kafe')) return 'cafe';
     if (clean.includes('white') || clean.includes('brown') || clean.includes('noise') || clean.includes('focus') || clean.includes('odak')) return 'whitenoise';
     return clean;
@@ -261,7 +302,6 @@ export class WoodRainSynthEngine {
       osc.start();
       osc.stop(this.ctx.currentTime + 0.2);
 
-      // Next chirp interval: 1.5s - 5s
       const nextDelay = 1500 + Math.random() * 3500;
       setTimeout(triggerBirdChirp, nextDelay);
     };
@@ -414,8 +454,8 @@ export class WoodRainSynthEngine {
     });
   }
 
-  // 6. Channel: Night Crickets & Serene Sibilance
-  private startNightRainSynth() {
+  // 6. Channel: Night & Campfire (Crickets + Fireplace crackle)
+  private startNightCampfireSynth() {
     if (!this.ctx || !this.masterGain) return;
 
     const osc = this.ctx.createOscillator();
@@ -447,8 +487,27 @@ export class WoodRainSynthEngine {
     osc.start();
     lfo.start();
 
+    // Campfire micro-pops
+    let isFireActive = true;
+    const triggerCrackle = () => {
+      if (!this.ctx || !isFireActive) return;
+      const popOsc = this.ctx.createOscillator();
+      const popGain = this.ctx.createGain();
+      popOsc.type = 'sine';
+      popOsc.frequency.setValueAtTime(800 + Math.random() * 1400, this.ctx.currentTime);
+      popGain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+      popGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.015);
+      popOsc.connect(popGain);
+      popGain.connect(channelGain);
+      popOsc.start();
+      popOsc.stop(this.ctx.currentTime + 0.02);
+      setTimeout(triggerCrackle, 40 + Math.random() * 200);
+    };
+    triggerCrackle();
+
     this.activeGenerators.push({
       stop: () => {
+        isFireActive = false;
         try {
           osc.stop();
           lfo.stop();
@@ -526,6 +585,322 @@ export class WoodRainSynthEngine {
     });
   }
 
+  // 9. Channel: Lo-Fi Chill Synth (Electric Piano Modal Chords + Soft Vinyl Flutter)
+  private startLofiChillSynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('lofichill', channelGain);
+    channelGain.connect(this.masterGain);
+
+    let isLofiActive = true;
+    // 7th Jazz Chords: Fmaj7, Em7, Dm7, Cmaj7
+    const chords = [
+      [174.6, 220.0, 261.6, 329.6],
+      [164.8, 196.0, 246.9, 293.7],
+      [146.8, 174.6, 220.0, 261.6],
+      [130.8, 164.8, 196.0, 246.9]
+    ];
+    let chordIdx = 0;
+
+    const playChord = () => {
+      if (!this.ctx || !isLofiActive) return;
+      const currentChord = chords[chordIdx % chords.length];
+      chordIdx++;
+
+      currentChord.forEach((freq, i) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const noteGain = this.ctx.createGain();
+        const noteFilter = this.ctx.createBiquadFilter();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.05);
+
+        noteFilter.type = 'lowpass';
+        noteFilter.frequency.setValueAtTime(650, this.ctx.currentTime);
+
+        noteGain.gain.setValueAtTime(0, this.ctx.currentTime + i * 0.05);
+        noteGain.gain.linearRampToValueAtTime(0.045, this.ctx.currentTime + i * 0.05 + 0.3);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 3.8);
+
+        osc.connect(noteFilter);
+        noteFilter.connect(noteGain);
+        noteGain.connect(channelGain);
+
+        osc.start(this.ctx.currentTime + i * 0.05);
+        osc.stop(this.ctx.currentTime + 4.0);
+      });
+
+      setTimeout(playChord, 3800);
+    };
+
+    playChord();
+
+    this.activeGenerators.push({
+      stop: () => {
+        isLofiActive = false;
+      }
+    });
+  }
+
+  // 10. Channel: Lo-Fi & Rain
+  private startLofiRainSynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('lofirain', channelGain);
+    channelGain.connect(this.masterGain);
+
+    // Warm chord loops + subtle rain layer
+    let isLofiRainActive = true;
+    const chords = [
+      [220.0, 261.6, 329.6, 392.0], // Am7
+      [174.6, 220.0, 261.6, 329.6], // Fmaj7
+      [196.0, 246.9, 293.7, 349.2], // G7
+      [164.8, 196.0, 246.9, 293.7]  // Em7
+    ];
+    let chordIdx = 0;
+
+    const playLofiRain = () => {
+      if (!this.ctx || !isLofiRainActive) return;
+      const cur = chords[chordIdx % chords.length];
+      chordIdx++;
+
+      cur.forEach((freq, i) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const noteGain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.04);
+        noteGain.gain.setValueAtTime(0, this.ctx.currentTime + i * 0.04);
+        noteGain.gain.linearRampToValueAtTime(0.04, this.ctx.currentTime + i * 0.04 + 0.4);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 3.6);
+        osc.connect(noteGain);
+        noteGain.connect(channelGain);
+        osc.start(this.ctx.currentTime + i * 0.04);
+        osc.stop(this.ctx.currentTime + 3.8);
+      });
+
+      setTimeout(playLofiRain, 3500);
+    };
+
+    playLofiRain();
+
+    this.activeGenerators.push({
+      stop: () => {
+        isLofiRainActive = false;
+      }
+    });
+  }
+
+  // 11. Channel: Deep Work (40Hz Gamma Focus Binaural Beats + Warm Drone)
+  private startDeepWorkSynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('deepwork', channelGain);
+    channelGain.connect(this.masterGain);
+
+    // 144Hz + 184Hz binaural tone (40Hz Gamma focus beat)
+    const oscL = this.ctx.createOscillator();
+    const oscR = this.ctx.createOscillator();
+    const droneGain = this.ctx.createGain();
+
+    oscL.type = 'sine';
+    oscL.frequency.value = 144;
+    oscR.type = 'sine';
+    oscR.frequency.value = 184;
+
+    droneGain.gain.value = 0.12;
+
+    oscL.connect(droneGain);
+    oscR.connect(droneGain);
+    droneGain.connect(channelGain);
+
+    oscL.start();
+    oscR.start();
+
+    this.activeGenerators.push({
+      stop: () => {
+        try {
+          oscL.stop();
+          oscR.stop();
+        } catch (e) {}
+      }
+    });
+  }
+
+  // 12. Channel: Shire Study (Peaceful Major Harp & Flute Harmonics)
+  private startShireStudySynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('shire', channelGain);
+    channelGain.connect(this.masterGain);
+
+    let isShireActive = true;
+    const melody = [523.25, 587.33, 659.25, 783.99, 659.25, 587.33, 523.25, 392.0];
+    let noteIdx = 0;
+
+    const playShireNote = () => {
+      if (!this.ctx || !isShireActive) return;
+      const freq = melody[noteIdx % melody.length];
+      noteIdx++;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.06, this.ctx.currentTime + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 2.2);
+
+      osc.connect(gain);
+      gain.connect(channelGain);
+
+      osc.start();
+      osc.stop(this.ctx.currentTime + 2.3);
+
+      setTimeout(playShireNote, 1200 + Math.random() * 600);
+    };
+
+    playShireNote();
+
+    this.activeGenerators.push({
+      stop: () => {
+        isShireActive = false;
+      }
+    });
+  }
+
+  // 13. Channel: Lord of the Rings Soundtrack (Cinematic Cello Drone & Atmospheric Strings)
+  private startLotrSoundtrackSynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('lotr', channelGain);
+    channelGain.connect(this.masterGain);
+
+    // Cello harmonic drone
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc1.type = 'sawtooth';
+    osc1.frequency.value = 110.0; // A2
+    osc2.type = 'triangle';
+    osc2.frequency.value = 164.81; // E3
+
+    filter.type = 'lowpass';
+    filter.frequency.value = 420;
+
+    gain.gain.value = 0.08;
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(channelGain);
+
+    osc1.start();
+    osc2.start();
+
+    this.activeGenerators.push({
+      stop: () => {
+        try {
+          osc1.stop();
+          osc2.stop();
+        } catch (e) {}
+      }
+    });
+  }
+
+  // 14. Channel: Harry Potter Ambient (Celesta / Music Box chime notes & hearth warmth)
+  private startHpAmbientSynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('hpambient', channelGain);
+    channelGain.connect(this.masterGain);
+
+    let isHpActive = true;
+    const celestaNotes = [659.25, 880.0, 1046.5, 987.77, 880.0, 1318.51, 1174.66, 987.77];
+    let noteIdx = 0;
+
+    const playCelesta = () => {
+      if (!this.ctx || !isHpActive) return;
+      const freq = celestaNotes[noteIdx % celestaNotes.length];
+      noteIdx++;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.09, this.ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 1.8);
+
+      osc.connect(gain);
+      gain.connect(channelGain);
+
+      osc.start();
+      osc.stop(this.ctx.currentTime + 1.9);
+
+      setTimeout(playCelesta, 1600 + Math.random() * 900);
+    };
+
+    playCelesta();
+
+    this.activeGenerators.push({
+      stop: () => {
+        isHpActive = false;
+      }
+    });
+  }
+
+  // 15. Channel: Harry Potter Seasons (Magical seasonal wind pad & crystal bells)
+  private startHpSeasonsSynth() {
+    if (!this.ctx || !this.masterGain) return;
+
+    const channelGain = this.ctx.createGain();
+    channelGain.gain.value = 0.0;
+    this.channelGains.set('hpseasons', channelGain);
+    channelGain.connect(this.masterGain);
+
+    const padOsc = this.ctx.createOscillator();
+    const padFilter = this.ctx.createBiquadFilter();
+    const padGain = this.ctx.createGain();
+
+    padOsc.type = 'triangle';
+    padOsc.frequency.value = 220.0;
+    padFilter.type = 'lowpass';
+    padFilter.frequency.value = 520;
+    padGain.gain.value = 0.07;
+
+    padOsc.connect(padFilter);
+    padFilter.connect(padGain);
+    padGain.connect(channelGain);
+
+    padOsc.start();
+
+    this.activeGenerators.push({
+      stop: () => {
+        try {
+          padOsc.stop();
+        } catch (e) {}
+      }
+    });
+  }
+
   // Add Custom MP3 / Audio Stream URL Channel
   public addCustomAudioStream(channelId: string, audioUrl: string) {
     if (this.channelAudios.has(channelId)) {
@@ -540,4 +915,3 @@ export class WoodRainSynthEngine {
 }
 
 export const woodRainSynth = new WoodRainSynthEngine();
-

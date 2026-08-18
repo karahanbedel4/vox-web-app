@@ -57,15 +57,18 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
 
   // Sync MP3 audio streams and Synth engine
   useEffect(() => {
-    // 1. Synth Channels sync
-    const activeSynthChannels = channels.filter(c => c.type === 'synth' && c.active && c.volume > 0);
+    // 1. Synth & Generative Channels sync (Always active for zero-latency iOS/Desktop audio)
+    const activeSynthChannels = channels.filter(c => (c.type === 'synth' || c.type === 'youtube' || !c.type) && c.active && c.volume > 0);
     if (activeSynthChannels.length > 0) {
       woodRainSynth.start();
       activeSynthChannels.forEach(ch => {
         woodRainSynth.setChannelVolume(ch.id, ch.volume / 100);
       });
     } else {
-      // Check if all channels are inactive
+      // If no active synth channels
+      channels.forEach(ch => {
+        woodRainSynth.setChannelVolume(ch.id, 0);
+      });
       const anyActive = channels.some(c => c.active && c.volume > 0);
       if (!anyActive) {
         woodRainSynth.stop();
@@ -78,6 +81,8 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
         if (!audioRefs.current[ch.id]) {
           const audio = new Audio(ch.url);
           audio.loop = true;
+          audio.setAttribute('playsinline', 'true');
+          audio.crossOrigin = 'anonymous';
           audioRefs.current[ch.id] = audio;
         }
         const audio = audioRefs.current[ch.id];
@@ -145,8 +150,20 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
 
   return (
     <>
-      {/* ALWAYS MOUNTED HIDDEN YOUTUBE IFRAMES (Keeps playing even when modal popup is closed!) */}
-      <div className="hidden pointer-events-none opacity-0 w-0 h-0 absolute overflow-hidden">
+      {/* ALWAYS MOUNTED OFFSCREEN YOUTUBE IFRAMES (Keeps playing even when modal popup is closed!) */}
+      <div 
+        style={{ 
+          position: 'fixed', 
+          top: -9999, 
+          left: -9999, 
+          width: 1, 
+          height: 1, 
+          opacity: 0.001, 
+          pointerEvents: 'none',
+          zIndex: -1 
+        }} 
+        aria-hidden="true"
+      >
         {channels.map(ch => {
           if (ch.type === 'youtube' && ch.active && ch.youtubeId) {
             return (
@@ -155,7 +172,8 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
                 id={`yt-player-${ch.id}`}
                 src={`https://www.youtube-nocookie.com/embed/${ch.youtubeId}?enablejsapi=1&autoplay=1&loop=1&playlist=${ch.youtubeId}&vq=small`}
                 allow="autoplay"
-                className="hidden w-0 h-0"
+                width="1"
+                height="1"
                 title={ch.name}
                 onLoad={() => {
                   const iframe = document.getElementById(`yt-player-${ch.id}`) as HTMLIFrameElement;

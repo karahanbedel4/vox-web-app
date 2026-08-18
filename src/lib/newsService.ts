@@ -723,26 +723,17 @@ export async function fetchTwitterNews(category?: string): Promise<Article[]> {
 }
 
 /**
- * Fetch dynamic Turkish news by category with local /api/news, Twitter aggregation & direct RSS fallback
+ * Fetch dynamic Turkish news by category with ultra-fast server-side background cache & direct fallbacks
  */
-export async function fetchNewsByCategory(category: string = 'Tümü', lang: string = 'tr'): Promise<Article[]> {
+export async function fetchNewsByCategory(category: string = 'Tümü', lang: string = 'tr', limit: number = 80): Promise<Article[]> {
   const targetCategory = category === 'Tümü' ? 'Gündem' : category;
   const articles: Article[] = [];
 
-  // 1. Fetch Twitter Feed from @ozetgechaber, @ConflictTR, @vaziyetcomtr (Zero-Cost Free RSS + 5-min Anti-Ban Cache)
-  let twitterArticles: Article[] = [];
-  try {
-    twitterArticles = await fetchTwitterNews(category);
-  } catch (e) {
-    console.warn('Twitter news fetch error:', e);
-    twitterArticles = [];
-  }
-
-  // 2. Fetch from local VOX /api/news endpoint with rich media extraction
+  // 1. Fetch from high-speed local VOX /api/news endpoint (0ms in-memory cache)
   try {
     const queryParam = category && category !== 'Tümü' 
-      ? `?category=${encodeURIComponent(category)}&lang=${lang}&_t=${Date.now()}` 
-      : `?lang=${lang}&_t=${Date.now()}`;
+      ? `?category=${encodeURIComponent(category)}&lang=${lang}&limit=${limit}&_t=${Date.now()}` 
+      : `?lang=${lang}&limit=${limit}&_t=${Date.now()}`;
     const res = await fetch(`/api/news${queryParam}`, {
       cache: 'no-store',
       headers: {
@@ -771,6 +762,14 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
     }
   } catch (err) {
     console.warn('/api/news fetch error, falling back to direct RSS:', err);
+  }
+
+  // 2. Fetch Twitter Feed from @ozetgechaber, @ConflictTR, @vaziyetcomtr if available
+  let twitterArticles: Article[] = [];
+  try {
+    twitterArticles = await fetchTwitterNews(category);
+  } catch (e) {
+    twitterArticles = [];
   }
 
   // 3. Fallback to Direct Turkish News RSS Feeds if /api/news was empty
@@ -842,6 +841,20 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
   );
 
   return sortedArticles;
+}
+
+/**
+ * Lightweight checker for new live articles arriving in background
+ */
+export async function checkNewNewsUpdates(category: string = 'Tümü', sinceTimestamp: string): Promise<{ hasNew: boolean; count: number; latestCreatedAt: string; latestArticle?: Article }> {
+  if (!sinceTimestamp) return { hasNew: false, count: 0, latestCreatedAt: '' };
+  try {
+    const res = await fetch(`/api/news/check-new?category=${encodeURIComponent(category)}&since=${encodeURIComponent(sinceTimestamp)}&_t=${Date.now()}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {}
+  return { hasNew: false, count: 0, latestCreatedAt: '' };
 }
 
 /**

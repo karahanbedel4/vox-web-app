@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown } from 'lucide-react';
 import { Article } from '../types';
-import { fetchNewsByCategory, searchGoogleNews, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
+import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
 import { getArticlesPaginated } from '../lib/firebase';
 import { cacheTop3Articles } from '../lib/offlineService';
 import { useTheme } from '../lib/ThemeContext';
@@ -46,6 +46,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
+  // Pagination / Infinite scroll state
+  const [visibleCount, setVisibleCount] = useState<number>(14);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Live real-time incoming articles indicator
+  const [newArticlesCount, setNewArticlesCount] = useState<number>(0);
+  const [latestTimestamp, setLatestTimestamp] = useState<string>('');
+
   // Search filter states
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearchingGoogle, setIsSearchingGoogle] = useState<boolean>(false);
@@ -67,8 +75,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     setIsRefreshing(true);
 
     try {
-      const liveFetched = await fetchNewsByCategory(activeCategory, 'tr');
-      const firestoreRes = await getArticlesPaginated(20, null, activeCategory === 'Tümü' ? undefined : activeCategory);
+      const liveFetched = await fetchNewsByCategory(activeCategory, 'tr', 100);
+      const firestoreRes = await getArticlesPaginated(25, null, activeCategory === 'Tümü' ? undefined : activeCategory);
       const firestoreList = (firestoreRes.articles || []).filter(a => !isDummyArticle(a));
 
       const mergedMap = new Map<string, Article>();
@@ -88,13 +96,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       const finalArticles = Array.from(mergedMap.values()).sort(
         (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       );
+
       if (finalArticles.length > 0) {
         setLiveNews(finalArticles);
         cacheTop3Articles(finalArticles);
+        if (finalArticles[0]?.createdAt) {
+          setLatestTimestamp(finalArticles[0].createdAt);
+        }
       } else {
         const fallbackList = articles.filter(a => !isDummyArticle(a) && (activeCategory === 'Tümü' || a.category === activeCategory));
         setLiveNews(fallbackList);
       }
+      setNewArticlesCount(0);
     } catch (e) {
       console.warn('DashboardView fetch error:', e);
       const fallbackList = articles.filter(a => !isDummyArticle(a) && (activeCategory === 'Tümü' || a.category === activeCategory));
@@ -105,17 +118,51 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
+  // Initial load & category change
   useEffect(() => {
     setGoogleSearchResults(null);
+    setVisibleCount(14);
+    setNewArticlesCount(0);
     loadCategoryArticles(true);
-
-    // Silent 60-second auto-refresh interval for live dynamic stream
-    const intervalId = setInterval(() => {
-      loadCategoryArticles(false);
-    }, 60000);
-
-    return () => clearInterval(intervalId);
   }, [activeCategory]);
+
+  // Background check for new incoming articles (every 30 seconds)
+  useEffect(() => {
+    if (!latestTimestamp || googleSearchResults !== null) return;
+
+    const checkInterval = setInterval(async () => {
+      try {
+        const check = await checkNewNewsUpdates(activeCategory, latestTimestamp);
+        if (check.hasNew && check.count > 0) {
+          setNewArticlesCount(check.count);
+        }
+      } catch (e) {}
+    }, 30000);
+
+    return () => clearInterval(checkInterval);
+  }, [latestTimestamp, activeCategory, googleSearchResults]);
+
+  // IntersectionObserver for seamless Infinite Scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading) {
+          setVisibleCount((prev) => prev + 10);
+        }
+      },
+      { threshold: 0.1, rootMargin: '200px' }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [isLoading]);
 
   // Handle Google News Search
   const handleSearchSubmit = async (e?: React.FormEvent) => {
@@ -140,6 +187,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const handleClearSearch = () => {
     setSearchQuery('');
     setGoogleSearchResults(null);
+  };
+
+  // Apply new live articles and scroll to top
+  const handleApplyNewArticles = () => {
+    loadCategoryArticles(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Compute displayed list based on search or category filter
@@ -168,6 +221,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return list;
   }, [googleSearchResults, liveNews, articles, activeCategory, searchQuery]);
 
+  const visibleArticles = useMemo(() => {
+    return displayList.slice(0, visibleCount);
+  }, [displayList, visibleCount]);
+
+  const hasMore = visibleCount < displayList.length;
+
   return (
     <div className={`p-4 md:p-8 max-w-5xl mx-auto space-y-6 transition-colors duration-300 ${
       theme === 'light' ? 'text-slate-800' : 'text-gray-200'
@@ -188,9 +247,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span className="text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                 {displayList.length} Haber
               </span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Canlı
+              </span>
             </h1>
             <p className={`text-[11px] mt-0.5 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-              Yapay zeka ile özetlenmiş, anlık güncellenen tarafsız haber akışı
+              Anlık son dakika haberleri, tarafsız kaynaklar ve yapay zeka ile özet akış
             </p>
           </div>
         </div>
@@ -259,9 +322,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               }`}
             >
               {tab === 'Tümü' && '🌐 '}
-              {tab === 'Gündem' && '📰 '}
+              {tab === 'Gündem' && '⚡ '}
               {tab === 'Ekonomi' && '📈 '}
-              {tab === 'Teknoloji' && '⚡ '}
+              {tab === 'Teknoloji' && '💻 '}
               {tab === 'Spor' && '⚽ '}
               {tab === 'Dünya' && '🌍 '}
               {tab === 'Sağlık' && '🏥 '}
@@ -280,12 +343,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         )}
       </div>
 
+      {/* FLOATING REAL-TIME NEW ARTICLES NOTIFICATION PILL */}
+      {newArticlesCount > 0 && (
+        <div className="sticky top-20 z-30 flex justify-center">
+          <button
+            onClick={handleApplyNewArticles}
+            className="bg-[#1ed760] hover:bg-[#1bc456] text-black font-black px-5 py-2.5 rounded-full shadow-[0_8px_25px_rgba(30,215,96,0.4)] flex items-center gap-2.5 text-xs transition-all transform hover:scale-105 active:scale-95 cursor-pointer animate-bounce"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-black"></span>
+            </span>
+            <span>{newArticlesCount} Yeni Haber Geldi — Akışı Güncelle</span>
+            <ArrowUp className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* SKELETON LOADER WITH EXPLICIT MESSAGE */}
       {isLoading || isSearchingGoogle ? (
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-xs font-bold text-[#1ed760] bg-[#1ed760]/10 border border-[#1ed760]/20 px-4 py-3 rounded-2xl animate-pulse">
             <RefreshCw className="w-4 h-4 animate-spin text-[#1ed760]" />
-            <span>Gündem haberleri yükleniyor...</span>
+            <span>Gündem ve son dakika haberleri çekiliyor...</span>
           </div>
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className={`p-4 rounded-2xl flex gap-4 items-center animate-pulse ${
@@ -311,17 +391,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <Newspaper className="w-12 h-12 text-gray-400 mx-auto" />
           <h3 className={`text-base font-bold ${theme === 'light' ? 'text-slate-800' : 'text-gray-300'}`}>Haber Bulunamadı</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto">
-            Arama kriterinize veya seçilen kategoriye uygun haber şu anda mevcut değil. Lütfen başka bir kelime ile Google News'te arama yapın.
+            Arama kriterinize veya seçilen kategoriye uygun haber şu anda mevcut değil. Lütfen başka bir kelime ile arama yapın.
           </p>
         </div>
       ) : (
-        /* NEWS LIST VIEW */
+        /* NEWS LIST VIEW WITH PROGRESSIVE INFINITE SCROLL & NATIVE ADS */
         <div className="space-y-4">
-          {displayList.map((article, index) => {
+          {visibleArticles.map((article, index) => {
             const isBookmarked = bookmarkedIds.includes(article.id);
-            // Strictly guard ad injection: Only when loading is finished, data is present, and every 3rd article
+            // Native AdCard inserted every 4 articles for organic monetization
             const isFeedReady = !isLoading && !isSearchingGoogle && displayList.length > 0;
-            const showAd = isFeedReady && (index + 1) % 3 === 0;
+            const showAd = isFeedReady && (index + 1) % 4 === 0;
 
             return (
               <React.Fragment key={article.id}>
@@ -335,7 +415,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   {/* Thumbnail Image */}
                   <div
                     onClick={() => onSelectArticle(article)}
-                    className="relative w-full md:w-32 h-36 md:h-28 rounded-xl overflow-hidden shrink-0 bg-[#0e1410] border border-white/5 cursor-pointer group-hover:scale-[1.02] transition-transform"
+                    className="relative w-full md:w-36 h-36 md:h-28 rounded-xl overflow-hidden shrink-0 bg-[#0e1410] border border-white/5 cursor-pointer group-hover:scale-[1.02] transition-transform"
                   >
                     <img
                       src={sanitizeImageUrl(article.imageUrl) || getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
@@ -380,14 +460,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             <span>{formatTwitterAuthor(article.author)}</span>
                           </span>
                         ) : (
-                          <span className={`text-xs font-mono ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                          <span className={`text-xs font-mono font-medium ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>
                             {article.author || 'Anadolu Ajansı'}
                           </span>
                         )}
                       </div>
 
                       <button
-                        onClick={() => onOpenPaywall('bookmark_action')}
+                        onClick={() => onOpenPaywall('limit_reached')}
                         className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                           isBookmarked 
                             ? 'text-[#1ed760] bg-[#1ed760]/10' 
@@ -445,11 +525,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </div>
                 </div>
 
-                {/* In-Feed Native Ad every 3 articles - only rendered when feed is fully loaded */}
+                {/* In-Feed Native Ad every 4 articles */}
                 {showAd && <NativeAdCard key={`ad-feed-${article.id}-${index}`} variant="feed" />}
               </React.Fragment>
             );
           })}
+
+          {/* INFINITE SCROLL SENTINEL & LOAD MORE BUTTON */}
+          <div ref={observerTarget} className="py-6 text-center">
+            {hasMore ? (
+              <button
+                onClick={() => setVisibleCount(prev => prev + 12)}
+                className={`px-6 py-2.5 rounded-2xl text-xs font-bold transition-all border flex items-center gap-2 mx-auto cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300 shadow-sm'
+                    : 'bg-[#161c23] hover:bg-[#1f2730] text-gray-200 border-white/10 shadow-sm'
+                }`}
+              >
+                <span>Daha Fazla Haber Göster ({displayList.length - visibleCount} kalan)</span>
+                <ChevronDown className="w-4 h-4 text-emerald-400" />
+              </button>
+            ) : (
+              <p className={`text-xs ${theme === 'light' ? 'text-slate-400' : 'text-gray-500'}`}>
+                Tüm güncel haberler listelendi ({displayList.length} haber).
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
