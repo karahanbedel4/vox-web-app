@@ -32,6 +32,13 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   next(err);
 });
 
+// Google AdSense ads.txt explicit endpoint
+app.get('/ads.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send('google.com, pub-4663082689738592, DIRECT, f08c47fec0942fa0\n');
+});
+
 // Initialize Gemini API client server-side
 const ai = new GoogleGenAI({ 
   apiKey: process.env.GEMINI_API_KEY || '',
