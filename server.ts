@@ -2397,6 +2397,135 @@ app.get('/api/news/check-new', (req, res) => {
   }
 });
 
+// Safe first-party Feed Proxy Endpoint (/api/fetch-feed)
+// Fetches RSS / XML / HTML / JSON feeds server-side with zero third-party proxy dependency
+app.get('/api/fetch-feed', async (req, res) => {
+  try {
+    const rawTargetUrl = (req.query.url as string || '').trim();
+    if (!rawTargetUrl) {
+      return res.status(400).json({ success: false, error: 'url parameter is required' });
+    }
+
+    // URL validation & SSRF protection
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(rawTargetUrl);
+    } catch {
+      return res.status(400).json({ success: false, error: 'Invalid URL format' });
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return res.status(400).json({ success: false, error: 'Only HTTP and HTTPS protocols are allowed' });
+    }
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0' ||
+      hostname === '::1' ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('172.16.') ||
+      hostname.endsWith('.internal') ||
+      hostname === '169.254.169.254'
+    ) {
+      return res.status(403).json({ success: false, error: 'Access to internal network addresses is forbidden' });
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(parsedUrl.toString(), {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 VOX/1.0',
+        'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, text/html, application/json, */*'
+      }
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        success: false,
+        error: `Remote server responded with HTTP status ${response.status}`
+      });
+    }
+
+    const text = await response.text();
+    const isJsonRequested = req.query.format === 'json';
+
+    if (isJsonRequested) {
+      return res.json({
+        success: true,
+        contents: text,
+        status: response.status,
+        contentType: response.headers.get('content-type') || 'text/xml'
+      });
+    }
+
+    // Default: return raw XML / text content with appropriate headers
+    const contentType = response.headers.get('content-type') || 'application/xml; charset=utf-8';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=120');
+    return res.send(text);
+  } catch (err: unknown) {
+    const errorMsg = (err as Error).name === 'AbortError' ? 'Feed request timed out' : (err as Error).message;
+    console.warn('/api/fetch-feed fetch error:', errorMsg);
+    return res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Search News API Endpoint (Searches in-memory cache and falls back to server-side Google News RSS if needed)
+app.get('/api/news/search', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'public, max-age=30');
+    const query = ((req.query.q as string) || '').trim();
+    if (!query) {
+      return res.json({ success: true, articles: [] });
+    }
+
+    const queryLower = query.toLowerCase();
+    // Search cached articles in memory
+    const matched = serverNewsCache.all.filter(a =>
+      a.title?.toLowerCase().includes(queryLower) ||
+      a.summary?.toLowerCase().includes(queryLower) ||
+      a.content?.toLowerCase().includes(queryLower) ||
+      a.author?.toLowerCase().includes(queryLower) ||
+      a.category?.toLowerCase().includes(queryLower)
+    );
+
+    // If matches found or query is short, return matches
+    if (matched.length >= 5) {
+      return res.json({ success: true, articles: matched.slice(0, 40) });
+    }
+
+    // Server-side fallback search from Google News RSS
+    try {
+      const searchRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=tr&gl=TR&ceid=TR:tr`;
+      const directSearchItems = await fetchSingleRssFeed({
+        url: searchRssUrl,
+        category: 'Gündem',
+        author: 'Google Haberler'
+      });
+      const combined = [...matched, ...directSearchItems];
+      const seen = new Set<string>();
+      const deduplicated = combined.filter(item => {
+        const key = item.title?.toLowerCase().trim();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      return res.json({ success: true, articles: deduplicated.slice(0, 40) });
+    } catch (e) {
+      return res.json({ success: true, articles: matched });
+    }
+  } catch (err: unknown) {
+    console.error('News search error:', err);
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
 // Server-side Anti-Ban Cache for Twitter feeds (5 minutes TTL)
 let serverTwitterCache: { timestamp: number; tweets: any[] } = {
   timestamp: 0,

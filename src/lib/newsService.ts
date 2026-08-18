@@ -1,5 +1,6 @@
 import { Article } from '../types';
 import { appStorage } from './storage';
+import { INITIAL_ARTICLES } from '../data/defaultArticles';
 
 export const DEFAULT_VOX_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&auto=format&fit=crop&q=80';
 
@@ -563,12 +564,33 @@ function parseTwitterXmlWithDOM(xmlString: string, account: TargetTwitterAccount
 }
 
 /**
- * Real-time Zero-Cost Twitter (X) Fetcher with 5-Minute Anti-Ban Cache
+ * First-Party Feed Fetcher (/api/fetch-feed)
+ * Securely proxies any external RSS/XML feed through our own server, bypassing CORS and avoiding 3rd-party proxy blocks.
+ */
+export async function fetchRemoteFeedXml(url: string, timeoutMs: number = 8000): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const safeUrl = `/api/fetch-feed?url=${encodeURIComponent(url)}&_t=${Date.now()}`;
+    const res = await fetch(safeUrl, {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, */*' }
+    });
+    if (res.ok) {
+      return await res.text();
+    }
+  } catch (err) {
+    console.warn(`fetchRemoteFeedXml error for ${url}:`, err);
+  }
+  return null;
+}
+
+/**
+ * Real-time Zero-Cost Twitter (X) Fetcher using internal VOX API (/api/tweets)
  */
 export async function fetchRealTweets(category?: string, forceRefresh = false): Promise<Article[]> {
   const now = Date.now();
 
-  // 1. Anti-Ban Cache Check (5-minute TTL)
+  // 1. In-memory / Storage Cache Check (5-minute TTL)
   if (!forceRefresh) {
     // A. Check in-memory cache first
     if (inMemoryTwitterCache && (now - inMemoryTwitterCache.timestamp < TWITTER_CACHE_TTL_MS)) {
@@ -603,85 +625,43 @@ export async function fetchRealTweets(category?: string, forceRefresh = false): 
     } catch (e) {}
   }
 
-  // 2. Fetch fresh real tweets using free RSS + CORS Proxy + DOMParser
+  // 2. Fetch fresh real tweets using VOX internal /api/tweets endpoint
   const fetchedArticles: Article[] = [];
 
-  const fetchPromises = TARGET_TWITTER_ACCOUNTS.map(async (account) => {
-    const rssEndpoints = [
-      `https://nitter.poast.org/${account.username}/rss`,
-      `https://nitter.privacydev.net/${account.username}/rss`,
-      `https://rsshub.app/twitter/user/${account.username}`
-    ];
-
-    // Try CORS proxy with DOMParser
-    for (const rssUrl of rssEndpoints) {
-      try {
-        const alloriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
-        const res = await fetch(alloriginsUrl, { signal: AbortSignal.timeout(4500) });
-        if (res.ok) {
-          const json = await res.json();
-          if (json && json.contents) {
-            const parsed = parseTwitterXmlWithDOM(json.contents, account);
-            if (parsed.length > 0) return parsed;
-          }
-        }
-      } catch (e) {
-        try {
-          const corsProxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(rssUrl)}`;
-          const res = await fetch(corsProxyUrl, { signal: AbortSignal.timeout(4500) });
-          if (res.ok) {
-            const xmlText = await res.text();
-            const parsed = parseTwitterXmlWithDOM(xmlText, account);
-            if (parsed.length > 0) return parsed;
-          }
-        } catch (e2) {}
+  try {
+    const res = await fetch(`/api/tweets?_t=${now}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.tweets || []);
+      if (Array.isArray(list) && list.length > 0) {
+        const mapped = list.map((item: any) => {
+          const { cleanTitle, cleanSummary, cleanContent } = cleanTweetText(item.content || item.summary || item.text || item.title);
+          return {
+            id: item.id || `tweet_${item.author || 'vox'}_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+            title: item.title || cleanTitle,
+            summary: cleanSummary,
+            content: cleanContent,
+            category: item.category || 'Gündem',
+            author: item.author || 'VOX Haber',
+            sourceType: 'twitter' as const,
+            sourceUrl: item.sourceUrl || 'https://x.com',
+            imageUrl: item.imageUrl || getTopicContextualImage(item.title || cleanTitle, item.category) || DEFAULT_VOX_FALLBACK_IMAGE,
+            durationSeconds: item.durationSeconds || 90,
+            createdAt: item.createdAt || new Date().toISOString(),
+            keyPoints: [cleanTitle, `Kaynak: 𝕏 ${item.author || 'VOX'}`, `Kategori: ${item.category || 'Gündem'}`]
+          };
+        });
+        fetchedArticles.push(...mapped);
       }
     }
-
-    // Direct /api/tweets proxy
-    try {
-      const res = await fetch(`/api/tweets?account=${account.username}&_t=${now}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.tweets || []);
-        if (Array.isArray(list) && list.length > 0) {
-          return list.map((item: any) => {
-            const { cleanTitle, cleanSummary, cleanContent } = cleanTweetText(item.content || item.summary || item.text || item.title);
-            return {
-              id: item.id || `tweet_${account.username}_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-              title: item.title || cleanTitle,
-              summary: cleanSummary,
-              content: cleanContent,
-              category: account.category,
-              author: account.handle,
-              sourceType: 'twitter' as const,
-              sourceUrl: item.sourceUrl || `https://x.com/${account.username}`,
-              imageUrl: item.imageUrl || getTopicContextualImage(item.title || cleanTitle, account.category) || DEFAULT_VOX_FALLBACK_IMAGE,
-              durationSeconds: item.durationSeconds || 90,
-              createdAt: item.createdAt || new Date().toISOString(),
-              keyPoints: [cleanTitle, `Kaynak: 𝕏 ${account.handle}`, `Kategori: ${account.category}`]
-            };
-          });
-        }
-      }
-    } catch (e) {}
-
-    return [];
-  });
-
-  try {
-    const results = await Promise.all(fetchPromises);
-    results.forEach(list => {
-      if (Array.isArray(list)) fetchedArticles.push(...list);
-    });
   } catch (err) {
-    console.warn('fetchRealTweets aggregation error:', err);
+    console.warn('fetchRealTweets internal API notice:', err);
   }
 
-  // 3. Process fetched results and update Anti-Ban Cache
+  // 3. Process fetched results and update Cache
   if (fetchedArticles.length > 0) {
     // Sort strictly newest first
     fetchedArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
@@ -723,7 +703,7 @@ export async function fetchTwitterNews(category?: string): Promise<Article[]> {
 }
 
 /**
- * Fetch dynamic Turkish news by category with ultra-fast server-side background cache & direct fallbacks
+ * Fetch dynamic Turkish news by category with ultra-fast server-side background cache
  */
 export async function fetchNewsByCategory(category: string = 'Tümü', lang: string = 'tr', limit: number = 80): Promise<Article[]> {
   const targetCategory = category === 'Tümü' ? 'Gündem' : category;
@@ -761,10 +741,10 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
       }
     }
   } catch (err) {
-    console.warn('/api/news fetch error, falling back to direct RSS:', err);
+    console.warn('/api/news fetch notice:', err);
   }
 
-  // 2. Fetch Twitter Feed from @ozetgechaber, @ConflictTR, @vaziyetcomtr if available
+  // 2. Fetch Twitter Feed from @ozetgechaber, @ConflictTR, @vaziyetcomtr via internal /api/tweets
   let twitterArticles: Article[] = [];
   try {
     twitterArticles = await fetchTwitterNews(category);
@@ -772,59 +752,15 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
     twitterArticles = [];
   }
 
-  // 3. Fallback to Direct Turkish News RSS Feeds if /api/news was empty
-  if (articles.length === 0) {
-    const directUrls = CATEGORY_DIRECT_RSS[category] || CATEGORY_DIRECT_RSS['Tümü'];
-    
-    const rssPromises = directUrls.map(async (rssUrl, i) => {
-      try {
-        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === 'ok' && Array.isArray(data.items)) {
-            return data.items.map((item: any, idx: number) => 
-              parseGoogleNewsItem(item, targetCategory, i * 10 + idx)
-            );
-          }
-        }
-      } catch (e) {
-        console.warn(`Direct RSS fetch error for ${rssUrl}:`, e);
-      }
-      return [];
-    });
-
-    try {
-      const rssResults = await Promise.all(rssPromises);
-      rssResults.forEach(list => {
-        if (Array.isArray(list)) articles.push(...list);
-      });
-    } catch (err) {
-      console.warn('Direct RSS parallel fetch error:', err);
-    }
+  // 3. Fallback to default articles if /api/news was empty
+  if (articles.length === 0 && twitterArticles.length === 0) {
+    const defaults = (INITIAL_ARTICLES || []).filter(
+      a => !category || category === 'Tümü' || a.category.toLowerCase() === category.toLowerCase()
+    );
+    return defaults;
   }
 
-  // 4. Fallback to Google News RSS if still empty
-  if (articles.length === 0) {
-    try {
-      const rssTopic = TOPIC_MAP[category] || '';
-      const rssUrl = rssTopic 
-        ? `https://news.google.com/rss/headlines/section/topic/${rssTopic}?hl=tr&gl=TR&ceid=TR:tr`
-        : `https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr`;
-
-      const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status === 'ok' && Array.isArray(data.items)) {
-          const parsed = data.items.map((item: any, idx: number) => parseGoogleNewsItem(item, targetCategory, idx + 100));
-          articles.push(...parsed);
-        }
-      }
-    } catch (err) {
-      console.warn('Google News RSS fetch error:', err);
-    }
-  }
-
-  // 5. Aggregate Web RSS articles + Twitter articles into one single array
+  // 4. Aggregate Web RSS articles + Twitter articles into one single array
   const allCombined = [...twitterArticles, ...articles];
 
   // Deduplicate by title
@@ -858,43 +794,42 @@ export async function checkNewNewsUpdates(category: string = 'Tümü', sinceTime
 }
 
 /**
- * Search Google News directly for a query string
+ * Search News directly using internal VOX /api/news/search endpoint
  */
 export async function searchGoogleNews(query: string): Promise<Article[]> {
   if (!query || !query.trim()) return [];
 
   const cleanQuery = query.trim();
 
-  // Try fetching from vox-ai-repo with query
+  // 1. Fetch from internal /api/news/search endpoint
   try {
-    const res = await fetch(`https://vox-ai-repo.onrender.com/api/news?q=${encodeURIComponent(cleanQuery)}`);
+    const res = await fetch(`/api/news/search?q=${encodeURIComponent(cleanQuery)}&_t=${Date.now()}`);
     if (res.ok) {
       const data = await res.json();
       const articlesList = Array.isArray(data) ? data : (data.articles || data.data || []);
       if (Array.isArray(articlesList) && articlesList.length > 0) {
-        return articlesList.map((item: any, idx: number) => parseGoogleNewsItem(item, 'Arama', idx));
+        return articlesList.map((item: any, idx: number) => {
+          if (item.id && item.title && item.content) {
+            const rawImg = item.imageUrl || item.image || item.thumbnail;
+            return {
+              ...item,
+              imageUrl: sanitizeImageUrl(rawImg) || getTopicContextualImage(item.title, item.category || 'Arama', idx)
+            };
+          }
+          return parseGoogleNewsItem(item, 'Arama', idx);
+        });
       }
     }
   } catch (err) {
-    console.warn('vox-ai-repo search error:', err);
+    console.warn('/api/news/search notice:', err);
   }
 
-  // Google News RSS Search via RSS2JSON
-  try {
-    const googleNewsRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(cleanQuery)}&hl=tr&gl=TR&ceid=TR:tr`;
-    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(googleNewsRssUrl)}`);
-    
-    if (res.ok) {
-      const data = await res.json();
-      if (data.status === 'ok' && Array.isArray(data.items)) {
-        return data.items.map((item: any, idx: number) => parseGoogleNewsItem(item, 'Arama', idx));
-      }
-    }
-  } catch (err) {
-    console.warn('Google News Search error:', err);
-  }
-
-  return [];
+  // 2. Client-side fallback from default articles
+  const defaults = (INITIAL_ARTICLES || []).filter(a =>
+    a.title.toLowerCase().includes(cleanQuery.toLowerCase()) ||
+    a.summary.toLowerCase().includes(cleanQuery.toLowerCase())
+  );
+  return defaults;
 }
 
 
