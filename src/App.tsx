@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes as RouterRoutes, Route as RouterRoute, Navigate as RouterNavigate } from 'react-router-dom';
 import { ThemeProvider } from './lib/ThemeContext';
+import { FocusProvider } from './lib/FocusContext';
 import { PersistentLayout } from './components/PersistentLayout';
 import { DashboardView } from './components/DashboardView';
 import { FocusTab } from './components/FocusTab';
@@ -334,8 +335,9 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <Router>
-        <RouterRoutes>
+      <FocusProvider>
+        <Router>
+          <RouterRoutes>
           <RouterRoute
             element={
               <PersistentLayout
@@ -471,6 +473,7 @@ export default function App() {
           </RouterRoute>
         </RouterRoutes>
       </Router>
+      </FocusProvider>
     </ThemeProvider>
   );
 }

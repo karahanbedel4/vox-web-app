@@ -49,49 +49,14 @@ import { fetchNewsByCategory } from '../lib/newsService';
 import { appStorage } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
 import { woodRainSynth } from '../lib/audioSynth';
-
-export const MOTIVATIONAL_FOCUS_QUOTES = [
-  { text: "Zihnin olağanüstü berrak, odağın kusursuz. Şimdi derin akıştasın.", category: "Zihin Gücü" },
-  { text: "Disiplin ve sabrın seni her saniye bir adım öne taşıyor. Harika gidiyorsun!", category: "Övgü & Başarı" },
-  { text: "En büyük başarılar, tam da şu an sürdürdüğün bu küçük odak anlarında inşa edilir.", category: "Üretkenlik" },
-  { text: "Düşüncelerini sadeleştir, dikkatini hedefine kilitle. Potansiyelin sınırsız!", category: "İlham" },
-  { text: "Harika bir ivme yakaladın. Bu anı en yüksek verimle taçlandır.", category: "Akış Hali" },
-  { text: "Zor olanı başarmak ve derinleşmek senin doğanda var. Asla durma!", category: "Motivasyon" },
-  { text: "Hiçbir bildirim senin bu kıymetli derin çalışma anından daha değerli değil.", category: "Tam Odak" },
-  { text: "Bugünkü emeğin ve sarsılmaz konsantrasyonun yarınki özgürlüğün olacak.", category: "Gelecek" },
-  { text: "Kelimeler, hedefler ve kararlılık... Zirveye giden yol senin adımlarınla açılıyor.", category: "Özgüven" },
-  { text: "Odaklanma bir süper güçtür ve sen şu an bu gücü en üst düzeyde kullanıyorsun.", category: "Süper Güç" },
-  { text: "Küçük adımların kararlı birleşimi büyük devrimler yaratır. Harikasın!", category: "Gelişim" },
-  { text: "Şimdi sadece sen ve başarmak istediğin iş var. Zirve senin.", category: "Netlik" },
-];
-
-/**
- * Synthesizes an uplifting harmonic chime when a task is completed.
- */
-function playTaskCompleteChime() {
-  try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-    const now = ctx.currentTime;
-
-    const notes = [1046.5, 1318.51, 1567.98]; // C6, E6, G6 major triad
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + i * 0.07);
-      gainNode.gain.setValueAtTime(0.0001, now + i * 0.07);
-      gainNode.gain.linearRampToValueAtTime(0.18, now + i * 0.07 + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.07 + 0.45);
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      osc.start(now + i * 0.07);
-      osc.stop(now + i * 0.07 + 0.5);
-    });
-  } catch (e) {}
-}
+import { 
+  useFocus, 
+  formatFocusTime, 
+  MOTIVATIONAL_FOCUS_QUOTES, 
+  sendPomodoroWebNotification,
+  playTaskCompleteChime,
+  playMindfulnessBell
+} from '../lib/FocusContext';
 
 interface FocusTabProps {
   articles: Article[];
@@ -119,110 +84,6 @@ function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
   const matches = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
   return matches ? decodeURIComponent(matches[1]) : null;
-}
-
-/**
- * Synthesizes a serene Mindfulness Bell / Chime sound using Web Audio API.
- * High-clarity fundamental frequency with rich harmonic resonance and echo.
- */
-function playMindfulnessBell() {
-  try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
-    const now = ctx.currentTime;
-
-    // Harmonic bell frequencies (528Hz healing/focus pitch + harmonics)
-    const freqs = [528, 1056, 1584, 2112];
-    const gains = [0.45, 0.2, 0.1, 0.05];
-
-    freqs.forEach((freq, idx) => {
-      const osc = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now);
-
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.linearRampToValueAtTime(gains[idx], now + 0.03);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 3.2);
-
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 3.3);
-    });
-
-    // Pleasant secondary harmonic echo
-    setTimeout(() => {
-      try {
-        const echoNow = ctx.currentTime;
-        const osc = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(792, echoNow);
-        gainNode.gain.setValueAtTime(0.0001, echoNow);
-        gainNode.gain.linearRampToValueAtTime(0.18, echoNow + 0.02);
-        gainNode.gain.exponentialRampToValueAtTime(0.0001, echoNow + 2.0);
-        osc.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        osc.start(echoNow);
-        osc.stop(echoNow + 2.1);
-      } catch {}
-    }, 180);
-
-  } catch (err) {
-    console.warn('Mindfulness chime audio synthesis notice:', err);
-  }
-}
-
-/**
- * Sends a browser Web Push Notification if permission is granted.
- * Clicking the notification brings the user back to the Focus page.
- */
-function sendPomodoroWebNotification(title: string, body: string, targetPath: string = '/odaklan') {
-  if (typeof window === 'undefined' || !('Notification' in window)) return;
-
-  if (Notification.permission === 'granted') {
-    try {
-      const notificationOptions: NotificationOptions = {
-        body,
-        icon: '/apple-touch-icon.png',
-        badge: '/apple-touch-icon.png',
-        tag: 'pomodoro-notification',
-        requireInteraction: false
-      };
-
-      const notif = new Notification(title, notificationOptions);
-
-      notif.onclick = function (event) {
-        event.preventDefault();
-        try {
-          window.focus();
-          if (window.parent && window.parent !== window) {
-            window.parent.focus();
-          }
-        } catch {}
-
-        if (window.location.pathname !== targetPath) {
-          window.history.pushState(null, '', targetPath);
-          window.dispatchEvent(new PopStateEvent('popstate'));
-        }
-        notif.close();
-      };
-      fetch('/api/push/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body })
-      }).catch(() => {});
-    } catch (err) {
-      console.warn('Web notification send notice:', err);
-    }
-  }
 }
 
 /**
@@ -383,134 +244,95 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  // POMODORO STATE
-  // Mode: 'work' (Çalışma) -> Otomatik 'break' (Mola) -> Otomatik 'work'
-  const [sessionType, setSessionType] = useState<'work' | 'break'>('work');
-  const [workMinutes, setWorkMinutes] = useState<number>(25);
-  const [breakMinutes, setBreakMinutes] = useState<number>(5);
-  const [targetRounds, setTargetRounds] = useState<number>(() => {
-    try {
-      const saved = appStorage.getItemSync('vox_focus_target_rounds');
-      if (saved) {
-        const parsed = parseInt(saved, 10);
-        if (!isNaN(parsed) && parsed > 0) return parsed;
-      }
-    } catch (e) {}
-    return 3;
-  });
+  // GLOBAL FOCUS STATE (POMODORO & TASKS)
+  const {
+    sessionType,
+    workMinutes,
+    breakMinutes,
+    targetRounds,
+    completedSessions,
+    focusGoal,
+    timeLeft,
+    isRunning,
+    progressPercent,
+    tasks,
+    filteredTasks,
+    taskFilter,
+    quoteIndex,
+    celebrationToast,
+    showSessionSummaryModal,
+    sessionSummaryData,
+    statusMessage,
+    setTaskFilter,
+    setTargetRounds,
+    setWorkMinutes,
+    setBreakMinutes,
+    setFocusGoal,
+    resetCompletedSessions,
+    toggleTimer,
+    resetTimer,
+    addTask: addContextTask,
+    toggleTaskDone,
+    removeTask,
+    saveEditingTask: saveContextEditingTask,
+    clearCompletedTasks,
+    handleNextQuote,
+    setShowSessionSummaryModal,
+    setCelebrationToast,
+    showTemporaryStatus
+  } = useFocus();
 
-  const [timeLeft, setTimeLeft] = useState<number>(25 * 60);
-  const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [completedSessions, setCompletedSessions] = useState<number>(() => {
-    try {
-      const saved = appStorage.getItemSync('vox_focus_completed_sessions');
-      if (saved) {
-        const parsed = parseInt(saved, 10);
-        if (!isNaN(parsed) && parsed >= 0) return parsed;
-      }
-    } catch (e) {}
-    return 0;
-  });
-
-  const handleSelectTargetRounds = (rounds: number) => {
-    setTargetRounds(rounds);
-    try {
-      appStorage.setItemSync('vox_focus_target_rounds', rounds.toString());
-    } catch (e) {}
-    triggerHapticImpact('light').catch(() => {});
-    showTemporaryStatus(`🎯 Hedef: ${rounds} Tur (${workMinutes} dk/seans)`);
-  };
-
-  const handleResetSessions = () => {
-    setCompletedSessions(0);
-    try {
-      appStorage.setItemSync('vox_focus_completed_sessions', '0');
-    } catch (e) {}
-    triggerHapticImpact('light').catch(() => {});
-    showTemporaryStatus('🔄 Tur sayacı sıfırlandı');
-  };
-
-  useEffect(() => {
-    try {
-      appStorage.setItemSync('vox_focus_completed_sessions', completedSessions.toString());
-    } catch (e) {}
-  }, [completedSessions]);
-  
-  // Custom Focus Goal & Tasks with persistent storage
-  const [focusGoal, setFocusGoal] = useState<string>(() => {
-    try {
-      return appStorage.getItemSync('vox_focus_goal') || 'Odaklanma Seansı';
-    } catch (e) {
-      return 'Odaklanma Seansı';
-    }
-  });
-
-  const [tasks, setTasks] = useState<{ id: string; text: string; done: boolean }[]>(() => {
-    try {
-      const saved = appStorage.getItemSync('vox_focus_tasks');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch (e) {}
-    return [];
-  });
-
+  // Local Task Editing & UI states
   const [newTaskText, setNewTaskText] = useState<string>('');
   const [isAddingTask, setIsAddingTask] = useState<boolean>(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskText, setEditingTaskText] = useState<string>('');
   const [isEditingGoal, setIsEditingGoal] = useState<boolean>(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  // Motivational Focus & Praise Quotes Rotation State
-  const [quoteIndex, setQuoteIndex] = useState<number>(() => Math.floor(Math.random() * MOTIVATIONAL_FOCUS_QUOTES.length));
-  
-  useEffect(() => {
-    const quoteInterval = setInterval(() => {
-      setQuoteIndex(prev => (prev + 1) % MOTIVATIONAL_FOCUS_QUOTES.length);
-    }, 12000);
-    return () => clearInterval(quoteInterval);
-  }, []);
-
-  const handleNextQuote = () => {
+  const handleSelectTargetRounds = (rounds: number) => {
+    setTargetRounds(rounds);
     triggerHapticImpact('light').catch(() => {});
-    setQuoteIndex(prev => (prev + 1) % MOTIVATIONAL_FOCUS_QUOTES.length);
+    showTemporaryStatus(`🎯 Hedef: ${rounds} Tur (${workMinutes} dk/seans)`);
   };
 
-  // Task Filters & Session Task Tracking
-  const [taskFilter, setTaskFilter] = useState<'all' | 'pending' | 'completed'>('all');
-  const [sessionCompletedTaskIds, setSessionCompletedTaskIds] = useState<string[]>([]);
-  const [celebrationToast, setCelebrationToast] = useState<{ id: number; taskText: string; quote: string } | null>(null);
+  const handleResetSessions = () => {
+    resetCompletedSessions();
+    triggerHapticImpact('light').catch(() => {});
+    showTemporaryStatus('🔄 Tur sayacı sıfırlandı');
+  };
 
-  // Pomodoro Session Summary Modal State
-  const [showSessionSummaryModal, setShowSessionSummaryModal] = useState<boolean>(false);
-  const [sessionSummaryData, setSessionSummaryData] = useState<{
-    completedTasks: string[];
-    durationMins: number;
-    roundNumber: number;
-    motivationalPraise: string;
-  } | null>(null);
+  const handleSelectWorkMinutes = (mins: number) => {
+    setWorkMinutes(mins);
+    triggerHapticImpact('light').catch(() => {});
+  };
 
-  // Filtered Task List
-  const filteredTasks = useMemo(() => {
-    if (taskFilter === 'pending') return tasks.filter(t => !t.done);
-    if (taskFilter === 'completed') return tasks.filter(t => t.done);
-    return tasks;
-  }, [tasks, taskFilter]);
+  const handleSelectBreakMinutes = (mins: number) => {
+    setBreakMinutes(mins);
+    triggerHapticImpact('light').catch(() => {});
+  };
 
-  // Sync tasks & goal to appStorage
-  useEffect(() => {
-    try {
-      appStorage.setItemSync('vox_focus_tasks', JSON.stringify(tasks));
-    } catch (e) {}
-  }, [tasks]);
+  const startEditingTask = (task: { id: string; text: string }) => {
+    setEditingTaskId(task.id);
+    setEditingTaskText(task.text);
+  };
 
-  useEffect(() => {
-    try {
-      appStorage.setItemSync('vox_focus_goal', focusGoal);
-    } catch (e) {}
-  }, [focusGoal]);
+  const saveEditingTask = (id: string) => {
+    const clean = editingTaskText.trim();
+    if (!clean) {
+      removeTask(id);
+    } else {
+      saveContextEditingTask(id, clean);
+    }
+    setEditingTaskId(null);
+    setEditingTaskText('');
+  };
+
+  const addTask = () => {
+    if (!newTaskText.trim()) return;
+    addContextTask(newTaskText);
+    setNewTaskText('');
+    setIsAddingTask(false);
+  };
 
   // Live Time, Date and Real Device Battery State for Phone Mockup
   const [currentTime, setCurrentTime] = useState<string>(() => {
@@ -563,87 +385,6 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     };
   }, []);
 
-  const toggleTaskDone = (id: string) => {
-    const targetTask = tasks.find(t => t.id === id);
-    const willBeDone = targetTask ? !targetTask.done : false;
-
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
-
-    if (willBeDone && targetTask) {
-      // 1. Play uplifting audio chime
-      playTaskCompleteChime();
-      triggerHapticNotification('success').catch(() => {});
-
-      // 2. Track in current session list
-      setSessionCompletedTaskIds(prev => [...prev, id]);
-
-      // 3. Send Web Push Notification to user's system
-      sendPomodoroWebNotification(
-        '🎉 Görev Başarıyla Tamamlandı!',
-        `Harikasın! "${targetTask.text}" görevini bitirdin. Zihnin çok keskin, odaklanmaya devam et!`
-      );
-
-      // 4. In-App Praising Toast Notification
-      const randomQuote = MOTIVATIONAL_FOCUS_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_FOCUS_QUOTES.length)].text;
-      setCelebrationToast({
-        id: Date.now(),
-        taskText: targetTask.text,
-        quote: randomQuote
-      });
-      setTimeout(() => {
-        setCelebrationToast(null);
-      }, 4500);
-
-    } else {
-      triggerHapticImpact('light').catch(() => {});
-      setSessionCompletedTaskIds(prev => prev.filter(tid => tid !== id));
-    }
-  };
-
-  const clearCompletedTasks = () => {
-    const completedCount = tasks.filter(t => t.done).length;
-    if (completedCount === 0) return;
-    setTasks(prev => prev.filter(t => !t.done));
-    triggerHapticImpact('medium').catch(() => {});
-    showTemporaryStatus(`🧹 ${completedCount} tamamlanmış görev temizlendi`);
-  };
-
-  const removeTask = (id: string) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
-    setSessionCompletedTaskIds(prev => prev.filter(tid => tid !== id));
-    if (editingTaskId === id) {
-      setEditingTaskId(null);
-      setEditingTaskText('');
-    }
-    triggerHapticImpact('light').catch(() => {});
-  };
-
-  const startEditingTask = (task: { id: string; text: string }) => {
-    setEditingTaskId(task.id);
-    setEditingTaskText(task.text);
-  };
-
-  const saveEditingTask = (id: string) => {
-    const clean = editingTaskText.trim();
-    if (!clean) {
-      removeTask(id);
-    } else {
-      setTasks(prev => prev.map(t => t.id === id ? { ...t, text: clean } : t));
-    }
-    setEditingTaskId(null);
-    setEditingTaskText('');
-    triggerHapticImpact('light').catch(() => {});
-  };
-
-  const addTask = () => {
-    if (!newTaskText.trim()) return;
-    const newId = Date.now().toString();
-    setTasks(prev => [...prev, { id: newId, text: newTaskText.trim(), done: false }]);
-    setNewTaskText('');
-    setIsAddingTask(false);
-    triggerHapticImpact('light').catch(() => {});
-  };
-
   // NOTIFICATION STATE & COOKIE CONSENT
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
   const [hasConsented, setHasConsented] = useState<boolean>(() => {
@@ -661,9 +402,6 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   // LIVE NEWS FEED STATE
   const [liveNews, setLiveNews] = useState<Article[]>([]);
   const [isLoadingLiveFeed, setIsLoadingLiveFeed] = useState<boolean>(false);
-
-  const timerRef = useRef<number | null>(null);
-  const endTimeRef = useRef<number | null>(null);
 
   // Check initial notification permission
   useEffect(() => {
@@ -731,179 +469,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     setHasConsented(true);
   };
 
-  const showTemporaryStatus = (msg: string) => {
-    setStatusMessage(msg);
-    setTimeout(() => {
-      setStatusMessage(null);
-    }, 4000);
-  };
-
-  // Change Work Duration
-  const handleSelectWorkMinutes = (mins: number) => {
-    setWorkMinutes(mins);
-    if (sessionType === 'work' && !isRunning) {
-      setTimeLeft(mins * 60);
-      endTimeRef.current = null;
-    }
-    triggerHapticImpact('light').catch(() => {});
-  };
-
-  // Change Break Duration
-  const handleSelectBreakMinutes = (mins: number) => {
-    setBreakMinutes(mins);
-    if (sessionType === 'break' && !isRunning) {
-      setTimeLeft(mins * 60);
-      endTimeRef.current = null;
-    }
-    triggerHapticImpact('light').catch(() => {});
-  };
-
-  const toggleTimer = () => {
-    const willRun = !isRunning;
-    setIsRunning(willRun);
-    triggerHapticImpact('medium').catch(() => {});
-
-    if (willRun) {
-      // Calculate target end timestamp for exact countdown regardless of background tab throttling
-      endTimeRef.current = Date.now() + timeLeft * 1000;
-
-      // Ask for browser notification permission on first start if not decided
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission().then((result) => {
-          setNotifPermission(result);
-          if (result === 'granted') {
-            setCookie('vox_push_consent', 'granted', 365);
-            setHasConsented(true);
-          } else if (result === 'denied') {
-            setCookie('vox_push_consent', 'denied', 365);
-            setHasConsented(true);
-          }
-        }).catch(() => {});
-      }
-
-      const startTitle = 'VOX Odaklanma';
-      const currentMins = sessionType === 'work' ? workMinutes : breakMinutes;
-      const startBody = sessionType === 'work' 
-        ? `🎯 ${currentMins} dakikalık odaklanma seansı başladı.` 
-        : `☕ ${currentMins} dakikalık dinlenme başladı.`;
-      sendPomodoroWebNotification(startTitle, startBody);
-      showTemporaryStatus(sessionType === 'work' ? '🎯 Çalışma Başladı' : '☕ Mola Başladı');
-    } else {
-      endTimeRef.current = null;
-      showTemporaryStatus('⏸️ Duraklatıldı');
-    }
-  };
-
-  const resetTimer = () => {
-    setIsRunning(false);
-    endTimeRef.current = null;
-    if (timerRef.current) clearInterval(timerRef.current);
-    setSessionType('work');
-    setTimeLeft(workMinutes * 60);
-    triggerHapticImpact('light').catch(() => {});
-    showTemporaryStatus('🔄 Sıfırlandı');
-  };
-
-  // ACCURATE TIMESTAMP-BASED TIMER WITH BACKGROUND TAB THROTTLING RESILIENCE
-  useEffect(() => {
-    if (!isRunning) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      return;
-    }
-
-    if (!endTimeRef.current) {
-      endTimeRef.current = Date.now() + timeLeft * 1000;
-    }
-
-    const tick = () => {
-      if (!endTimeRef.current) return;
-      const remainingMs = endTimeRef.current - Date.now();
-      const remainingSecs = Math.max(0, Math.ceil(remainingMs / 1000));
-
-      if (remainingSecs <= 0) {
-        playMindfulnessBell();
-        triggerHapticNotification('success').catch(() => {});
-
-        if (sessionType === 'work') {
-          // 1. Çalışma bitti -> Oturum Özetini Oluştur & Molaya Geç
-          const currentRound = completedSessions + 1;
-          setCompletedSessions(currentRound);
-
-          // Get tasks completed in this session
-          const completedInThisSession = tasks
-            .filter(t => sessionCompletedTaskIds.includes(t.id))
-            .map(t => t.text);
-
-          const randomPraise = MOTIVATIONAL_FOCUS_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_FOCUS_QUOTES.length)].text;
-
-          setSessionSummaryData({
-            completedTasks: completedInThisSession,
-            durationMins: workMinutes,
-            roundNumber: currentRound,
-            motivationalPraise: randomPraise
-          });
-          setShowSessionSummaryModal(true);
-          setSessionCompletedTaskIds([]); // Reset for next session
-
-          const summaryText = completedInThisSession.length > 0
-            ? `Bu seansta ${completedInThisSession.length} görev tamamladın! 🎉`
-            : `Harika bir derin odak seansı tamamladın! 🎯`;
-
-          sendPomodoroWebNotification(
-            '🏆 Pomodoro Seansı Tamamlandı!',
-            `Tebrikler! ${workMinutes} dakikalık odaklanma bitti. ${summaryText} Şimdi ${breakMinutes} dakikalık mola vakti ☕`
-          );
-
-          setSessionType('break');
-          showTemporaryStatus(`☕ Mola başladı (${breakMinutes} dk)`);
-          const nextSecs = breakMinutes * 60;
-          endTimeRef.current = Date.now() + nextSecs * 1000;
-          setTimeLeft(nextSecs);
-
-        } else {
-          // 2. Mola bitti -> Doğrudan Çalışmaya Geç
-          sendPomodoroWebNotification(
-            '🔔 Mola Bitti!',
-            `${breakMinutes} dakikalık mola bitti! Yeni ${workMinutes} dakikalık odaklanma seansı başladı 🎯`
-          );
-
-          setSessionType('work');
-          showTemporaryStatus(`🎯 Yeni çalışma başladı (${workMinutes} dk)`);
-          const nextSecs = workMinutes * 60;
-          endTimeRef.current = Date.now() + nextSecs * 1000;
-          setTimeLeft(nextSecs);
-        }
-      } else {
-        setTimeLeft(remainingSecs);
-      }
-    };
-
-    tick();
-    timerRef.current = window.setInterval(tick, 500);
-
-    // Sync immediately when user switches back to this tab
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isRunning && endTimeRef.current) {
-        tick();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isRunning, sessionType, workMinutes, breakMinutes, timeLeft]);
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const totalCurrentDuration = (sessionType === 'work' ? workMinutes : breakMinutes) * 60;
-  const progressPercent = Math.max(0, Math.min(100, Math.round(((totalCurrentDuration - timeLeft) / totalCurrentDuration) * 100)));
+  const formatTime = formatFocusTime;
 
   // Right side news list (Filtered for real news & tweets, no dummy items)
   const displayArticles = useMemo(() => {

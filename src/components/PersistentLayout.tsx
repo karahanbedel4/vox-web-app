@@ -33,6 +33,8 @@ import { ttsService } from '../lib/ttsService';
 import { AppStorePaywallModal } from './AppStorePaywallModal';
 import { AmbientMixerSheet, AmbientChannel } from './AmbientMixerSheet';
 import { AmbientNotificationBanner } from './AmbientControls';
+import { FocusTopBanner } from './FocusTopBanner';
+import { useFocus, formatFocusTime } from '../lib/FocusContext';
 import { getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
 import { woodRainSynth } from '../lib/audioSynth';
 import { useTheme } from '../lib/ThemeContext';
@@ -72,6 +74,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { isRunning: isFocusRunning, timeLeft: focusTimeLeft, sessionType: focusSessionType } = useFocus();
 
   const [playbackState, setPlaybackState] = useState<PlaybackState>(ttsService.getState());
   const [volume, setVolume] = useState<number>(100);
@@ -138,6 +141,11 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
     if (isAudioPlaying) {
       document.title = '(🔊 Çalıyor) VOX | Odaklan';
       updateFavicon(PLAYING_FAVICON);
+    } else if (isFocusRunning) {
+      const emoji = focusSessionType === 'work' ? '🎯' : '☕';
+      const modeLabel = focusSessionType === 'work' ? 'Odak' : 'Mola';
+      document.title = `(${emoji} ${formatFocusTime(focusTimeLeft)}) VOX | ${modeLabel}`;
+      updateFavicon(DEFAULT_FAVICON);
     } else {
       const path = location.pathname;
       const isEnglish = path.startsWith('/en') || path === '/focus' || location.search.includes('lang=en');
@@ -167,7 +175,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         );
       }
     }
-  }, [isAudioPlaying, location.pathname, location.search]);
+  }, [isAudioPlaying, isFocusRunning, focusTimeLeft, focusSessionType, location.pathname, location.search]);
   
   // Track and persist last active ambient sound in localStorage and cookies
   const [lastActiveAmbientId, setLastActiveAmbientId] = useState<string>(() => {
@@ -850,6 +858,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           </button>
         </nav>
       </div>
+
+      {/* GLOBAL FLOATING FOCUS TOP BANNER (Persistent across all routes like Gündem, Teknoloji, Kitaplık) */}
+      <FocusTopBanner />
 
       {/* MAIN CONTENT AREA */}
       <main ref={mainContentRef} className={`flex-1 ml-0 md:ml-72 lg:ml-80 pt-14 md:pt-0 pb-36 min-h-screen overflow-y-auto transition-colors duration-300 ${
