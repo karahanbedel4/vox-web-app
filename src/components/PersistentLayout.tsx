@@ -864,9 +864,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         onClose={() => setInfoModalType(null)}
       />
 
-      {/* MOBILE FLOATING MINI-PLAYER (Floats above mobile bottom nav without overlapping) */}
+      {/* MOBILE FLOATING MINI-PLAYER (Only shown when playing TTS News Article) */}
       <AnimatePresence>
-        {(activeArticle || isAmbientActive || lastAmbientChannel) && (
+        {activeArticle && (
           <motion.div
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -880,46 +880,33 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           >
             {/* Left: Thumbnail & Title */}
             <div 
-              onClick={() => {
-                if (activeArticle) setReadingArticle(activeArticle);
-                else setIsAmbientMixerOpen(true);
-              }}
+              onClick={() => setReadingArticle(activeArticle)}
               className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
             >
-              {activeArticle ? (
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400 overflow-hidden">
-                  {activeArticle.imageUrl ? (
-                    <img 
-                      src={sanitizeImageUrl(activeArticle.imageUrl)} 
-                      alt={activeArticle.title} 
-                      className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        e.currentTarget.src = DEFAULT_VOX_FALLBACK_IMAGE;
-                      }}
-                    />
-                  ) : (
-                    <Headphones className="w-5 h-5 animate-pulse" />
-                  )}
-                </div>
-              ) : (
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
-                  <div className="flex items-end gap-0.5 h-4">
-                    <div className="w-0.5 bg-emerald-400 rounded-full animate-eq-1" />
-                    <div className="w-0.5 bg-emerald-400 rounded-full animate-eq-2" />
-                    <div className="w-0.5 bg-emerald-400 rounded-full animate-eq-3" />
-                  </div>
-                </div>
-              )}
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400 overflow-hidden">
+                {activeArticle.imageUrl ? (
+                  <img 
+                    src={sanitizeImageUrl(activeArticle.imageUrl)} 
+                    alt={activeArticle.title} 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      e.currentTarget.src = DEFAULT_VOX_FALLBACK_IMAGE;
+                    }}
+                  />
+                ) : (
+                  <Headphones className="w-5 h-5 animate-pulse" />
+                )}
+              </div>
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-[9px] font-bold uppercase text-emerald-400 tracking-wider truncate">
-                    {activeArticle ? (playbackState.isPlaying ? 'Dinleniyor' : 'Duraklatıldı') : 'Ambiyans Sesi'}
+                    {playbackState.isPlaying ? 'Dinleniyor' : 'Duraklatıldı'}
                   </span>
                 </div>
                 <h4 className="text-xs font-bold truncate leading-tight mt-0.5">
-                  {activeArticle ? activeArticle.title : getAmbientDisplayTitle()}
+                  {activeArticle.title}
                 </h4>
               </div>
             </div>
@@ -931,7 +918,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 className="w-9 h-9 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer"
                 title="Oynat / Duraklat"
               >
-                {(playbackState.isPlaying || (!activeArticle && isAmbientActive)) ? (
+                {playbackState.isPlaying ? (
                   <Pause className="w-4 h-4 fill-current" />
                 ) : (
                   <Play className="w-4 h-4 fill-current ml-0.5" />
@@ -942,16 +929,22 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         )}
       </AnimatePresence>
 
-      {/* DESKTOP PERSISTENT BOTTOM AUDIO PLAYER (Hidden on mobile, pristine on desktop) */}
-      <div className={`hidden md:flex fixed bottom-0 left-72 lg:left-80 right-0 h-20 backdrop-blur-xl border-t z-40 items-center justify-between px-6 lg:px-8 shadow-2xl transition-colors duration-300 ${
-        theme === 'light'
-          ? 'bg-white/95 border-slate-200 text-slate-900'
-          : 'bg-[#121814]/95 border-white/5 text-gray-200'
-      }`}>
-        {/* Track / Soundscape Info */}
-        <div className="flex items-center gap-3 w-1/3 min-w-0">
-          {activeArticle ? (
-            <>
+      {/* DESKTOP PERSISTENT BOTTOM AUDIO PLAYER (Only shown when TTS News Article is active) */}
+      <AnimatePresence>
+        {activeArticle && (
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className={`hidden md:flex fixed bottom-0 left-72 lg:left-80 right-0 h-20 backdrop-blur-xl border-t z-40 items-center justify-between px-6 lg:px-8 shadow-2xl transition-colors duration-300 ${
+              theme === 'light'
+                ? 'bg-white/95 border-slate-200 text-slate-900'
+                : 'bg-[#121814]/95 border-white/5 text-gray-200'
+            }`}
+          >
+            {/* Track Info */}
+            <div className="flex items-center gap-3 w-1/3 min-w-0">
               <div 
                 onClick={() => setReadingArticle(activeArticle)}
                 className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1ed760]/20 to-teal-500/20 border border-[#1ed760]/30 flex items-center justify-center shrink-0 text-[#1ed760] cursor-pointer hover:scale-105 transition-transform overflow-hidden"
@@ -990,167 +983,89 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                   {activeArticle.author || 'VOX Stüdyo'}
                 </p>
               </div>
-            </>
-          ) : isAmbientActive ? (
-            <>
-              <div 
-                onClick={() => setIsAmbientMixerOpen(true)}
-                className="w-12 h-12 rounded-xl bg-[#1ed760]/20 border border-[#1ed760]/30 flex items-center justify-center shrink-0 text-[#1ed760] cursor-pointer relative overflow-hidden group hover:scale-105 transition-transform"
-                title="Gelişmiş Mikseri Aç"
-              >
-                <div className="flex items-end gap-0.5 h-5">
-                  <div className="w-1 bg-[#1ed760] rounded-full animate-eq-1" />
-                  <div className="w-1 bg-[#1ed760] rounded-full animate-eq-2" />
-                  <div className="w-1 bg-[#1ed760] rounded-full animate-eq-3" />
-                  <div className="w-1 bg-[#1ed760] rounded-full animate-eq-4" />
-                </div>
+            </div>
+
+            {/* Player Controls & Seek Slider */}
+            <div className="flex flex-col items-center gap-1.5 w-1/3 max-w-md">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => ttsService.seek(Math.max(0, playbackState.currentTime - 15))}
+                  className={`transition-colors p-1 ${
+                    theme === 'light' ? 'text-slate-400 hover:text-slate-800' : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="15 saniye geri sar"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={handleTogglePlay}
+                  className="w-10 h-10 rounded-full bg-[#1ed760] text-black font-bold flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(30,215,96,0.3)] cursor-pointer"
+                  title={playbackState.isPlaying ? 'Duraklat' : 'Oynat'}
+                >
+                  {playbackState.isPlaying ? (
+                    <Pause className="w-5 h-5 fill-current" />
+                  ) : (
+                    <Play className="w-5 h-5 fill-current ml-0.5" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => ttsService.seek(Math.min(playbackState.duration, playbackState.currentTime + 15))}
+                  className={`transition-colors p-1 ${
+                    theme === 'light' ? 'text-slate-400 hover:text-slate-800' : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="15 saniye ileri sar"
+                >
+                  <RotateCcw className="w-4 h-4 scale-x-[-1]" />
+                </button>
               </div>
-              <div className="min-w-0 cursor-pointer" onClick={() => setIsAmbientMixerOpen(true)}>
-                <span className="text-[10px] font-bold text-[#1ed760] uppercase tracking-wider flex items-center gap-1.5 truncate">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse"></span>
-                  🌿 AMBİYANS SESLERİ
-                </span>
-                <h4 className={`text-xs font-bold truncate hover:text-[#1ed760] transition-colors ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
-                  {getAmbientDisplayTitle()}
-                </h4>
-                <p className={`text-[10px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                  Arka planda kesintisiz çalıyor • Mikser için dokunun
-                </p>
-              </div>
-            </>
-          ) : lastAmbientChannel ? (
-            <>
-              <div 
-                onClick={() => setIsAmbientMixerOpen(true)}
-                className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 hover:border-[#1ed760]/40 flex items-center justify-center shrink-0 text-gray-400 hover:text-[#1ed760] cursor-pointer relative overflow-hidden group transition-all"
-                title="Gelişmiş Mikseri Aç"
-              >
-                <div className="flex items-end gap-0.5 h-4 opacity-50">
-                  <div className="w-1 h-3 bg-gray-400 rounded-full" />
-                  <div className="w-1 h-2 bg-gray-400 rounded-full" />
-                  <div className="w-1 h-4 bg-gray-400 rounded-full" />
-                  <div className="w-1 h-2 bg-gray-400 rounded-full" />
-                </div>
-              </div>
-              <div className="min-w-0 cursor-pointer" onClick={() => setIsAmbientMixerOpen(true)}>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 truncate">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
-                  DURAKLATILDI
-                </span>
-                <h4 className={`text-xs font-bold truncate hover:text-[#1ed760] transition-colors ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
-                  {getAmbientIcon(lastAmbientChannel.id, lastAmbientChannel.name)} {lastAmbientChannel.name}
-                </h4>
-                <p className={`text-[10px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                  Tekrar başlatmak için oynat'a dokunun • %{lastAmbientChannel.volume || 60}
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-3 text-gray-500">
-              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${
-                theme === 'light' ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white/5 border-white/10 text-gray-600'
+
+              {/* Time & Seek Bar */}
+              <div className={`w-full flex items-center gap-2 text-[10px] font-mono ${
+                theme === 'light' ? 'text-slate-400' : 'text-gray-400'
               }`}>
-                <Headphones className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <h4 className={`text-xs font-medium ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>
-                  Herhangi bir ses oynatılmıyor
-                </h4>
-                <p className={`text-[10px] ${theme === 'light' ? 'text-slate-400' : 'text-gray-600'}`}>
-                  Odaklan sekmesinden bir ambiyans sesi seçin
-                </p>
+                <span>{formatTime(playbackState.currentTime)}</span>
+                <div className="flex-1 relative flex items-center">
+                  <input
+                    type="range"
+                    min={0}
+                    max={playbackState.duration || 100}
+                    value={playbackState.currentTime || 0}
+                    onChange={handleSeek}
+                    className={`w-full h-1 rounded-lg appearance-none cursor-pointer accent-[#1ed760] ${
+                      theme === 'light' ? 'bg-slate-200' : 'bg-white/10'
+                    }`}
+                  />
+                </div>
+                <span>{formatTime(playbackState.duration)}</span>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Player Controls & Seek Slider */}
-        <div className="flex flex-col items-center gap-1.5 w-1/3 max-w-md">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => activeArticle && ttsService.seek(Math.max(0, playbackState.currentTime - 15))}
-              disabled={!activeArticle}
-              className={`disabled:opacity-30 transition-colors p-1 ${
-                theme === 'light' ? 'text-slate-400 hover:text-slate-800' : 'text-gray-400 hover:text-white'
-              }`}
-              title="15 saniye geri sar"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={handleTogglePlay}
-              disabled={!activeArticle && !isAmbientActive && !lastAmbientChannel}
-              className="w-10 h-10 rounded-full bg-[#1ed760] text-black font-bold flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(30,215,96,0.3)] disabled:opacity-40 cursor-pointer"
-              title={
-                activeArticle
-                  ? (playbackState.isPlaying ? 'Duraklat' : 'Oynat')
-                  : (isAmbientActive ? 'Ambiyans Sesini Duraklat' : `${lastAmbientChannel?.name || 'Doğa Sesi'} Başlat`)
-              }
-            >
-              {(playbackState.isPlaying || (!activeArticle && isAmbientActive)) ? (
-                <Pause className="w-5 h-5 fill-current" />
-              ) : (
-                <Play className="w-5 h-5 fill-current ml-0.5" />
-              )}
-            </button>
-
-            <button
-              onClick={() => activeArticle && ttsService.seek(Math.min(playbackState.duration, playbackState.currentTime + 15))}
-              disabled={!activeArticle}
-              className={`disabled:opacity-30 transition-colors p-1 ${
-                theme === 'light' ? 'text-slate-400 hover:text-slate-800' : 'text-gray-400 hover:text-white'
-              }`}
-              title="15 saniye ileri sar"
-            >
-              <RotateCcw className="w-4 h-4 scale-x-[-1]" />
-            </button>
-          </div>
-
-          {/* Time & Seek Bar */}
-          <div className={`w-full flex items-center gap-2 text-[10px] font-mono ${
-            theme === 'light' ? 'text-slate-400' : 'text-gray-400'
-          }`}>
-            <span>{formatTime(playbackState.currentTime)}</span>
-            <div className="flex-1 relative flex items-center">
-              <input
-                type="range"
-                min={0}
-                max={playbackState.duration || 100}
-                value={playbackState.currentTime || 0}
-                onChange={handleSeek}
-                disabled={!activeArticle}
-                className={`w-full h-1 rounded-lg appearance-none cursor-pointer accent-[#1ed760] disabled:cursor-not-allowed ${
-                  theme === 'light' ? 'bg-slate-200' : 'bg-white/10'
-                }`}
-              />
+            {/* Right Volume Control */}
+            <div className="flex items-center justify-end gap-3 w-1/3">
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={toggleMute} 
+                  className={`transition-colors ${theme === 'light' ? 'text-slate-500 hover:text-slate-800' : 'text-gray-400 hover:text-white'}`}
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={isMuted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  className={`w-20 h-1 rounded-lg appearance-none cursor-pointer accent-[#1ed760] ${
+                    theme === 'light' ? 'bg-slate-200' : 'bg-white/10'
+                  }`}
+                />
+              </div>
             </div>
-            <span>{formatTime(playbackState.duration)}</span>
-          </div>
-        </div>
-
-        {/* Right Volume Control */}
-        <div className="flex items-center justify-end gap-3 w-1/3">
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={toggleMute} 
-              className={`transition-colors ${theme === 'light' ? 'text-slate-500 hover:text-slate-800' : 'text-gray-400 hover:text-white'}`}
-            >
-              {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={isMuted ? 0 : volume}
-              onChange={handleVolumeChange}
-              className={`w-20 h-1 rounded-lg appearance-none cursor-pointer accent-[#1ed760] ${
-                theme === 'light' ? 'bg-slate-200' : 'bg-white/10'
-              }`}
-            />
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* CENTERED MODAL EXPANSION WITH FRAMER MOTION (#article-modal) */}
       <AnimatePresence>
@@ -1369,6 +1284,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       <AmbientMixerSheet
         isOpen={isAmbientMixerOpen}
         onClose={() => setIsAmbientMixerOpen(false)}
+        onOpen={() => setIsAmbientMixerOpen(true)}
         channels={ambientChannels}
         onToggleChannel={(id) => {
           setAmbientChannels(prev => prev.map(c => c.id === id ? { ...c, active: !c.active } : c));

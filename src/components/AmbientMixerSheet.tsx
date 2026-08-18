@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CloudRain, Volume2, VolumeX, Plus, X, Check, Youtube, Music, Play, Pause, Square, Sparkles, Trees, Waves, Zap, Moon, Coffee, Sliders, Maximize2, Minimize2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { triggerHapticImpact } from '../lib/haptics';
 
 export interface AmbientChannel {
@@ -34,6 +35,7 @@ const getSoundIcon = (id: string, active: boolean) => {
 interface AmbientMixerSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpen?: () => void;
   channels: AmbientChannel[];
   onToggleChannel: (id: string) => void;
   onVolumeChange: (id: string, vol: number) => void;
@@ -43,6 +45,7 @@ interface AmbientMixerSheetProps {
 export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
   isOpen,
   onClose,
+  onOpen,
   channels,
   onToggleChannel,
   onVolumeChange,
@@ -51,7 +54,6 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
   const [customInputUrl, setCustomInputUrl] = useState('');
   const [customInputName, setCustomInputName] = useState('');
   const [showAddCustom, setShowAddCustom] = useState(false);
-  const [isDockMinimized, setIsDockMinimized] = useState(false);
 
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
 
@@ -181,86 +183,150 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
         })}
       </div>
 
-      {/* FLOATING AMBIENT NOW-PLAYING MINI BAR (When music is active & modal is closed) */}
-      {primaryActive && !isOpen && (
-        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md bg-neutral-900/95 backdrop-blur-xl border border-white/15 rounded-2xl shadow-2xl p-2.5 sm:p-3 text-white flex items-center justify-between gap-3 animate-in slide-in-from-bottom-5 duration-300">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            {/* Artwork */}
-            <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-black/60 shrink-0 border border-white/10">
-              {primaryActive.youtubeId ? (
-                <img 
-                  src={`https://img.youtube.com/vi/${primaryActive.youtubeId}/mqdefault.jpg`} 
-                  alt={primaryActive.name} 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-[#1ed760]">
-                  <Music className="w-5 h-5" />
-                </div>
-              )}
-              {/* Equalizer animation */}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-0.5">
-                <div className="w-0.5 h-3.5 bg-[#1ed760] rounded-full animate-eq-1" />
-                <div className="w-0.5 h-3.5 bg-[#1ed760] rounded-full animate-eq-2" />
-                <div className="w-0.5 h-3.5 bg-[#1ed760] rounded-full animate-eq-3" />
-              </div>
-            </div>
-
-            {/* Title & Status */}
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-white truncate tracking-tight">
-                {primaryActive.name}
-              </p>
-              <div className="flex items-center gap-1.5 text-[11px] text-[#1ed760]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse" />
-                <span>Odak Müziği Çalıyor</span>
-                {activeChannels.length > 1 && (
-                  <span className="text-gray-400 text-[10px]">
-                    (+{activeChannels.length - 1})
-                  </span>
+      {/* FLOATING AMBIENT NOW-PLAYING MINI BAR (Animated Slide-up Floating Island) */}
+      <AnimatePresence>
+        {primaryActive && !isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.94 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            className="fixed bottom-20 md:bottom-7 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-lg bg-[#0e1410]/95 hover:bg-[#121a15]/95 backdrop-blur-2xl border border-[#1ed760]/30 hover:border-[#1ed760]/50 rounded-2xl sm:rounded-full shadow-[0_16px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(30,215,96,0.18)] px-3 py-2 sm:px-4 sm:py-2 text-white flex items-center justify-between gap-2.5 sm:gap-4 transition-colors"
+          >
+            {/* Left: Thumbnail + Live EQ + Track Info (Clicking opens Full Mixer Sheet) */}
+            <div 
+              onClick={() => {
+                triggerHaptic();
+                if (onOpen) onOpen();
+              }}
+              className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 cursor-pointer group"
+              title="Gelişmiş Ses Mikserini Açmak İçin Dokunun"
+            >
+              {/* Artwork */}
+              <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-full overflow-hidden bg-black shrink-0 border border-[#1ed760]/40 group-hover:scale-105 transition-transform shadow-md">
+                {primaryActive.youtubeId ? (
+                  <img 
+                    src={`https://img.youtube.com/vi/${primaryActive.youtubeId}/mqdefault.jpg`} 
+                    alt={primaryActive.name} 
+                    className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[#1ed760] bg-gradient-to-br from-[#1ed760]/20 to-teal-900/40">
+                    <Music className="w-5 h-5" />
+                  </div>
                 )}
+                {/* Live Animated Soundwave Bars */}
+                <div className="absolute inset-0 bg-black/45 flex items-end justify-center pb-1.5 gap-0.5">
+                  <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-1" />
+                  <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-2" />
+                  <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-3" />
+                  <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-4" />
+                </div>
+              </div>
+
+              {/* Title & Status */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse" />
+                  <span className="text-[10px] font-extrabold uppercase text-[#1ed760] tracking-wider truncate">
+                    ODAK MÜZİĞİ
+                  </span>
+                  {activeChannels.length > 1 && (
+                    <span className="text-[9px] font-bold bg-[#1ed760]/20 border border-[#1ed760]/40 text-[#1ed760] px-1.5 py-0.5 rounded-full">
+                      +{activeChannels.length - 1} ses
+                    </span>
+                  )}
+                </div>
+                <h4 className="text-xs sm:text-sm font-bold text-white truncate tracking-tight group-hover:text-[#1ed760] transition-colors leading-snug">
+                  {primaryActive.name}
+                </h4>
               </div>
             </div>
-          </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Volume slider mini */}
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={primaryActive.volume}
-              onChange={(e) => onVolumeChange(primaryActive.id, parseInt(e.target.value))}
-              className="w-16 sm:w-20 accent-[#1ed760] bg-white/20 h-1.5 rounded-lg cursor-pointer hidden xs:block"
-            />
+            {/* Right: Inline Volume Slider + Controls */}
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              {/* Minimal Inline Volume Slider with Mute Toggle */}
+              <div className="flex items-center gap-1.5 bg-black/45 hover:bg-black/60 border border-white/10 px-2 py-1 rounded-full transition-colors">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    triggerHaptic();
+                    if (primaryActive.volume > 0) {
+                      onVolumeChange(primaryActive.id, 0);
+                    } else {
+                      onVolumeChange(primaryActive.id, 65);
+                    }
+                  }}
+                  className="text-gray-400 hover:text-[#1ed760] transition-colors p-0.5 cursor-pointer"
+                  title={primaryActive.volume === 0 ? "Sesi Aç" : "Sesi Kapat"}
+                >
+                  {primaryActive.volume === 0 ? (
+                    <VolumeX className="w-3.5 h-3.5 text-red-400" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5 text-[#1ed760]" />
+                  )}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={primaryActive.volume}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    onVolumeChange(primaryActive.id, parseInt(e.target.value));
+                  }}
+                  className="w-14 sm:w-20 accent-[#1ed760] bg-white/20 h-1 rounded-lg cursor-pointer"
+                  title={`Ses Düzeyi: %${primaryActive.volume}`}
+                />
+                <span className="text-[10px] font-mono text-gray-300 w-6 text-right hidden xs:inline-block">
+                  %{primaryActive.volume}
+                </span>
+              </div>
 
-            {/* Pause / Play */}
-            <button
-              onClick={() => {
-                triggerHaptic();
-                onToggleChannel(primaryActive.id);
-              }}
-              className="w-8 h-8 rounded-full bg-[#1ed760] text-black flex items-center justify-center font-bold hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md"
-              title="Durdur"
-            >
-              <Pause className="w-4 h-4 fill-current" />
-            </button>
+              {/* Pause / Play Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerHaptic();
+                  onToggleChannel(primaryActive.id);
+                }}
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1ed760] hover:bg-[#1ed760]/90 text-black flex items-center justify-center font-bold hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-[0_0_15px_rgba(30,215,96,0.35)]"
+                title="Durdur / Oynat"
+              >
+                <Pause className="w-4 h-4 fill-current" />
+              </button>
 
-            {/* Open Full Mixer */}
-            <button
-              onClick={() => {
-                triggerHaptic();
-                onClose(); // Will open via caller or we can trigger opener
-              }}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
-              title="Mikseri Aç"
-            >
-              <Sliders className="w-4 h-4 text-gray-200" />
-            </button>
-          </div>
-        </div>
-      )}
+              {/* Mikser (Sliders) Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerHaptic();
+                  if (onOpen) onOpen();
+                }}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-[#1ed760]/20 hover:text-[#1ed760] text-gray-200 flex items-center justify-center transition-all cursor-pointer border border-white/5 hover:border-[#1ed760]/30"
+                title="Gelişmiş Ses Mikserini Aç (Ekolayzır & Katmanlar)"
+              >
+                <Sliders className="w-4 h-4" />
+              </button>
+
+              {/* Quick Stop All (X) */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerHaptic();
+                  channels.forEach(ch => {
+                    if (ch.active) onToggleChannel(ch.id);
+                  });
+                }}
+                className="w-7 h-7 rounded-full text-gray-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer hidden sm:flex"
+                title="Tüm Sesleri Kapat"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* MODAL SHEET UI */}
       {isOpen && (
