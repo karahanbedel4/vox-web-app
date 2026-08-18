@@ -32,8 +32,16 @@ import {
   Trophy,
   Check,
   Volume2,
-  Sparkles
+  Sparkles,
+  Quote,
+  Trash2,
+  Filter,
+  Award,
+  PartyPopper,
+  ListTodo,
+  CheckCheck
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Article } from '../types';
 import { triggerHapticImpact, triggerHapticNotification } from '../lib/haptics';
 import { AmbientChannel } from './AmbientMixerSheet';
@@ -41,6 +49,49 @@ import { fetchNewsByCategory } from '../lib/newsService';
 import { appStorage } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
 import { woodRainSynth } from '../lib/audioSynth';
+
+export const MOTIVATIONAL_FOCUS_QUOTES = [
+  { text: "Zihnin olağanüstü berrak, odağın kusursuz. Şimdi derin akıştasın.", category: "Zihin Gücü" },
+  { text: "Disiplin ve sabrın seni her saniye bir adım öne taşıyor. Harika gidiyorsun!", category: "Övgü & Başarı" },
+  { text: "En büyük başarılar, tam da şu an sürdürdüğün bu küçük odak anlarında inşa edilir.", category: "Üretkenlik" },
+  { text: "Düşüncelerini sadeleştir, dikkatini hedefine kilitle. Potansiyelin sınırsız!", category: "İlham" },
+  { text: "Harika bir ivme yakaladın. Bu anı en yüksek verimle taçlandır.", category: "Akış Hali" },
+  { text: "Zor olanı başarmak ve derinleşmek senin doğanda var. Asla durma!", category: "Motivasyon" },
+  { text: "Hiçbir bildirim senin bu kıymetli derin çalışma anından daha değerli değil.", category: "Tam Odak" },
+  { text: "Bugünkü emeğin ve sarsılmaz konsantrasyonun yarınki özgürlüğün olacak.", category: "Gelecek" },
+  { text: "Kelimeler, hedefler ve kararlılık... Zirveye giden yol senin adımlarınla açılıyor.", category: "Özgüven" },
+  { text: "Odaklanma bir süper güçtür ve sen şu an bu gücü en üst düzeyde kullanıyorsun.", category: "Süper Güç" },
+  { text: "Küçük adımların kararlı birleşimi büyük devrimler yaratır. Harikasın!", category: "Gelişim" },
+  { text: "Şimdi sadece sen ve başarmak istediğin iş var. Zirve senin.", category: "Netlik" },
+];
+
+/**
+ * Synthesizes an uplifting harmonic chime when a task is completed.
+ */
+function playTaskCompleteChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    const now = ctx.currentTime;
+
+    const notes = [1046.5, 1318.51, 1567.98]; // C6, E6, G6 major triad
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + i * 0.07);
+      gainNode.gain.setValueAtTime(0.0001, now + i * 0.07);
+      gainNode.gain.linearRampToValueAtTime(0.18, now + i * 0.07 + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.07 + 0.45);
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc.start(now + i * 0.07);
+      osc.stop(now + i * 0.07 + 0.5);
+    });
+  } catch (e) {}
+}
 
 interface FocusTabProps {
   articles: Article[];
@@ -412,6 +463,42 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   const [isEditingGoal, setIsEditingGoal] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  // Motivational Focus & Praise Quotes Rotation State
+  const [quoteIndex, setQuoteIndex] = useState<number>(() => Math.floor(Math.random() * MOTIVATIONAL_FOCUS_QUOTES.length));
+  
+  useEffect(() => {
+    const quoteInterval = setInterval(() => {
+      setQuoteIndex(prev => (prev + 1) % MOTIVATIONAL_FOCUS_QUOTES.length);
+    }, 12000);
+    return () => clearInterval(quoteInterval);
+  }, []);
+
+  const handleNextQuote = () => {
+    triggerHapticImpact('light').catch(() => {});
+    setQuoteIndex(prev => (prev + 1) % MOTIVATIONAL_FOCUS_QUOTES.length);
+  };
+
+  // Task Filters & Session Task Tracking
+  const [taskFilter, setTaskFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [sessionCompletedTaskIds, setSessionCompletedTaskIds] = useState<string[]>([]);
+  const [celebrationToast, setCelebrationToast] = useState<{ id: number; taskText: string; quote: string } | null>(null);
+
+  // Pomodoro Session Summary Modal State
+  const [showSessionSummaryModal, setShowSessionSummaryModal] = useState<boolean>(false);
+  const [sessionSummaryData, setSessionSummaryData] = useState<{
+    completedTasks: string[];
+    durationMins: number;
+    roundNumber: number;
+    motivationalPraise: string;
+  } | null>(null);
+
+  // Filtered Task List
+  const filteredTasks = useMemo(() => {
+    if (taskFilter === 'pending') return tasks.filter(t => !t.done);
+    if (taskFilter === 'completed') return tasks.filter(t => t.done);
+    return tasks;
+  }, [tasks, taskFilter]);
+
   // Sync tasks & goal to appStorage
   useEffect(() => {
     try {
@@ -477,12 +564,53 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   }, []);
 
   const toggleTaskDone = (id: string) => {
+    const targetTask = tasks.find(t => t.id === id);
+    const willBeDone = targetTask ? !targetTask.done : false;
+
     setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
-    triggerHapticImpact('light').catch(() => {});
+
+    if (willBeDone && targetTask) {
+      // 1. Play uplifting audio chime
+      playTaskCompleteChime();
+      triggerHapticNotification('success').catch(() => {});
+
+      // 2. Track in current session list
+      setSessionCompletedTaskIds(prev => [...prev, id]);
+
+      // 3. Send Web Push Notification to user's system
+      sendPomodoroWebNotification(
+        '🎉 Görev Başarıyla Tamamlandı!',
+        `Harikasın! "${targetTask.text}" görevini bitirdin. Zihnin çok keskin, odaklanmaya devam et!`
+      );
+
+      // 4. In-App Praising Toast Notification
+      const randomQuote = MOTIVATIONAL_FOCUS_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_FOCUS_QUOTES.length)].text;
+      setCelebrationToast({
+        id: Date.now(),
+        taskText: targetTask.text,
+        quote: randomQuote
+      });
+      setTimeout(() => {
+        setCelebrationToast(null);
+      }, 4500);
+
+    } else {
+      triggerHapticImpact('light').catch(() => {});
+      setSessionCompletedTaskIds(prev => prev.filter(tid => tid !== id));
+    }
+  };
+
+  const clearCompletedTasks = () => {
+    const completedCount = tasks.filter(t => t.done).length;
+    if (completedCount === 0) return;
+    setTasks(prev => prev.filter(t => !t.done));
+    triggerHapticImpact('medium').catch(() => {});
+    showTemporaryStatus(`🧹 ${completedCount} tamamlanmış görev temizlendi`);
   };
 
   const removeTask = (id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
+    setSessionCompletedTaskIds(prev => prev.filter(tid => tid !== id));
     if (editingTaskId === id) {
       setEditingTaskId(null);
       setEditingTaskText('');
@@ -697,11 +825,33 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         triggerHapticNotification('success').catch(() => {});
 
         if (sessionType === 'work') {
-          // 1. Çalışma bitti -> Doğrudan Molaya Geç
-          setCompletedSessions((s) => s + 1);
+          // 1. Çalışma bitti -> Oturum Özetini Oluştur & Molaya Geç
+          const currentRound = completedSessions + 1;
+          setCompletedSessions(currentRound);
+
+          // Get tasks completed in this session
+          const completedInThisSession = tasks
+            .filter(t => sessionCompletedTaskIds.includes(t.id))
+            .map(t => t.text);
+
+          const randomPraise = MOTIVATIONAL_FOCUS_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_FOCUS_QUOTES.length)].text;
+
+          setSessionSummaryData({
+            completedTasks: completedInThisSession,
+            durationMins: workMinutes,
+            roundNumber: currentRound,
+            motivationalPraise: randomPraise
+          });
+          setShowSessionSummaryModal(true);
+          setSessionCompletedTaskIds([]); // Reset for next session
+
+          const summaryText = completedInThisSession.length > 0
+            ? `Bu seansta ${completedInThisSession.length} görev tamamladın! 🎉`
+            : `Harika bir derin odak seansı tamamladın! 🎯`;
+
           sendPomodoroWebNotification(
-            'VOX Odaklanma',
-            `Tebrikler! ${workMinutes} dakikalık odaklanma seansını tamamladın, şimdi kısa bir mola vakti ☕`
+            '🏆 Pomodoro Seansı Tamamlandı!',
+            `Tebrikler! ${workMinutes} dakikalık odaklanma bitti. ${summaryText} Şimdi ${breakMinutes} dakikalık mola vakti ☕`
           );
 
           setSessionType('break');
@@ -713,8 +863,8 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         } else {
           // 2. Mola bitti -> Doğrudan Çalışmaya Geç
           sendPomodoroWebNotification(
-            'VOX Odaklanma',
-            `🔔 ${breakMinutes} dakikalık mola bitti! Yeni ${workMinutes} dakikalık odaklanma seansı başladı 🎯`
+            '🔔 Mola Bitti!',
+            `${breakMinutes} dakikalık mola bitti! Yeni ${workMinutes} dakikalık odaklanma seansı başladı 🎯`
           );
 
           setSessionType('work');
@@ -1070,42 +1220,161 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   </div>
                 </div>
 
-                {/* Clean Goal Title */}
-                <div className="px-1">
+                {/* 1. Permanent Vibrant Green Goal Title with Direct In-Place Edit */}
+                <div className="px-1 space-y-1">
                   {isEditingGoal ? (
-                    <input
-                      type="text"
-                      value={focusGoal}
-                      onChange={(e) => setFocusGoal(e.target.value)}
-                      placeholder="Odaklanma hedefi..."
-                      className="w-full bg-black/10 dark:bg-white/10 border border-[#1ed760]/50 rounded-xl px-3 py-1.5 text-xl font-bold text-slate-900 dark:text-white outline-none"
-                      autoFocus
-                      onBlur={() => setIsEditingGoal(false)}
-                      onKeyDown={(e) => e.key === 'Enter' && setIsEditingGoal(false)}
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={focusGoal}
+                        onChange={(e) => setFocusGoal(e.target.value)}
+                        placeholder="Odaklanma hedefi..."
+                        className="w-full bg-black/10 dark:bg-white/10 border-2 border-[#1ed760] rounded-xl px-3 py-1.5 text-xl sm:text-2xl font-black text-[#1ed760] uppercase outline-none shadow-sm"
+                        autoFocus
+                        onBlur={() => setIsEditingGoal(false)}
+                        onKeyDown={(e) => e.key === 'Enter' && setIsEditingGoal(false)}
+                      />
+                      <button
+                        onClick={() => setIsEditingGoal(false)}
+                        className="p-2 bg-[#1ed760] text-black font-bold rounded-xl text-xs hover:brightness-110 transition-transform active:scale-95"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                    </div>
                   ) : (
-                    <h2 
+                    <div 
                       onClick={() => setIsEditingGoal(true)}
-                      className="font-serif text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-snug cursor-pointer hover:text-[#1ed760] transition-colors"
+                      className="group flex items-center justify-between gap-2 cursor-pointer py-0.5 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                       title="Hedefi düzenlemek için tıklayın"
                     >
-                      {focusGoal}
-                    </h2>
+                      <h2 className="text-2xl sm:text-3xl font-black text-[#1ed760] tracking-tight uppercase leading-tight drop-shadow-sm select-none">
+                        {focusGoal}
+                      </h2>
+                      <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity text-xs font-semibold text-[#1ed760] shrink-0">
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline text-[10px]">Düzenle</span>
+                      </div>
+                    </div>
                   )}
                 </div>
 
-                {/* Minimalist Tasks / To-Do Checklist (Directly Editable) */}
-                <div className="bg-slate-50 dark:bg-[#0e1410] border border-slate-200 dark:border-white/5 rounded-2xl p-3 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-gray-500 dark:text-gray-400 px-1">
-                    <span>GÖREVLER ({tasks.filter(t => t.done).length}/{tasks.length})</span>
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500">Düzenlemek için metne tıklayın</span>
+                {/* 2. Rotating Motivational & Praising Quotes Card */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-600/5 to-teal-500/10 dark:from-emerald-950/40 dark:via-[#0e1712] dark:to-teal-950/30 border border-emerald-500/25 p-3 sm:p-3.5 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-1.5 text-[10px] font-extrabold tracking-wider uppercase text-emerald-600 dark:text-emerald-400">
+                      <Sparkles className="w-3.5 h-3.5 text-[#1ed760] animate-pulse" />
+                      <span>{MOTIVATIONAL_FOCUS_QUOTES[quoteIndex].category}</span>
+                    </div>
+
+                    <button
+                      onClick={handleNextQuote}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold transition-all active:scale-95 cursor-pointer"
+                      title="Sonraki Motivasyon Sözü"
+                    >
+                      <RefreshCw className="w-2.5 h-2.5" />
+                      <span>Yenile</span>
+                    </button>
                   </div>
 
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
-                    {tasks.map((task) => (
+                  <div className="mt-1.5 min-h-[38px] flex items-center">
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={quoteIndex}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.25 }}
+                        className="text-xs sm:text-[13px] font-medium text-slate-800 dark:text-emerald-100/90 leading-relaxed italic"
+                      >
+                        "{MOTIVATIONAL_FOCUS_QUOTES[quoteIndex].text}"
+                      </motion.p>
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                {/* 3. Enhanced Interactive Tasks / To-Do List */}
+                <div className="bg-slate-50 dark:bg-[#0e1410] border border-slate-200 dark:border-white/5 rounded-2xl p-3.5 space-y-3">
+                  
+                  {/* Task Header & Progress */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-gray-300">
+                      <div className="flex items-center gap-1.5">
+                        <ListTodo className="w-4 h-4 text-[#1ed760]" />
+                        <span>GÖREVLER ({tasks.filter(t => t.done).length}/{tasks.length})</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {tasks.some(t => t.done) && (
+                          <button
+                            onClick={clearCompletedTasks}
+                            className="text-[10px] text-gray-400 hover:text-red-400 dark:hover:text-red-400 font-medium transition-colors flex items-center gap-0.5 cursor-pointer"
+                            title="Bitenleri Temizle"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                            <span>Temizle</span>
+                          </button>
+                        )}
+                        <span className="font-mono text-[11px] font-black text-[#1ed760]">
+                          %{tasks.length > 0 ? Math.round((tasks.filter(t => t.done).length / tasks.length) * 100) : 0}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200 dark:bg-white/10">
+                      <div 
+                        className="h-full bg-gradient-to-r from-[#1ed760] to-teal-400 transition-all duration-300 rounded-full"
+                        style={{ width: `${tasks.length > 0 ? (tasks.filter(t => t.done).length / tasks.length) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Filter Pills */}
+                  {tasks.length > 0 && (
+                    <div className="flex items-center gap-1 pt-0.5">
+                      <button
+                        onClick={() => setTaskFilter('all')}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                          taskFilter === 'all'
+                            ? 'bg-[#1ed760] text-black shadow-sm'
+                            : 'bg-white dark:bg-white/5 text-gray-500 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        Tümü ({tasks.length})
+                      </button>
+                      <button
+                        onClick={() => setTaskFilter('pending')}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                          taskFilter === 'pending'
+                            ? 'bg-amber-400 text-black shadow-sm'
+                            : 'bg-white dark:bg-white/5 text-gray-500 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        Bekleyen ({tasks.filter(t => !t.done).length})
+                      </button>
+                      <button
+                        onClick={() => setTaskFilter('completed')}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                          taskFilter === 'completed'
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-white dark:bg-white/5 text-gray-500 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        Biten ({tasks.filter(t => t.done).length})
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Task List Items */}
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                    {filteredTasks.map((task) => (
                       <div 
                         key={task.id}
-                        className="flex items-center justify-between gap-2 text-xs py-1 px-2 rounded-lg bg-white dark:bg-white/[0.03] border border-slate-100 dark:border-transparent hover:bg-slate-100 dark:hover:bg-white/[0.06] group transition-all"
+                        className={`flex items-center justify-between gap-2 text-xs py-1.5 px-2.5 rounded-xl border transition-all group ${
+                          task.done
+                            ? 'bg-emerald-500/5 dark:bg-emerald-950/15 border-emerald-500/20'
+                            : 'bg-white dark:bg-white/[0.04] border-slate-200/80 dark:border-white/5 hover:border-[#1ed760]/40'
+                        }`}
                       >
                         {editingTaskId === task.id ? (
                           <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -1119,11 +1388,11 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                                 if (e.key === 'Escape') setEditingTaskId(null);
                               }}
                               autoFocus
-                              className="flex-1 bg-white dark:bg-black/60 border border-[#1ed760] rounded px-2 py-0.5 text-xs text-slate-900 dark:text-white outline-none"
+                              className="flex-1 bg-white dark:bg-black/70 border border-[#1ed760] rounded-lg px-2 py-1 text-xs text-slate-900 dark:text-white outline-none"
                             />
                             <button
                               onMouseDown={() => saveEditingTask(task.id)}
-                              className="px-2 py-0.5 bg-[#1ed760] text-black font-bold text-[10px] rounded hover:brightness-110"
+                              className="px-2 py-1 bg-[#1ed760] text-black font-bold text-[10px] rounded-lg hover:brightness-110"
                             >
                               Kaydet
                             </button>
@@ -1133,14 +1402,14 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                             <button
                               type="button"
                               onClick={() => toggleTaskDone(task.id)}
-                              className="w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors"
-                              style={{
-                                borderColor: task.done ? '#1ed760' : 'rgba(150,150,150,0.3)',
-                                backgroundColor: task.done ? '#1ed760' : 'transparent'
-                              }}
-                              title={task.done ? 'Tamamlandı olarak işaretlendi' : 'Tamamla'}
+                              className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-all cursor-pointer active:scale-90 ${
+                                task.done 
+                                  ? 'bg-[#1ed760] border-[#1ed760] text-black shadow-sm' 
+                                  : 'border-slate-300 dark:border-white/20 hover:border-[#1ed760] bg-transparent'
+                              }`}
+                              title={task.done ? 'Tamamlandı (Geri al)' : 'Görevi Tamamla (Push Bildirimi At)'}
                             >
-                              {task.done && <CheckCircle2 className="w-3.5 h-3.5 text-black fill-current" />}
+                              {task.done && <Check className="w-3 h-3 text-black stroke-[3]" />}
                             </button>
 
                             <div 
@@ -1148,7 +1417,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                               className="flex-1 min-w-0 cursor-text py-0.5 px-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                               title="Görevi düzenlemek için tıklayın"
                             >
-                              <span className={`block truncate ${task.done ? 'line-through text-gray-400 dark:text-gray-500' : 'text-slate-800 dark:text-gray-200 hover:text-[#1ed760]'}`}>
+                              <span className={`block truncate ${task.done ? 'line-through text-gray-400 dark:text-gray-500 font-normal' : 'text-slate-800 dark:text-gray-100 font-medium hover:text-[#1ed760]'}`}>
                                 {task.text}
                               </span>
                             </div>
@@ -1157,7 +1426,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                               <button
                                 type="button"
                                 onClick={() => startEditingTask(task)}
-                                className="p-1 text-gray-400 hover:text-[#1ed760] transition-colors"
+                                className="p-1 text-gray-400 hover:text-[#1ed760] transition-colors cursor-pointer"
                                 title="Düzenle"
                               >
                                 <Pencil className="w-3 h-3" />
@@ -1165,7 +1434,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                               <button
                                 type="button"
                                 onClick={() => removeTask(task.id)}
-                                className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                                className="p-1 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
                                 title="Sil"
                               >
                                 <X className="w-3 h-3" />
@@ -1176,12 +1445,12 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       </div>
                     ))}
 
-                    {tasks.length === 0 && !isAddingTask && (
+                    {filteredTasks.length === 0 && (
                       <div 
                         onClick={() => setIsAddingTask(true)}
-                        className="text-xs text-gray-500 hover:text-gray-400 dark:text-gray-500 dark:hover:text-gray-300 py-2 px-2 border border-dashed border-slate-300 dark:border-white/10 rounded-lg text-center cursor-pointer transition-colors"
+                        className="text-xs text-gray-500 hover:text-gray-400 dark:text-gray-400 dark:hover:text-gray-200 py-3 px-2 border border-dashed border-slate-300 dark:border-white/10 rounded-xl text-center cursor-pointer transition-colors"
                       >
-                        + İlk görevini buraya yazmak için tıkla...
+                        {taskFilter === 'pending' ? '🎉 Bekleyen görev yok!' : taskFilter === 'completed' ? 'Henüz tamamlanan görev yok.' : '+ İlk hedefini veya görevini yazmak için tıkla...'}
                       </div>
                     )}
                   </div>
@@ -1194,7 +1463,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         value={newTaskText}
                         onChange={(e) => setNewTaskText(e.target.value)}
                         placeholder="Görev yazın (Enter)..."
-                        className="flex-1 bg-white dark:bg-black/40 border border-[#1ed760]/50 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 outline-none focus:border-[#1ed760]"
+                        className="flex-1 bg-white dark:bg-black/50 border border-[#1ed760] rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 outline-none shadow-sm"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') addTask();
@@ -1204,7 +1473,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       <button
                         type="button"
                         onClick={addTask}
-                        className="py-1.5 px-3 bg-[#1ed760] text-black rounded-lg text-xs font-bold hover:brightness-110 transition-all shrink-0 cursor-pointer"
+                        className="py-1.5 px-3 bg-[#1ed760] text-black rounded-xl text-xs font-bold hover:brightness-110 transition-all shrink-0 cursor-pointer shadow-sm"
                       >
                         Ekle
                       </button>
@@ -1214,7 +1483,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                           setIsAddingTask(false);
                           setNewTaskText('');
                         }}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-xl transition-colors cursor-pointer"
                         title="İptal"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -1224,7 +1493,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsAddingTask(true)}
-                      className="w-full text-left text-xs text-gray-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white py-1 px-2 rounded-lg transition-colors flex items-center gap-1.5 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+                      className="w-full text-left text-xs text-gray-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white py-1 px-2 rounded-xl transition-colors flex items-center gap-1.5 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                     >
                       <span className="text-[#1ed760] font-bold text-sm">+</span>
                       <span>Yeni görev veya not ekle...</span>
@@ -1657,6 +1926,131 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         </div>
 
       </div>
+
+      {/* Task Complete Celebration In-App Toast */}
+      <AnimatePresence>
+        {celebrationToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-5 left-1/2 -translate-x-1/2 z-50 max-w-md w-[90%] bg-slate-900/95 dark:bg-[#0e1712]/95 border-2 border-[#1ed760] text-white p-3.5 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center gap-3"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[#1ed760] text-black flex items-center justify-center shrink-0 shadow-md shadow-[#1ed760]/30 font-black">
+              <PartyPopper className="w-5 h-5 animate-bounce" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 text-xs font-black text-[#1ed760] uppercase tracking-wide">
+                <span>GÖREV TAMAMLANDI</span>
+                <span className="text-white/40">•</span>
+                <span className="text-white/80 font-normal">Tebrikler!</span>
+              </div>
+              <p className="text-sm font-bold text-white truncate">
+                {celebrationToast.taskText}
+              </p>
+              <p className="text-[11px] text-emerald-300/90 truncate italic">
+                "{celebrationToast.quote}"
+              </p>
+            </div>
+            <button
+              onClick={() => setCelebrationToast(null)}
+              className="p-1 text-gray-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Pomodoro Session Summary Modal */}
+      <AnimatePresence>
+        {showSessionSummaryModal && sessionSummaryData && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="w-full max-w-md bg-gradient-to-b from-slate-900 via-[#0d1510] to-black border-2 border-[#1ed760]/50 rounded-3xl p-6 shadow-2xl text-white space-y-5 relative overflow-hidden"
+            >
+              {/* Ambient Glow */}
+              <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#1ed760]/20 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Modal Header */}
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1ed760] to-emerald-600 text-black flex items-center justify-center mx-auto shadow-lg shadow-[#1ed760]/30">
+                  <Trophy className="w-8 h-8 stroke-[2.2]" />
+                </div>
+                <h3 className="text-2xl font-black tracking-tight text-white uppercase">
+                  Oturum Tamamlandı!
+                </h3>
+                <p className="text-xs text-emerald-300/90 font-medium">
+                  {sessionSummaryData.roundNumber}. Odak Seansını harika bir disiplinle bitirdin.
+                </p>
+              </div>
+
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Çalışma Süresi</span>
+                  <span className="text-xl font-black text-[#1ed760] font-mono">{sessionSummaryData.durationMins} Dk</span>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Tamamlanan Görev</span>
+                  <span className="text-xl font-black text-amber-400 font-mono">{sessionSummaryData.completedTasks.length} Adet</span>
+                </div>
+              </div>
+
+              {/* Completed Tasks List in this Session */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-gray-300">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCheck className="w-4 h-4 text-[#1ed760]" />
+                    <span>Bu Seansta Tamamlananlar:</span>
+                  </span>
+                  <span className="text-[11px] text-[#1ed760] font-mono font-bold">
+                    {sessionSummaryData.completedTasks.length} Görev
+                  </span>
+                </div>
+
+                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                  {sessionSummaryData.completedTasks.length > 0 ? (
+                    sessionSummaryData.completedTasks.map((taskText, idx) => (
+                      <div 
+                        key={idx}
+                        className="flex items-center gap-2 text-xs py-1.5 px-3 rounded-xl bg-white/5 border border-[#1ed760]/20 text-gray-200"
+                      >
+                        <Check className="w-3.5 h-3.5 text-[#1ed760] stroke-[3] shrink-0" />
+                        <span className="truncate">{taskText}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-3 px-3 rounded-xl bg-white/5 border border-white/5 text-center text-xs text-gray-400">
+                      Bu seansta derin odak ve zihinsel akış sağladın. Harika bir konsantrasyon!
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Motivational Praise Box */}
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                <p className="text-xs text-emerald-200 font-medium italic">
+                  "{sessionSummaryData.motivationalPraise}"
+                </p>
+              </div>
+
+              {/* Action Button */}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={() => setShowSessionSummaryModal(false)}
+                  className="flex-1 py-3 px-4 rounded-xl bg-[#1ed760] text-black font-black text-xs sm:text-sm hover:brightness-110 transition-all shadow-lg shadow-[#1ed760]/20 active:scale-98 cursor-pointer"
+                >
+                  Molayı Başlat ({breakMinutes} dk) ☕
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
