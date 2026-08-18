@@ -825,16 +825,16 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 </div>
 
                 {/* 2. Rotating Motivational & Praising Quotes Card */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-600/5 to-teal-500/10 dark:from-emerald-950/40 dark:via-[#0e1712] dark:to-teal-950/30 border border-emerald-500/25 p-3 sm:p-3.5 shadow-sm">
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/70 via-[#0e1712] to-teal-950/50 border border-emerald-500/30 p-3 sm:p-3.5 shadow-md">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-1.5 text-[10px] font-extrabold tracking-wider uppercase text-emerald-600 dark:text-emerald-400">
+                    <div className="flex items-center gap-1.5 text-[10px] font-extrabold tracking-wider uppercase text-emerald-400">
                       <Sparkles className="w-3.5 h-3.5 text-[#1ed760] animate-pulse" />
                       <span>{MOTIVATIONAL_FOCUS_QUOTES[quoteIndex].category}</span>
                     </div>
 
                     <button
                       onClick={handleNextQuote}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold transition-all active:scale-95 cursor-pointer"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10px] font-semibold transition-all active:scale-95 cursor-pointer border border-emerald-500/20"
                       title="Sonraki Motivasyon Sözü"
                     >
                       <RefreshCw className="w-2.5 h-2.5" />
@@ -850,7 +850,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.25 }}
-                        className="text-xs sm:text-[13px] font-medium text-slate-800 dark:text-emerald-100/90 leading-relaxed italic"
+                        className="text-xs sm:text-[13px] font-medium text-white leading-relaxed italic drop-shadow-sm"
                       >
                         "{MOTIVATIONAL_FOCUS_QUOTES[quoteIndex].text}"
                       </motion.p>
@@ -859,11 +859,11 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 </div>
 
                 {/* 3. Enhanced Interactive Tasks / To-Do List */}
-                <div className="bg-slate-50 dark:bg-[#0e1410] border border-slate-200 dark:border-white/5 rounded-2xl p-3.5 space-y-3">
+                <div className="bg-slate-900/60 md:bg-[#0e1410] border border-slate-800/80 md:border-white/5 rounded-2xl p-3.5 space-y-3">
                   
                   {/* Task Header & Progress */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-gray-300">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-200">
                       <div className="flex items-center gap-1.5">
                         <ListTodo className="w-4 h-4 text-[#1ed760]" />
                         <span>GÖREVLER ({tasks.filter(t => t.done).length}/{tasks.length})</span>
@@ -873,7 +873,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         {tasks.some(t => t.done) && (
                           <button
                             onClick={clearCompletedTasks}
-                            className="text-[10px] text-gray-400 hover:text-red-400 dark:hover:text-red-400 font-medium transition-colors flex items-center gap-0.5 cursor-pointer"
+                            className="text-[10px] text-gray-400 hover:text-red-400 font-medium transition-colors flex items-center gap-0.5 cursor-pointer"
                             title="Bitenleri Temizle"
                           >
                             <Trash2 className="w-2.5 h-2.5" />
@@ -887,7 +887,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200 dark:bg-white/10">
+                    <div className="w-full h-1.5 rounded-full overflow-hidden bg-white/10">
                       <div 
                         className="h-full bg-gradient-to-r from-[#1ed760] to-teal-400 transition-all duration-300 rounded-full"
                         style={{ width: `${tasks.length > 0 ? (tasks.filter(t => t.done).length / tasks.length) * 100 : 0}%` }}
@@ -903,7 +903,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                           taskFilter === 'all'
                             ? 'bg-[#1ed760] text-black shadow-sm'
-                            : 'bg-white dark:bg-white/5 text-gray-500 hover:text-slate-900 dark:hover:text-white'
+                            : 'bg-white/10 text-gray-300 hover:text-white'
                         }`}
                       >
                         Tümü ({tasks.length})
@@ -913,7 +913,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                           taskFilter === 'pending'
                             ? 'bg-amber-400 text-black shadow-sm'
-                            : 'bg-white dark:bg-white/5 text-gray-500 hover:text-slate-900 dark:hover:text-white'
+                            : 'bg-white/10 text-gray-300 hover:text-white'
                         }`}
                       >
                         Bekleyen ({tasks.filter(t => !t.done).length})
@@ -923,7 +923,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                           taskFilter === 'completed'
                             ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'bg-white dark:bg-white/5 text-gray-500 hover:text-slate-900 dark:hover:text-white'
+                            : 'bg-white/10 text-gray-300 hover:text-white'
                         }`}
                       >
                         Biten ({tasks.filter(t => t.done).length})
@@ -938,8 +938,8 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         key={task.id}
                         className={`flex items-center justify-between gap-2 text-xs py-1.5 px-2.5 rounded-xl border transition-all group ${
                           task.done
-                            ? 'bg-emerald-500/5 dark:bg-emerald-950/15 border-emerald-500/20'
-                            : 'bg-white dark:bg-white/[0.04] border-slate-200/80 dark:border-white/5 hover:border-[#1ed760]/40'
+                            ? 'bg-emerald-500/10 border-emerald-500/25'
+                            : 'bg-white/[0.05] border-white/10 hover:border-[#1ed760]/40'
                         }`}
                       >
                         {editingTaskId === task.id ? (
@@ -954,7 +954,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                                 if (e.key === 'Escape') setEditingTaskId(null);
                               }}
                               autoFocus
-                              className="flex-1 bg-white dark:bg-black/70 border border-[#1ed760] rounded-lg px-2 py-1 text-xs text-slate-900 dark:text-white outline-none"
+                              className="flex-1 bg-black/70 border border-[#1ed760] rounded-lg px-2 py-1 text-xs text-white outline-none"
                             />
                             <button
                               onMouseDown={() => saveEditingTask(task.id)}
@@ -970,8 +970,8 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                               onClick={() => toggleTaskDone(task.id)}
                               className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-all cursor-pointer active:scale-90 ${
                                 task.done 
-                                  ? 'bg-[#1ed760] border-[#1ed760] text-black shadow-sm' 
-                                  : 'border-slate-300 dark:border-white/20 hover:border-[#1ed760] bg-transparent'
+                                   ? 'bg-[#1ed760] border-[#1ed760] text-black shadow-sm' 
+                                  : 'border-white/30 hover:border-[#1ed760] bg-transparent'
                               }`}
                               title={task.done ? 'Tamamlandı (Geri al)' : 'Görevi Tamamla (Push Bildirimi At)'}
                             >
@@ -980,10 +980,10 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
                             <div 
                               onClick={() => startEditingTask(task)}
-                              className="flex-1 min-w-0 cursor-text py-0.5 px-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                              className="flex-1 min-w-0 cursor-text py-0.5 px-1 rounded hover:bg-white/5 transition-colors"
                               title="Görevi düzenlemek için tıklayın"
                             >
-                              <span className={`block truncate ${task.done ? 'line-through text-gray-400 dark:text-gray-500 font-normal' : 'text-slate-800 dark:text-gray-100 font-medium hover:text-[#1ed760]'}`}>
+                              <span className={`block truncate ${task.done ? 'line-through text-gray-400 font-normal' : 'text-gray-100 font-medium hover:text-[#1ed760]'}`}>
                                 {task.text}
                               </span>
                             </div>
@@ -1014,7 +1014,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     {filteredTasks.length === 0 && (
                       <div 
                         onClick={() => setIsAddingTask(true)}
-                        className="text-xs text-gray-500 hover:text-gray-400 dark:text-gray-400 dark:hover:text-gray-200 py-3 px-2 border border-dashed border-slate-300 dark:border-white/10 rounded-xl text-center cursor-pointer transition-colors"
+                        className="text-xs text-gray-400 hover:text-gray-200 py-3 px-2 border border-dashed border-white/15 rounded-xl text-center cursor-pointer transition-colors"
                       >
                         {taskFilter === 'pending' ? '🎉 Bekleyen görev yok!' : taskFilter === 'completed' ? 'Henüz tamamlanan görev yok.' : '+ İlk hedefini veya görevini yazmak için tıkla...'}
                       </div>
@@ -1029,7 +1029,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                         value={newTaskText}
                         onChange={(e) => setNewTaskText(e.target.value)}
                         placeholder="Görev yazın (Enter)..."
-                        className="flex-1 bg-white dark:bg-black/50 border border-[#1ed760] rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 outline-none shadow-sm"
+                        className="flex-1 bg-black/60 border border-[#1ed760] rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-gray-400 outline-none shadow-sm"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') addTask();
@@ -1049,7 +1049,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                           setIsAddingTask(false);
                           setNewTaskText('');
                         }}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-xl transition-colors cursor-pointer"
+                        className="p-1.5 text-gray-400 hover:text-white rounded-xl transition-colors cursor-pointer"
                         title="İptal"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -1059,7 +1059,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsAddingTask(true)}
-                      className="w-full text-left text-xs text-gray-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white py-1 px-2 rounded-xl transition-colors flex items-center gap-1.5 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+                      className="w-full text-left text-xs text-gray-400 hover:text-white py-1 px-2 rounded-xl transition-colors flex items-center gap-1.5 hover:bg-white/5 cursor-pointer"
                     >
                       <span className="text-[#1ed760] font-bold text-sm">+</span>
                       <span>Yeni görev veya not ekle...</span>

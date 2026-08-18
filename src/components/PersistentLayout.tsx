@@ -346,7 +346,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               className="inline-flex items-center cursor-pointer group hover:opacity-90 transition-opacity" 
               title="VOX Ana Sayfası"
             >
-              <VoxLogo size="md" />
+              <VoxLogo size="md" textColor="light" />
             </Link>
           </div>
 
