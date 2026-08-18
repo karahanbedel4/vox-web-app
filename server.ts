@@ -2029,50 +2029,60 @@ let serverNewsCache: {
 };
 
 const HIGH_FREQUENCY_FEEDS = [
-  // Son Dakika & Gündem (Twitter Hızında Anlık Haberler)
-  { url: 'https://www.trthaber.com/xml_mobile/rss2/sondakika.xml', category: 'Gündem', author: 'TRT Haber' },
-  { url: 'https://www.trthaber.com/xml_mobile/rss2/manset.xml', category: 'Gündem', author: 'TRT Haber' },
-  { url: 'https://www.trthaber.com/xml_mobile/rss2/gundem.xml', category: 'Gündem', author: 'TRT Haber' },
-  { url: 'https://feeds.bbci.co.uk/turkce/rss.xml', category: 'Dünya', author: 'BBC Türkçe' },
+  // Son Dakika & Gündem
+  { url: 'https://www.trthaber.com/sondakika_articles.rss', category: 'Gündem', author: 'TRT Haber' },
+  { url: 'https://www.trthaber.com/manset_articles.rss', category: 'Gündem', author: 'TRT Haber' },
+  { url: 'https://www.trthaber.com/gundem_articles.rss', category: 'Gündem', author: 'TRT Haber' },
+  { url: 'https://www.cnnturk.com/feed/rss/all/news', category: 'Gündem', author: 'CNN Türk' },
+  { url: 'https://www.cnnturk.com/feed/rss/turkiye/news', category: 'Gündem', author: 'CNN Türk' },
   { url: 'https://www.ntv.com.tr/gundem.rss', category: 'Gündem', author: 'NTV' },
   { url: 'https://www.ntv.com.tr/son-dakika.rss', category: 'Gündem', author: 'NTV' },
+  { url: 'https://www.hurriyet.com.tr/rss/anasayfa', category: 'Gündem', author: 'Hürriyet' },
+  { url: 'https://www.hurriyet.com.tr/rss/gundem', category: 'Gündem', author: 'Hürriyet' },
   { url: 'https://www.haberturk.com/rss/manset.xml', category: 'Gündem', author: 'Habertürk' },
   { url: 'https://www.haberturk.com/rss/kategori/gundem.xml', category: 'Gündem', author: 'Habertürk' },
-  { url: 'https://www.aa.com.tr/tr/rss/default?cat=guncel', category: 'Gündem', author: 'Anadolu Ajansı' },
-  { url: 'https://t24.com.tr/rss', category: 'Gündem', author: 'T24' },
-  { url: 'https://www.gazeteduvar.com.tr/export/rss', category: 'Gündem', author: 'Gazete Duvar' },
+  { url: 'https://www.ensonhaber.com/rss/ensonhaber.xml', category: 'Gündem', author: 'Ensonhaber' },
+  { url: 'https://www.ensonhaber.com/rss/gundem.xml', category: 'Gündem', author: 'Ensonhaber' },
+  { url: 'https://feeds.bbci.co.uk/turkce/rss.xml', category: 'Gündem', author: 'BBC Türkçe' },
   { url: 'https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr', category: 'Gündem', author: 'Google Haberler' },
   { url: 'https://news.google.com/rss/headlines/section/topic/NATION?hl=tr&gl=TR&ceid=TR:tr', category: 'Gündem', author: 'Gündem' },
 
-  // Teknoloji
+  // Teknoloji & Bilim
   { url: 'https://www.webtekno.com/rss.xml', category: 'Teknoloji', author: 'Webtekno' },
   { url: 'https://shiftdelete.net/feed', category: 'Teknoloji', author: 'ShiftDelete' },
   { url: 'https://www.donanimhaber.com/rss/tum/', category: 'Teknoloji', author: 'DonanımHaber' },
   { url: 'https://webrazzi.com/feed/', category: 'Teknoloji', author: 'Webrazzi' },
+  { url: 'https://www.cnnturk.com/feed/rss/teknoloji/news', category: 'Teknoloji', author: 'CNN Türk Teknoloji' },
   { url: 'https://www.ntv.com.tr/teknoloji.rss', category: 'Teknoloji', author: 'NTV Teknoloji' },
+  { url: 'https://www.hurriyet.com.tr/rss/teknoloji', category: 'Teknoloji', author: 'Hürriyet Teknoloji' },
+  { url: 'https://www.haberturk.com/rss/kategori/teknoloji.xml', category: 'Teknoloji', author: 'Habertürk Teknoloji' },
+  { url: 'https://www.ensonhaber.com/rss/teknoloji.xml', category: 'Teknoloji', author: 'Ensonhaber Teknoloji' },
   { url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=tr&gl=TR&ceid=TR:tr', category: 'Teknoloji', author: 'Teknoloji' },
 
   // Ekonomi & Finans
   { url: 'https://www.bloomberght.com/rss', category: 'Ekonomi', author: 'Bloomberg HT' },
-  { url: 'https://www.trthaber.com/xml_mobile/rss2/ekonomi.xml', category: 'Ekonomi', author: 'TRT Ekonomi' },
-  { url: 'https://www.haberturk.com/rss/kategori/ekonomi.xml', category: 'Ekonomi', author: 'Habertürk Ekonomi' },
+  { url: 'https://www.trthaber.com/ekonomi_articles.rss', category: 'Ekonomi', author: 'TRT Ekonomi' },
+  { url: 'https://www.cnnturk.com/feed/rss/ekonomi/news', category: 'Ekonomi', author: 'CNN Türk Ekonomi' },
   { url: 'https://www.ntv.com.tr/ekonomi.rss', category: 'Ekonomi', author: 'NTV Ekonomi' },
+  { url: 'https://www.hurriyet.com.tr/rss/ekonomi', category: 'Ekonomi', author: 'Hürriyet Ekonomi' },
+  { url: 'https://www.haberturk.com/rss/kategori/ekonomi.xml', category: 'Ekonomi', author: 'Habertürk Ekonomi' },
+  { url: 'https://www.ensonhaber.com/rss/ekonomi.xml', category: 'Ekonomi', author: 'Ensonhaber Ekonomi' },
   { url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=tr&gl=TR&ceid=TR:tr', category: 'Ekonomi', author: 'Ekonomi' },
 
   // Dünya
-  { url: 'https://www.trthaber.com/xml_mobile/rss2/dunya.xml', category: 'Dünya', author: 'TRT Dünya' },
-  { url: 'https://www.haberturk.com/rss/kategori/dunya.xml', category: 'Dünya', author: 'Habertürk Dünya' },
+  { url: 'https://www.trthaber.com/dunya_articles.rss', category: 'Dünya', author: 'TRT Dünya' },
+  { url: 'https://www.cnnturk.com/feed/rss/dunya/news', category: 'Dünya', author: 'CNN Türk Dünya' },
   { url: 'https://www.ntv.com.tr/dunya.rss', category: 'Dünya', author: 'NTV Dünya' },
+  { url: 'https://www.hurriyet.com.tr/rss/dunya', category: 'Dünya', author: 'Hürriyet Dünya' },
+  { url: 'https://www.haberturk.com/rss/kategori/dunya.xml', category: 'Dünya', author: 'Habertürk Dünya' },
   { url: 'https://news.google.com/rss/headlines/section/topic/WORLD?hl=tr&gl=TR&ceid=TR:tr', category: 'Dünya', author: 'Dünya' },
 
   // Spor
-  { url: 'https://www.ntvspor.net/rss/haber', category: 'Spor', author: 'NTV Spor' },
-  { url: 'https://www.trthaber.com/xml_mobile/rss2/spor.xml', category: 'Spor', author: 'TRT Spor' },
+  { url: 'https://www.trthaber.com/spor_articles.rss', category: 'Spor', author: 'TRT Spor' },
   { url: 'https://www.haberturk.com/rss/kategori/spor.xml', category: 'Spor', author: 'Habertürk Spor' },
   { url: 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=tr&gl=TR&ceid=TR:tr', category: 'Spor', author: 'Spor' },
 
   // Sağlık
-  { url: 'https://www.trthaber.com/xml_mobile/rss2/saglik.xml', category: 'Sağlık', author: 'TRT Sağlık' },
   { url: 'https://www.ntv.com.tr/saglik.rss', category: 'Sağlık', author: 'NTV Sağlık' },
   { url: 'https://news.google.com/rss/headlines/section/topic/HEALTH?hl=tr&gl=TR&ceid=TR:tr', category: 'Sağlık', author: 'Sağlık' }
 ];
@@ -2263,63 +2273,69 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
   }
 }
 
+let activeRefreshPromise: Promise<void> | null = null;
+
 // Background Worker: Refreshes and organizes all feeds every 45 seconds
-async function refreshServerNewsWorker() {
-  if (serverNewsCache.isRefreshing) return;
-  serverNewsCache.isRefreshing = true;
+async function refreshServerNewsWorker(): Promise<void> {
+  if (activeRefreshPromise) return activeRefreshPromise;
 
-  try {
-    const promises = HIGH_FREQUENCY_FEEDS.map(f => fetchSingleRssFeed(f));
-    const results = await Promise.all(promises);
-    const flatList = results.flat();
+  activeRefreshPromise = (async () => {
+    serverNewsCache.isRefreshing = true;
 
-    // Deduplicate strictly by normalized title
-    const seenMap = new Map<string, CachedNewsArticle>();
-    flatList.forEach(item => {
-      const normTitle = item.title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
-      if (normTitle && !seenMap.has(normTitle)) {
-        seenMap.set(normTitle, item);
-      }
-    });
+    try {
+      const promises = HIGH_FREQUENCY_FEEDS.map(f => fetchSingleRssFeed(f));
+      const results = await Promise.all(promises);
+      const flatList = results.flat();
 
-    const allArticles = Array.from(seenMap.values());
+      // Deduplicate strictly by normalized title
+      const seenMap = new Map<string, CachedNewsArticle>();
+      flatList.forEach(item => {
+        const normTitle = item.title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+        if (normTitle && !seenMap.has(normTitle)) {
+          seenMap.set(normTitle, item);
+        }
+      });
 
-    // Sort strictly chronological (newest first)
-    allArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      const allArticles = Array.from(seenMap.values());
 
-    // Build byCategory map
-    const byCategoryMap: Record<string, CachedNewsArticle[]> = {
-      'Gündem': [],
-      'Ekonomi': [],
-      'Teknoloji': [],
-      'Dünya': [],
-      'Spor': [],
-      'Sağlık': []
-    };
+      // Sort strictly chronological (newest first)
+      allArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
-    allArticles.forEach(a => {
-      const cat = a.category;
-      if (!byCategoryMap[cat]) byCategoryMap[cat] = [];
-      byCategoryMap[cat].push(a);
-    });
+      // Build byCategory map
+      const byCategoryMap: Record<string, CachedNewsArticle[]> = {
+        'Gündem': [],
+        'Ekonomi': [],
+        'Teknoloji': [],
+        'Dünya': [],
+        'Spor': [],
+        'Sağlık': []
+      };
 
-    serverNewsCache.all = allArticles.slice(0, 300);
-    serverNewsCache.byCategory = byCategoryMap;
-    serverNewsCache.lastUpdated = Date.now();
+      allArticles.forEach(a => {
+        const cat = a.category;
+        if (!byCategoryMap[cat]) byCategoryMap[cat] = [];
+        byCategoryMap[cat].push(a);
+      });
 
-    console.log(`[VOX News Worker] Cache updated: ${allArticles.length} active articles across ${Object.keys(byCategoryMap).length} categories.`);
-  } catch (err) {
-    console.warn('[VOX News Worker] Update notice:', err);
-  } finally {
-    serverNewsCache.isRefreshing = false;
-  }
+      serverNewsCache.all = allArticles.slice(0, 350);
+      serverNewsCache.byCategory = byCategoryMap;
+      serverNewsCache.lastUpdated = Date.now();
+
+      console.log(`[VOX News Worker] Cache updated: ${allArticles.length} active articles across ${Object.keys(byCategoryMap).length} categories.`);
+    } catch (err) {
+      console.warn('[VOX News Worker] Update notice:', err);
+    } finally {
+      serverNewsCache.isRefreshing = false;
+      activeRefreshPromise = null;
+    }
+  })();
+
+  return activeRefreshPromise;
 }
 
-// Start background worker on boot
-setTimeout(() => {
-  refreshServerNewsWorker();
-  setInterval(refreshServerNewsWorker, 45 * 1000); // Continuous auto-refresh every 45s
-}, 1000);
+// Start background worker immediately on boot
+refreshServerNewsWorker();
+setInterval(refreshServerNewsWorker, 45 * 1000); // Continuous auto-refresh every 45s
 
 // Fast Instant News Feed API Endpoint (0ms in-memory latency)
 app.get('/api/news', async (req, res) => {

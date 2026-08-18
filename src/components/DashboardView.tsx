@@ -204,8 +204,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     let list = liveNews.length > 0 ? liveNews : articles;
 
     // Apply active category filter
-    if (activeCategory !== 'Tümü') {
-      list = list.filter(a => a.category?.toLowerCase() === activeCategory.toLowerCase());
+    if (activeCategory && activeCategory !== 'Tümü') {
+      const targetCat = activeCategory.trim().toLowerCase();
+      const filtered = list.filter(a => {
+        const cat = (a.category || '').trim().toLowerCase();
+        return cat === targetCat || (targetCat === 'gündem' && (!cat || cat === 'genel' || cat === 'haberler'));
+      });
+      if (filtered.length > 0) {
+        list = filtered;
+      }
     }
 
     // Apply local query search filter if user typed without submitting

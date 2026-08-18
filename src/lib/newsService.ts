@@ -752,7 +752,47 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
     twitterArticles = [];
   }
 
-  // 3. Fallback to default articles if /api/news was empty
+  // 3. Secondary Fallback: Direct first-party proxy fetch (/api/fetch-feed) if /api/news returned empty
+  if (articles.length === 0) {
+    try {
+      const feedUrl = category === 'Teknoloji' 
+        ? 'https://www.donanimhaber.com/rss/tum/' 
+        : category === 'Ekonomi'
+        ? 'https://www.bloomberght.com/rss'
+        : 'https://www.trthaber.com/sondakika_articles.rss';
+      const xml = await fetchRemoteFeedXml(feedUrl, 4000);
+      if (xml) {
+        const itemRegex = /<item[\s\S]*?<\/item>/gi;
+        const matches = xml.match(itemRegex) || [];
+        matches.slice(0, 15).forEach((itemXml, i) => {
+          const tMatch = itemXml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+          const dMatch = itemXml.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
+          const lMatch = itemXml.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+          const rawT = tMatch ? tMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1').replace(/<[^>]+>/g, '').trim() : '';
+          const rawD = dMatch ? dMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1').replace(/<[^>]+>/g, '').trim() : '';
+          if (rawT && rawT.length > 5) {
+            articles.push({
+              id: `feed_${targetCategory.toLowerCase()}_${Date.now()}_${i}`,
+              title: rawT,
+              summary: rawD || `${rawT} hakkında sıcak gelişmeler.`,
+              content: `${rawT}.\n\n${rawD || ''}\n\nDetaylar VOX Akıllı Haber Akışı tarafından güncellenmektedir.`,
+              category: targetCategory,
+              author: 'VOX Canlı Haber',
+              imageUrl: getTopicContextualImage(rawT, targetCategory, i),
+              durationSeconds: 150,
+              createdAt: new Date().toISOString(),
+              sourceType: 'rss',
+              sourceUrl: lMatch ? lMatch[1].trim() : 'https://trthaber.com'
+            });
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Secondary feed fallback notice:', e);
+    }
+  }
+
+  // 4. Tertiary Fallback to default curated articles if both failed
   if (articles.length === 0 && twitterArticles.length === 0) {
     const defaults = (INITIAL_ARTICLES || []).filter(
       a => !category || category === 'Tümü' || a.category.toLowerCase() === category.toLowerCase()
