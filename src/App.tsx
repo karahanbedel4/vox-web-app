@@ -4,6 +4,7 @@ import { ThemeProvider } from './lib/ThemeContext';
 import { FocusProvider } from './lib/FocusContext';
 import { PersistentLayout } from './components/PersistentLayout';
 import { DashboardView } from './components/DashboardView';
+import { NewsArticlePage } from './components/NewsArticlePage';
 import { FocusTab } from './components/FocusTab';
 import { LibraryTab } from './components/LibraryTab';
 import { ProfileTab } from './components/ProfileTab';
@@ -410,6 +411,24 @@ export default function App() {
                   onOpenPaywall={handleOpenPaywallModalWithReason}
                 />
               }
+            />
+
+            {/* Bundle-style Dedicated SEO News Detail Page Route */}
+            <RouterRoute
+              path="/haber/:slug"
+              element={
+                <NewsArticlePage
+                  articles={articles}
+                  bookmarkedIds={bookmarkedIds}
+                  onToggleBookmark={(art) => handleToggleBookmark(art.id)}
+                  onPlayArticle={handlePlayArticle}
+                  onOpenPaywall={handleOpenPaywallModalWithReason}
+                />
+              }
+            />
+            <RouterRoute
+              path="/haber"
+              element={<RouterNavigate to="/" replace />}
             />
 
             {/* Focus / Pomodoro Mode Route */}

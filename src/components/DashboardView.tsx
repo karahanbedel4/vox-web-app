@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown, Send } from 'lucide-react';
 import { Article } from '../types';
-import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
+import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl } from '../lib/newsService';
 import { getArticlesPaginated } from '../lib/firebase';
 import { cacheTop3Articles } from '../lib/offlineService';
 import { useTheme } from '../lib/ThemeContext';
@@ -39,7 +40,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onSelectArticle,
   onOpenPaywall
 }) => {
+  const navigate = useNavigate();
   const { theme } = useTheme();
+
+  const handleArticleCardClick = (art: Article) => {
+    if (art.sourceType === 'twitter' || art.sourceType === 'telegram') {
+      onSelectArticle(art);
+    } else {
+      navigate(getArticleUrl(art));
+    }
+  };
   const [activeCategory, setActiveCategory] = useState<CategoryType>(
     (category as CategoryType) || 'Tümü'
   );
@@ -443,7 +453,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 >
                   {/* Thumbnail Image */}
                   <div
-                    onClick={() => onSelectArticle(article)}
+                    onClick={() => handleArticleCardClick(article)}
                     className="relative w-full md:w-36 h-36 md:h-28 rounded-xl overflow-hidden shrink-0 bg-[#0e1410] border border-white/5 cursor-pointer group-hover:scale-[1.02] transition-transform"
                   >
                     <img
@@ -524,7 +534,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
 
                     <h3
-                      onClick={() => onSelectArticle(article)}
+                      onClick={() => handleArticleCardClick(article)}
                       className={`font-display text-base md:text-lg font-bold group-hover:text-[#1ed760] transition-colors cursor-pointer leading-snug ${
                         theme === 'light' ? 'text-slate-900' : 'text-white'
                       }`}
@@ -543,9 +553,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div className={`pt-2 flex flex-wrap items-center justify-between gap-3 border-t ${
                       theme === 'light' ? 'border-slate-100' : 'border-white/5'
                     }`}>
-                      {/* Read Text Button -> Opens Centered Modal */}
+                      {/* Read Text Button -> Navigates to /haber/:slug */}
                       <button
-                        onClick={() => onSelectArticle(article)}
+                        onClick={() => handleArticleCardClick(article)}
                         className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
                           theme === 'light'
                             ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
@@ -553,7 +563,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         }`}
                       >
                         <BookOpen className="w-3.5 h-3.5 text-[#1ed760]" />
-                        <span>Metni Oku</span>
+                        <span>Haberi Oku</span>
                       </button>
 
                       {/* HIGH-ENERGY CTA BUTTON -> Opens App Store Marketing Modal */}

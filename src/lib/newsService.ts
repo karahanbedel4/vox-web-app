@@ -834,14 +834,58 @@ export async function checkNewNewsUpdates(category: string = 'Tümü', sinceTime
 }
 
 /**
- * Search News directly using internal VOX /api/news/search endpoint
+ * Generate SEO-friendly slug ending with -voxozet
+ */
+export function generateArticleSlug(title: string, id: string = ''): string {
+  const clean = (title || '')
+    .toLowerCase()
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 80);
+
+  const idHash = id ? id.replace(/[^a-z0-9]/gi, '').slice(-5) : '';
+  const suffix = idHash ? `${idHash}-voxozet` : 'voxozet';
+  return `${clean}-${suffix}`;
+}
+
+/**
+ * Returns canonical SEO URL path for an article
+ */
+export function getArticleUrl(article: Article): string {
+  const slug = generateArticleSlug(article.title, article.id);
+  return `/haber/${slug}`;
+}
+
+/**
+ * Fetch a single article by ID or slug from server API
+ */
+export async function fetchArticleByIdOrSlug(idOrSlug: string): Promise<Article | null> {
+  if (!idOrSlug) return null;
+  try {
+    const res = await fetch(`/api/news/article/${encodeURIComponent(idOrSlug)}?_t=${Date.now()}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && data.article) {
+        return data.article;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+/**
+ * Search News directly using internal VOX /api/news/search endpoint or local fallback
  */
 export async function searchGoogleNews(query: string): Promise<Article[]> {
   if (!query || !query.trim()) return [];
-
   const cleanQuery = query.trim();
 
-  // 1. Fetch from internal /api/news/search endpoint
   try {
     const res = await fetch(`/api/news/search?q=${encodeURIComponent(cleanQuery)}&_t=${Date.now()}`);
     if (res.ok) {
@@ -864,12 +908,11 @@ export async function searchGoogleNews(query: string): Promise<Article[]> {
     console.warn('/api/news/search notice:', err);
   }
 
-  // 2. Client-side fallback from default articles
-  const defaults = (INITIAL_ARTICLES || []).filter(a =>
+  // Client-side fallback
+  return (INITIAL_ARTICLES || []).filter(a =>
     a.title.toLowerCase().includes(cleanQuery.toLowerCase()) ||
     a.summary.toLowerCase().includes(cleanQuery.toLowerCase())
   );
-  return defaults;
 }
 
 

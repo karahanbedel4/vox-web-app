@@ -2466,6 +2466,37 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
+// Direct Article by Slug or ID Endpoint (Supports instant SSR / Direct URLs)
+app.get('/api/news/article/:idOrSlug', (req, res) => {
+  try {
+    const { idOrSlug } = req.params;
+    if (!idOrSlug) {
+      return res.status(400).json({ success: false, error: 'idOrSlug is required' });
+    }
+
+    const decoded = decodeURIComponent(idOrSlug).toLowerCase().trim();
+
+    // 1. Direct ID match
+    let found = serverNewsCache.all.find(a => a.id.toLowerCase() === decoded);
+
+    // 2. Slug fuzzy match
+    if (!found) {
+      found = serverNewsCache.all.find(a => {
+        const cleanSlug = a.title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').substring(0, 40);
+        return cleanSlug && (decoded.includes(cleanSlug) || a.id.toLowerCase().includes(decoded));
+      });
+    }
+
+    if (found) {
+      return res.json({ success: true, article: found });
+    }
+
+    return res.status(404).json({ success: false, error: 'Article not found in cache' });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
 // Lightweight Quick-Check for Live Updates (Returns boolean & count for floating pill)
 app.get('/api/news/check-new', (req, res) => {
   try {
