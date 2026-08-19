@@ -2273,6 +2273,88 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
   }
 }
 
+const PUBLIC_TELEGRAM_NEWS_CHANNELS = [
+  { channel: 'sondakikaz', category: 'Gündem', author: 'Son Dakika (Telegram)' },
+  { channel: 'sondakika', category: 'Gündem', author: 'Son Dakika (Telegram)' },
+  { channel: 'pusholder', category: 'Gündem', author: 'Pusholder (Telegram)' },
+  { channel: 'webtekno', category: 'Teknoloji', author: 'Webtekno (Telegram)' }
+];
+
+async function fetchTelegramChannelFeed(tgConfig: typeof PUBLIC_TELEGRAM_NEWS_CHANNELS[0]): Promise<CachedNewsArticle[]> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(`https://t.me/s/${tgConfig.channel}`, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+      }
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return [];
+    const html = await res.text();
+    const messageBlocks = html.split('<div class="tgme_widget_message_wrap');
+    const items: CachedNewsArticle[] = [];
+
+    const categoryImages = categoryDefaultImages[tgConfig.category] || categoryDefaultImages['Gündem'];
+
+    for (let i = 0; i < messageBlocks.slice(1).length; i++) {
+      const block = messageBlocks[i + 1];
+      const textMatch = block.match(/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+      const photoMatch = block.match(/background-image:url\('([^']+)'\)/i);
+      const timeMatch = block.match(/<time datetime="([^"]+)"/i);
+      const linkMatch = block.match(/<a class="tgme_widget_message_date" href="([^"]+)"/i);
+
+      if (textMatch && textMatch[1]) {
+        const rawText = textMatch[1]
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&apos;/g, "'")
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .trim();
+
+        if (rawText.length > 20) {
+          const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+          const firstLine = lines[0] || rawText;
+          let title = firstLine.replace(/^[•\-\*\s#]+/, '').trim();
+          if (title.length > 110) title = title.substring(0, 107) + '...';
+
+          const fallbackImg = categoryImages[i % categoryImages.length];
+          const extractedImg = photoMatch ? photoMatch[1] : '';
+
+          const cleanSlug = title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').substring(0, 40);
+          const uniqueId = `tg_${tgConfig.channel}_${cleanSlug}`;
+
+          items.push({
+            id: uniqueId,
+            title,
+            summary: rawText.substring(0, 240) + (rawText.length > 240 ? '...' : ''),
+            content: `${rawText}\n\nBu anlık sıcak gelişme, VOX Akıllı Akış motoru ile Telegram (@${tgConfig.channel}) üzerinden derlenmiştir.`,
+            category: tgConfig.category,
+            author: tgConfig.author,
+            imageUrl: extractedImg || fallbackImg,
+            hasRealImage: !!extractedImg,
+            sourceType: 'telegram',
+            sourceUrl: linkMatch ? linkMatch[1] : `https://t.me/${tgConfig.channel}`,
+            durationSeconds: Math.max(60, Math.min(180, Math.round(rawText.length * 0.4))),
+            createdAt: timeMatch ? timeMatch[1] : new Date().toISOString(),
+            keyPoints: [title, `Kaynak: Telegram (@${tgConfig.channel})`, `Kategori: ${tgConfig.category}`, 'Canlı Akış']
+          });
+        }
+      }
+    }
+    return items;
+  } catch (e) {
+    return [];
+  }
+}
+
 let activeRefreshPromise: Promise<void> | null = null;
 
 // Background Worker: Refreshes and organizes all feeds every 45 seconds
@@ -2283,9 +2365,13 @@ async function refreshServerNewsWorker(): Promise<void> {
     serverNewsCache.isRefreshing = true;
 
     try {
-      const promises = HIGH_FREQUENCY_FEEDS.map(f => fetchSingleRssFeed(f));
-      const results = await Promise.all(promises);
-      const flatList = results.flat();
+      const rssPromises = HIGH_FREQUENCY_FEEDS.map(f => fetchSingleRssFeed(f));
+      const tgPromises = PUBLIC_TELEGRAM_NEWS_CHANNELS.map(ch => fetchTelegramChannelFeed(ch));
+      const [rssResults, tgResults] = await Promise.all([
+        Promise.all(rssPromises),
+        Promise.all(tgPromises)
+      ]);
+      const flatList = [...rssResults.flat(), ...tgResults.flat()];
 
       // Deduplicate strictly by normalized title
       const seenMap = new Map<string, CachedNewsArticle>();

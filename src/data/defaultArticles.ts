@@ -8,139 +8,105 @@ import { Article } from '../types';
  */
 export const INITIAL_ARTICLES: Article[] = [
   {
-    id: 'quantum-geopolitics',
-    title: 'Quantum Geopolitics: The Shift',
-    summary: 'Kuantum bilgisayar teknolojileri ve yapay zeka çiplerinin küresel diplomasi ve savunma dengeleri üzerindeki kritik etkileri.',
-    content: 'Kuantum teknolojileri, geleneksel şifreleme yöntemlerini ve stratejik savunma sistemlerini yeniden tanımlıyor. ABD ve Çin arasındaki çip rekabeti, kuantum üstünlüğü yarışına evrilmiş durumda. Uzmanlar, önümüzdeki 5 yıl içinde güvenli veri iletişiminin tamamen kuantum dayanıklı algoritmalar ile değiştirileceğini öngörüyor.',
-    category: 'Teknoloji',
-    sourceType: 'web',
-    durationSeconds: 380,
-    imageUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&auto=format&fit=crop&q=80',
-    createdAt: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
-    author: 'Dr. Elias Vance',
-    keyPoints: [
-      'Kuantum şifreleme klasik güvenlik katmanlarını aşıyor',
-      'Çip imalatında yeni tedarik zinciri stratejileri',
-      'Yapay zeka ve kuantum hibrit sistemlerin yükselişi'
-    ]
-  },
-  {
-    id: 'dunya-diplomasi-2026',
-    title: 'Küresel Diplomasi ve Zirve Bildirisi',
-    summary: 'Dünya liderlerinin sürdürülebilir enerji ve sınır ötesi veri güvenliği hususunda imzaladığı tarihi anlaşma.',
-    content: 'Küresel liderler bu yıl düzenlenen zirvede sınır ötesi veri güvenliği, siber kriz yönetimi ve yenilenebilir enerji alanlarında bağlayıcı ilkeleri kabul etti. Uzmanlar bu uzlaşının uluslararası ilişkilerde yeni bir dönemin habercisi olduğunu vurguluyor.',
-    category: 'Dünya',
-    sourceType: 'web',
-    durationSeconds: 450,
-    imageUrl: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&auto=format&fit=crop&q=80',
-    createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-    author: 'VOX Dünya Editörü',
-    keyPoints: [
-      'Sınır ötesi veri güvenliği standartları',
-      'Yenilenebilir enerjiye geçiş takvimi',
-      'Uluslararası siber kriz protokolleri'
-    ]
-  },
-  {
-    id: 'ekonomi-dijital-tl',
-    title: 'Ekonomide Merkez Bankaları ve Dijital Varlıklar',
-    summary: 'Makroekonomik dengeler, enflasyon hedefleri ve dijital merkez bankası paralarının (CBDC) piyasalara etkisi.',
-    content: 'Dünya genelinde merkez bankalarının dijital para projelerinde pilot aşamadan yaygın kullanıma geçiş adımları hızlandı. Reel sektör ve finans analistleri, dijital para birimlerinin ticari nakit akışını ve enflasyon dinamiklerini doğrudan etkileyeceğini ifade ediyor.',
-    category: 'Ekonomi',
-    sourceType: 'web',
-    durationSeconds: 510,
+    id: 'tr_gundem_1',
+    title: 'Merkez Bankası ve Finans Sektöründe Güncel Gelişmeler',
+    summary: 'Ekonomi yönetiminin kararlı adımları ve enflasyonla mücadele kapsamında para politikası tedbirleri sürüyor.',
+    content: 'Türkiye Cumhuriyet Merkez Bankası (TCMB) ve ekonomi yönetimi, dezenflasyon sürecinin güçlendirilmesi ve makro finansal istikrarın korunması amacıyla koordineli adımlar atmaya devam ediyor. Piyasa analistleri, reel sektör ve tüketici güven endekslerindeki toparlanmanın altını çiziyor.',
+    category: 'Gündem',
+    sourceType: 'rss',
+    durationSeconds: 180,
     imageUrl: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=800&auto=format&fit=crop&q=80',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    author: 'Selin Karaca',
+    createdAt: new Date().toISOString(),
+    author: 'TRT Haber',
     keyPoints: [
-      'Dijital Merkez Bankası Paraları (CBDC) analizi',
-      'Küresel enflasyon beklentileri ve faiz adımları',
-      'Reel sektör nakit akış yönetimi'
+      'Dezenflasyon süreci ve kararlı para politikası',
+      'Piyasa likiditesi ve finansal istikrar',
+      'Reel sektör yatırımları'
     ]
   },
   {
-    id: 'kultur-sanat-dijital-muze',
-    title: 'Yapay Zeka Müzeciliği ve Kültürel Miras',
-    summary: 'Kültür ve sanat dünyasında yeni çağ: Yapay zeka ile restorasyon ve interaktif müze sergileri.',
-    content: 'Tarihi yapıtların ve tahrip olmuş resimlerin yapay zeka restorasyon teknolojileriyle yeniden hayat bulması, sanat camiasında büyük heyecan uyandırıyor. Ziyaretçiler artık tarihi dönemleri 3B etkileşimli alanlarda canlı olarak tecrübe edebiliyor.',
-    category: 'Kültür & Sanat',
-    sourceType: 'web',
-    durationSeconds: 390,
-    imageUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80',
-    createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    author: 'Caner Alpay',
+    id: 'tr_teknoloji_1',
+    title: 'Yerli Yapay Zeka ve Çip Tasarımında Yeni Atılım',
+    summary: 'Türkiye’nin yerli yapay zeka modelleri ve yeni nesil mikroçip AR-GE laboratuvarlarında kritik aşama geçildi.',
+    content: 'TÜBİTAK ve yerli teknoloji girişimlerinin ortaklaşa yürüttüğü yüksek başarımlı yapay zeka dil modelleri ve yerli çip tasarımı projeleri hız kazandı. Savunma sanayii ve sivil havacılıkta kullanılacak yeni algoritmaların test süreçleri başarıyla tamamlandı.',
+    category: 'Teknoloji',
+    sourceType: 'rss',
+    durationSeconds: 210,
+    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80',
+    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    author: 'Webtekno',
     keyPoints: [
-      'Yapay zeka desteğiyle tarihi eser restorasyonu',
-      'İnteraktif dijital sanat galerileri',
-      'Kültürel mirasın dijital arşivlenmesi'
+      'Yerli çip ve mikroelektronik AR-GE çalışmaları',
+      'Türkçe tabanlı büyük dil modelleri',
+      'Yüksek teknoloji ihracat hedefleri'
     ]
   },
   {
-    id: 'silicon-forest',
-    title: 'The Architecting of Silicon Forest',
-    summary: 'Pasifik Kuzeybatısında yükselen yeşil veri merkezleri ve sürdürülebilir donanım mimarileri.',
-    content: 'Pasifik Kuzeybatısının ormanlık vadileri, yeni nesil hidroelektrik destekli yeşil veri merkezlerine ev sahipliği yapıyor. Silikon Ormanı olarak adlandırılan bu bölge, yapay zeka sunucularının yüksek enerji tüketimini sıfır karbonlu soğutma teknolojileriyle çözmeyi hedefliyor.',
-    category: 'Sürdürülebilirlik',
-    sourceType: 'web',
-    durationSeconds: 765,
-    imageUrl: 'https://images.unsplash.com/photo-1511497584788-876761c119ef?w=800&auto=format&fit=crop&q=80',
-    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    author: 'Helena Vance',
-    keyPoints: [
-      'Sıfır karbonlu sıvı soğutmalı sunucu blokları',
-      'Doğal hidroelektrik kaynaklarının veri merkezlerinde kullanımı',
-      'Geri dönüştürülebilir yarı iletken donanımları'
-    ]
-  },
-  {
-    id: 'ethics-of-ai',
-    title: 'The Ethics of AI & Neural Interfaces',
-    summary: 'Nöral arayüzlerin insan bilinci üzerindeki etkileri ve etik yapay zeka sınırları.',
-    content: 'İnsan beyni ile bilgisayarlar arasındaki doğrudan bağlantı kuran nöral çipler, sağlık alanında devrim yaratırken etik tartışmaları da beraberinde getiriyor. Düşünce gizliliği ve yapay zeka destekli hafıza güçlendirme teknolojileri hukuki çerçevenin hızla güncellenmesini gerektiriyor.',
-    category: 'Etik & Bilim',
-    sourceType: 'ocr',
-    durationSeconds: 420,
-    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80',
-    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    author: 'Prof. Marcus Thorne',
-    keyPoints: [
-      'Nöral veri mahremiyeti hakkı',
-      'Bilişsel güçlendirmede adalet ve erişim',
-      'İnsan-makine ortak yaşamının geleceği'
-    ]
-  },
-  {
-    id: 'modern-stoicism',
-    title: 'Modern Stoicism in High-Tech Era',
-    summary: 'Hızlı dijital bilgi çağında zihinsel odaklanma ve Stoacı felsefenin güncel yorumu.',
-    content: 'Günün her anında bildirimler ve veri akışına maruz kalan modern insan için Stoacılık bir zihinsel kalkan işlevi görüyor. Marcus Aurelius ve Seneca’nın öğretileri, dijital detoks ve bilinçli dinleme alışkanlıklarıyla yeniden hayat buluyor.',
-    category: 'Felsefe',
-    sourceType: 'pdf',
-    durationSeconds: 310,
-    imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80',
-    createdAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-    author: 'Elena Rostova',
-    keyPoints: [
-      'Dijital gürültüden arınma rehberi',
-      'Kontrol edilebilir ve edilemez durumların ayrımı',
-      'Derin odaklanma ve mikro meditasyon'
-    ]
-  },
-  {
-    id: 'global-markets-briefing',
-    title: 'Global Markets: The Morning Intelligence',
-    summary: 'Küresel finans piyasaları, makroekonomik eğilimler ve faiz kararlarının piyasa dinamiklerine yansıması.',
-    content: 'Merkez bankalarının faiz kararları ve küresel enflasyon verileri piyasalarda yeni bir denge noktası arayışına neden oluyor. Teknoloji hisselerindeki hareketlilik ve kripto varlık düzenlemeleri yatırımcıların odağında kalmaya devam ediyor.',
-    category: 'Finans',
-    sourceType: 'web',
-    durationSeconds: 520,
+    id: 'tr_ekonomi_1',
+    title: 'İhracatta Yeni Rekor ve Sanayi Üretim Rakamları',
+    summary: 'Sanayi sektörü ve dış ticaret dengesinde pozitif ivme: Katma değerli ürün ihracatı arttı.',
+    content: 'Ticaret Bakanlığı ve Türkiye İhracatçılar Meclisi (TİM) verilerine göre, yüksek teknolojili ve katma değerli sanayi mamulleri ihracatında artış trendi devam ediyor. Otomotiv ve kimya sektörleri liderliğini korurken yeni pazarlara erişim güçlendi.',
+    category: 'Ekonomi',
+    sourceType: 'rss',
+    durationSeconds: 190,
     imageUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80',
-    createdAt: new Date(Date.now() - 1000 * 60 * 480).toISOString(),
-    author: 'Financial Times Analyst',
+    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    author: 'Bloomberg HT',
     keyPoints: [
-      'Merkez bankalarının para politikası sinyalleri',
-      'Teknoloji ve çip hisselerinde borsa hareketliliği',
-      'Küresel emtia ve enerji fiyat analizleri'
+      'Katma değerli ihracat artışı',
+      'Sanayi kapasite kullanım oranları',
+      'Dış ticaret dengesinde dengelenme'
+    ]
+  },
+  {
+    id: 'tr_dunya_1',
+    title: 'Küresel İklim Zirvesi ve Enerji Koridoru Mutabakatı',
+    summary: 'Akdeniz ve Avrupa enerji koridorunda stratejik işbirlikleri ve yenilenebilir enerji yatırımları.',
+    content: 'Uluslararası Enerji Ajansı ve bölge ülkelerinin katılımıyla gerçekleşen toplantıda, temiz enerji iletim hatları ve sınır ötesi şebeke güvenliği konusunda ortak eylem planı imzalandı.',
+    category: 'Dünya',
+    sourceType: 'rss',
+    durationSeconds: 240,
+    imageUrl: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&auto=format&fit=crop&q=80',
+    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    author: 'NTV Dünya',
+    keyPoints: [
+      'Yenilenebilir enerji iletim koridorları',
+      'Sürdürülebilir şebeke altyapıları',
+      'Küresel iklim hedefleri'
+    ]
+  },
+  {
+    id: 'tr_spor_1',
+    title: 'Süper Lig ve Avrupa Kupalarında Haftanın Kritik Karşılaşmaları',
+    summary: 'Temsilcilerimizin Avrupa kupalarındaki mücadelesi ve ligdeki zirve yarışı tüm heyecanıyla sürüyor.',
+    content: 'Süper Lig ekipleri hem yerel ligde hem de UEFA müsabakalarında kritik virajlara giriyor. Teknik direktörlerin taktik hamleleri ve oyuncu performansları futbolseverlerin yakın takibinde.',
+    category: 'Spor',
+    sourceType: 'rss',
+    durationSeconds: 160,
+    imageUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    author: 'NTV Spor',
+    keyPoints: [
+      'Avrupa kupaları hazırlıkları',
+      'Ligdeki puan durumu ve derbi haftası',
+      'Takımların son antrenman raporları'
+    ]
+  },
+  {
+    id: 'tr_saglik_1',
+    title: 'Tıp Dünyasında Yeni Nesil Biyoteknoloji ve Tedavi Yöntemleri',
+    summary: 'Hücresel tedavi ve yapay zeka destekli erken teşhis yöntemlerinde çığır açan klinik çalışmalar.',
+    content: 'Dünya Sağlık Örgütü ve uluslararası tıp fakülteleri tarafından yürütülen araştırmalarda, gen düzenleme ve yapay zeka destekli teşhis sistemlerinin başarı oranları açıklandı.',
+    category: 'Sağlık',
+    sourceType: 'rss',
+    durationSeconds: 200,
+    imageUrl: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop&q=80',
+    createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+    author: 'NTV Sağlık',
+    keyPoints: [
+      'Biyoteknolojik tedavi yöntemleri',
+      'Erken teşhiste yapay zeka algoritmaları',
+      'Klinik araştırma sonuçları'
     ]
   }
 ];

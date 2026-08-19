@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown } from 'lucide-react';
+import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown, Send } from 'lucide-react';
 import { Article } from '../types';
 import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
 import { getArticlesPaginated } from '../lib/firebase';
 import { cacheTop3Articles } from '../lib/offlineService';
 import { useTheme } from '../lib/ThemeContext';
+import { INITIAL_ARTICLES } from '../data/defaultArticles';
 import { VoxLogo } from './VoxLogo';
 import { XLogoIcon } from './XLogoIcon';
 import { NativeAdCard } from './NativeAdCard';
@@ -42,8 +43,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [activeCategory, setActiveCategory] = useState<CategoryType>(
     (category as CategoryType) || 'Tümü'
   );
-  const [liveNews, setLiveNews] = useState<Article[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [liveNews, setLiveNews] = useState<Article[]>(() => {
+    try {
+      const cached = localStorage.getItem('vox_cached_articles');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return INITIAL_ARTICLES;
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try {
+      const cached = localStorage.getItem('vox_cached_articles');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return false;
+      }
+    } catch (e) {}
+    return true;
+  });
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Pagination / Infinite scroll state
@@ -100,6 +119,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       if (finalArticles.length > 0) {
         setLiveNews(finalArticles);
         cacheTop3Articles(finalArticles);
+        try {
+          localStorage.setItem('vox_cached_articles', JSON.stringify(finalArticles.slice(0, 50)));
+        } catch (e) {}
         if (finalArticles[0]?.createdAt) {
           setLatestTimestamp(finalArticles[0].createdAt);
         }
@@ -443,6 +465,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <span>𝕏</span>
                       </span>
                     )}
+                    {article.sourceType === 'telegram' && (
+                      <span className="absolute top-2 right-2 text-[10px] font-black text-white bg-[#229ED9]/90 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/20 shadow-sm">
+                        <Send className="w-2.5 h-2.5 text-white" />
+                        <span>TG</span>
+                      </span>
+                    )}
                     <span className="absolute bottom-2 left-2 text-[10px] font-mono text-[#1ed760] bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded font-bold border border-[#1ed760]/20">
                       {Math.floor((article.durationSeconds || 90) / 60)} dk
                     </span>
@@ -455,9 +483,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
                           article.sourceType === 'twitter'
                             ? 'text-[#1ed760] bg-[#1ed760]/10 border-[#1ed760]/30'
+                            : article.sourceType === 'telegram'
+                            ? 'text-[#229ED9] bg-[#229ED9]/10 border-[#229ED9]/30'
                             : 'text-[#1ed760] bg-[#1ed760]/10 border-[#1ed760]/20'
                         }`}>
-                          {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : (article.category || activeCategory)}
+                          {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : article.sourceType === 'telegram' ? 'Telegram Canlı' : (article.category || activeCategory)}
                         </span>
                         {article.sourceType === 'twitter' ? (
                           <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
@@ -465,6 +495,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           }`}>
                             <XLogoIcon className="w-3 h-3 text-[#1ed760]" />
                             <span>{formatTwitterAuthor(article.author)}</span>
+                          </span>
+                        ) : article.sourceType === 'telegram' ? (
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                            theme === 'light' ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-[#229ED9]/10 border-[#229ED9]/20 text-[#229ED9]'
+                          }`}>
+                            <Send className="w-3 h-3 text-[#229ED9]" />
+                            <span>{article.author}</span>
                           </span>
                         ) : (
                           <span className={`text-xs font-mono font-medium ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>
