@@ -2148,91 +2148,255 @@ let serverNewsCache: {
 
 const HIGH_FREQUENCY_FEEDS = [
   // Son Dakika & Gündem
+  { url: 'https://www.ensonhaber.com/rss/manset.xml', category: 'Gündem', author: 'Ensonhaber' },
+  { url: 'https://www.ensonhaber.com/rss/gundem.xml', category: 'Gündem', author: 'Ensonhaber' },
+  { url: 'https://www.ensonhaber.com/rss/ensonhaber.xml', category: 'Gündem', author: 'Ensonhaber' },
   { url: 'https://www.trthaber.com/sondakika_articles.rss', category: 'Gündem', author: 'TRT Haber' },
   { url: 'https://www.trthaber.com/manset_articles.rss', category: 'Gündem', author: 'TRT Haber' },
   { url: 'https://www.trthaber.com/gundem_articles.rss', category: 'Gündem', author: 'TRT Haber' },
-  { url: 'https://www.cnnturk.com/feed/rss/all/news', category: 'Gündem', author: 'CNN Türk' },
-  { url: 'https://www.cnnturk.com/feed/rss/turkiye/news', category: 'Gündem', author: 'CNN Türk' },
-  { url: 'https://www.ntv.com.tr/gundem.rss', category: 'Gündem', author: 'NTV' },
-  { url: 'https://www.ntv.com.tr/son-dakika.rss', category: 'Gündem', author: 'NTV' },
-  { url: 'https://www.hurriyet.com.tr/rss/anasayfa', category: 'Gündem', author: 'Hürriyet' },
-  { url: 'https://www.hurriyet.com.tr/rss/gundem', category: 'Gündem', author: 'Hürriyet' },
   { url: 'https://www.haberturk.com/rss/manset.xml', category: 'Gündem', author: 'Habertürk' },
   { url: 'https://www.haberturk.com/rss/kategori/gundem.xml', category: 'Gündem', author: 'Habertürk' },
-  { url: 'https://www.ensonhaber.com/rss/ensonhaber.xml', category: 'Gündem', author: 'Ensonhaber' },
-  { url: 'https://www.ensonhaber.com/rss/gundem.xml', category: 'Gündem', author: 'Ensonhaber' },
+  { url: 'https://www.ntv.com.tr/gundem.rss', category: 'Gündem', author: 'NTV' },
+  { url: 'https://www.ntv.com.tr/son-dakika.rss', category: 'Gündem', author: 'NTV' },
+  { url: 'https://www.cnnturk.com/feed/rss/all/news', category: 'Gündem', author: 'CNN Türk' },
+  { url: 'https://www.cnnturk.com/feed/rss/turkiye/news', category: 'Gündem', author: 'CNN Türk' },
+  { url: 'https://www.sozcu.com.tr/rss/anasayfa.xml', category: 'Gündem', author: 'Sözcü' },
+  { url: 'https://www.sozcu.com.tr/rss/gundem.xml', category: 'Gündem', author: 'Sözcü' },
   { url: 'https://feeds.bbci.co.uk/turkce/rss.xml', category: 'Gündem', author: 'BBC Türkçe' },
-  { url: 'https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr', category: 'Gündem', author: 'Google Haberler' },
-  { url: 'https://news.google.com/rss/headlines/section/topic/NATION?hl=tr&gl=TR&ceid=TR:tr', category: 'Gündem', author: 'Gündem' },
 
   // Teknoloji & Bilim
   { url: 'https://www.webtekno.com/rss.xml', category: 'Teknoloji', author: 'Webtekno' },
   { url: 'https://shiftdelete.net/feed', category: 'Teknoloji', author: 'ShiftDelete' },
   { url: 'https://www.donanimhaber.com/rss/tum/', category: 'Teknoloji', author: 'DonanımHaber' },
   { url: 'https://webrazzi.com/feed/', category: 'Teknoloji', author: 'Webrazzi' },
-  { url: 'https://www.cnnturk.com/feed/rss/teknoloji/news', category: 'Teknoloji', author: 'CNN Türk Teknoloji' },
-  { url: 'https://www.ntv.com.tr/teknoloji.rss', category: 'Teknoloji', author: 'NTV Teknoloji' },
-  { url: 'https://www.hurriyet.com.tr/rss/teknoloji', category: 'Teknoloji', author: 'Hürriyet Teknoloji' },
-  { url: 'https://www.haberturk.com/rss/kategori/teknoloji.xml', category: 'Teknoloji', author: 'Habertürk Teknoloji' },
   { url: 'https://www.ensonhaber.com/rss/teknoloji.xml', category: 'Teknoloji', author: 'Ensonhaber Teknoloji' },
-  { url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=tr&gl=TR&ceid=TR:tr', category: 'Teknoloji', author: 'Teknoloji' },
+  { url: 'https://www.haberturk.com/rss/kategori/teknoloji.xml', category: 'Teknoloji', author: 'Habertürk Teknoloji' },
+  { url: 'https://www.ntv.com.tr/teknoloji.rss', category: 'Teknoloji', author: 'NTV Teknoloji' },
+  { url: 'https://www.cnnturk.com/feed/rss/teknoloji/news', category: 'Teknoloji', author: 'CNN Türk Teknoloji' },
 
   // Ekonomi & Finans
   { url: 'https://www.bloomberght.com/rss', category: 'Ekonomi', author: 'Bloomberg HT' },
   { url: 'https://www.trthaber.com/ekonomi_articles.rss', category: 'Ekonomi', author: 'TRT Ekonomi' },
-  { url: 'https://www.cnnturk.com/feed/rss/ekonomi/news', category: 'Ekonomi', author: 'CNN Türk Ekonomi' },
-  { url: 'https://www.ntv.com.tr/ekonomi.rss', category: 'Ekonomi', author: 'NTV Ekonomi' },
-  { url: 'https://www.hurriyet.com.tr/rss/ekonomi', category: 'Ekonomi', author: 'Hürriyet Ekonomi' },
-  { url: 'https://www.haberturk.com/rss/kategori/ekonomi.xml', category: 'Ekonomi', author: 'Habertürk Ekonomi' },
   { url: 'https://www.ensonhaber.com/rss/ekonomi.xml', category: 'Ekonomi', author: 'Ensonhaber Ekonomi' },
-  { url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=tr&gl=TR&ceid=TR:tr', category: 'Ekonomi', author: 'Ekonomi' },
+  { url: 'https://www.haberturk.com/rss/kategori/ekonomi.xml', category: 'Ekonomi', author: 'Habertürk Ekonomi' },
+  { url: 'https://www.ntv.com.tr/ekonomi.rss', category: 'Ekonomi', author: 'NTV Ekonomi' },
+  { url: 'https://www.cnnturk.com/feed/rss/ekonomi/news', category: 'Ekonomi', author: 'CNN Türk Ekonomi' },
+  { url: 'https://www.sozcu.com.tr/rss/ekonomi.xml', category: 'Ekonomi', author: 'Sözcü Ekonomi' },
 
   // Dünya
+  { url: 'https://feeds.bbci.co.uk/turkce/rss.xml', category: 'Dünya', author: 'BBC Türkçe' },
+  { url: 'https://rss.dw.com/rdf/rss-tur-all', category: 'Dünya', author: 'DW Türkçe' },
   { url: 'https://www.trthaber.com/dunya_articles.rss', category: 'Dünya', author: 'TRT Dünya' },
-  { url: 'https://www.cnnturk.com/feed/rss/dunya/news', category: 'Dünya', author: 'CNN Türk Dünya' },
-  { url: 'https://www.ntv.com.tr/dunya.rss', category: 'Dünya', author: 'NTV Dünya' },
-  { url: 'https://www.hurriyet.com.tr/rss/dunya', category: 'Dünya', author: 'Hürriyet Dünya' },
+  { url: 'https://www.ensonhaber.com/rss/dunya.xml', category: 'Dünya', author: 'Ensonhaber Dünya' },
   { url: 'https://www.haberturk.com/rss/kategori/dunya.xml', category: 'Dünya', author: 'Habertürk Dünya' },
-  { url: 'https://news.google.com/rss/headlines/section/topic/WORLD?hl=tr&gl=TR&ceid=TR:tr', category: 'Dünya', author: 'Dünya' },
+  { url: 'https://www.ntv.com.tr/dunya.rss', category: 'Dünya', author: 'NTV Dünya' },
+  { url: 'https://www.cnnturk.com/feed/rss/dunya/news', category: 'Dünya', author: 'CNN Türk Dünya' },
 
   // Spor
+  { url: 'https://www.ensonhaber.com/rss/kralspor.xml', category: 'Spor', author: 'Ensonhaber Spor' },
   { url: 'https://www.trthaber.com/spor_articles.rss', category: 'Spor', author: 'TRT Spor' },
   { url: 'https://www.haberturk.com/rss/kategori/spor.xml', category: 'Spor', author: 'Habertürk Spor' },
-  { url: 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=tr&gl=TR&ceid=TR:tr', category: 'Spor', author: 'Spor' },
+  { url: 'https://www.ntvspor.net/rss/haber', category: 'Spor', author: 'NTV Spor' },
+  { url: 'https://www.cnnturk.com/feed/rss/spor/news', category: 'Spor', author: 'CNN Türk Spor' },
+  { url: 'https://www.fanatik.com.tr/rss/futbol', category: 'Spor', author: 'Fanatik' },
+  { url: 'https://www.sozcu.com.tr/rss/spor.xml', category: 'Spor', author: 'Sözcü Spor' },
 
   // Sağlık
+  { url: 'https://www.ensonhaber.com/rss/saglik.xml', category: 'Sağlık', author: 'Ensonhaber Sağlık' },
   { url: 'https://www.ntv.com.tr/saglik.rss', category: 'Sağlık', author: 'NTV Sağlık' },
-  { url: 'https://news.google.com/rss/headlines/section/topic/HEALTH?hl=tr&gl=TR&ceid=TR:tr', category: 'Sağlık', author: 'Sağlık' }
+  { url: 'https://www.haberturk.com/rss/kategori/saglik.xml', category: 'Sağlık', author: 'Habertürk Sağlık' }
 ];
 
 const categoryDefaultImages: Record<string, string[]> = {
   'Teknoloji': [
-    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=80'
+    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80'
   ],
   'Ekonomi': [
-    'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=600&auto=format&fit=crop&q=80'
+    'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=800&auto=format&fit=crop&q=80'
   ],
   'Dünya': [
-    'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&auto=format&fit=crop&q=80'
+    'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&auto=format&fit=crop&q=80'
   ],
   'Spor': [
-    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=600&auto=format&fit=crop&q=80'
+    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=80'
   ],
   'Sağlık': [
-    'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=600&auto=format&fit=crop&q=80'
+    'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80'
   ],
   'Gündem': [
-    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=600&auto=format&fit=crop&q=80'
+    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&auto=format&fit=crop&q=80'
   ]
 };
+
+// Fast OpenGraph image scraper for publisher news pages
+async function fetchOgImageFromUrl(pageUrl: string): Promise<string> {
+  if (!pageUrl || !pageUrl.startsWith('http')) return '';
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch(pageUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      }
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return '';
+    const html = await res.text();
+    const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+      || html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+    if (ogMatch && ogMatch[1] && ogMatch[1].startsWith('http')) {
+      return ogMatch[1].trim();
+    }
+  } catch (e) {}
+  return '';
+}
+
+// In-Memory Persistent AI Enriched Cache (zero token re-consumption)
+const enrichedArticleCache = new Map<string, { summary: string; content: string; keyPoints: string[]; imageUrl?: string }>();
+
+async function enrichNewsArticle(article: CachedNewsArticle): Promise<CachedNewsArticle> {
+  if (!article || !article.title) return article;
+
+  const cacheKey = article.id || article.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (enrichedArticleCache.has(cacheKey)) {
+    const cached = enrichedArticleCache.get(cacheKey)!;
+    return {
+      ...article,
+      summary: cached.summary || article.summary,
+      content: cached.content || article.content,
+      keyPoints: cached.keyPoints || article.keyPoints,
+      imageUrl: cached.imageUrl || article.imageUrl,
+      hasRealImage: !!(cached.imageUrl || article.hasRealImage)
+    };
+  }
+
+  let realImageUrl = article.imageUrl;
+  // If article has no real image, try fetching og:image from sourceUrl
+  if (!article.hasRealImage && article.sourceUrl && article.sourceUrl.startsWith('http')) {
+    try {
+      const ogImg = await fetchOgImageFromUrl(article.sourceUrl);
+      if (ogImg) {
+        realImageUrl = ogImg;
+        article.hasRealImage = true;
+      }
+    } catch (e) {}
+  }
+
+  // Check if article already has rich journalistic content
+  if (
+    article.content && 
+    article.content.length > 250 && 
+    article.content.includes('\n\n') && 
+    article.keyPoints && 
+    article.keyPoints.length >= 3 && 
+    !article.keyPoints.some(k => k.includes('Canlı Akış') || k.includes('Kategori:'))
+  ) {
+    enrichedArticleCache.set(cacheKey, {
+      summary: article.summary,
+      content: article.content,
+      keyPoints: article.keyPoints,
+      imageUrl: realImageUrl
+    });
+    return { ...article, imageUrl: realImageUrl };
+  }
+
+  // Call Gemini (gemini-3.7-flash) to produce high-quality journalistic content
+  try {
+    const prompt = `
+Sen VOX platformu için kıdemli bir haber editörü ve sesli podcast metin yazarısın.
+Aşağıda verilen haber başlığı, kaynak ve ham metin verilerini kullanarak; okuyucunun ve sesli dinleyicinin (TTS) olay hakkında eksiksiz, doyurucu ve derinlemesine bilgi edineceği, Google AdSense kalite standartlarına uygun, yüksek kaliteli ve zengin bir Türkçe haber metni hazırla.
+
+HABER BİLGİLERİ:
+Başlık: "${article.title}"
+Yayıncı / Kaynak: "${article.author || 'Haber Merkezi'}"
+Kategori: "${article.category || 'Gündem'}"
+Ham Bilgi: "${article.summary || article.content || ''}"
+
+KURALLAR:
+1. "summary" (Haberin Özeti): Haberin ne olduğunu, nerede ve ne zaman gerçekleştiğini aktaran 2-3 cümlelik, kristal netliğinde yönetici özeti.
+2. "content" (Detaylı İçerik): Olayın arka planını, kritik detaylarını, tarafların açıklamalarını veya olası sonuçlarını anlatan, paragraflar arasına '\\n\\n' konulmuş 3-4 zengin paragraf (250-400 kelime). Dil akıcı, Türkçe dilbilgisine tam uygun, sesli dinlemeye (TTS) elverişli ve profesyonel olmalıdır. Kesinlikle "Canlı akıştan derlendi", "Detaylar VOX Akıllı Akış tarafından..." gibi jenerik laflar yazma.
+3. "keyPoints" (Öne Çıkan Başlıklar): Haberin can alıcı 3-4 maddelik somut gelişme maddeleri (kesinlikle "Kaynak: X" veya "Kategori: Y" veya "Canlı Akış" gibi genel etiketler koyma; doğrudan haberin içindeki somut olguları yaz).
+
+Yalnızca aşağıdaki JSON formatında yanıt ver:
+{
+  "summary": "...",
+  "content": "...",
+  "keyPoints": ["...", "...", "..."]
+}
+`;
+
+    const aiRes = await callGeminiWithRetry({
+      model: 'gemini-3.7-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json'
+      }
+    });
+
+    const parsed = JSON.parse(aiRes.text || '{}');
+    if (parsed && parsed.summary && parsed.content && Array.isArray(parsed.keyPoints) && parsed.keyPoints.length > 0) {
+      const enriched = {
+        summary: parsed.summary,
+        content: parsed.content,
+        keyPoints: parsed.keyPoints.slice(0, 4),
+        imageUrl: realImageUrl
+      };
+      enrichedArticleCache.set(cacheKey, enriched);
+      return {
+        ...article,
+        ...enriched,
+        imageUrl: realImageUrl,
+        hasRealImage: !!realImageUrl
+      };
+    }
+  } catch (err) {
+    console.warn(`[AI Article Enricher] Notice for "${article.title}":`, (err as Error).message || err);
+  }
+
+  // Heuristic Fallback: Ensure clean, professional journalistic text
+  const cleanTitle = article.title.trim();
+  const publisher = article.author || 'VOX Haber';
+  const cleanSummary = article.summary && article.summary.length > 30 && !article.summary.includes('son dakika gelişmeleri') 
+    ? article.summary 
+    : `${cleanTitle}. ${publisher} tarafından aktarılan son bilgilere göre konuyla ilgili gelişmeler ve sahadaki son durum yakından takip ediliyor.`;
+  
+  const p1 = `${cleanTitle}. Konuyla ilgili yetkililerden ve ilgili birimlerden yapılan ilk açıklamalara göre süreç titizlikle yürütülüyor.`;
+  const p2 = cleanSummary;
+  const p3 = `Gelişmeler kamuoyu tarafından yakından izlenirken, sürecin önümüzdeki günlerdeki etkileri ve alınacak yeni kararlar ${publisher} ve VOX Akıllı Haber bültenleri üzerinden anlık olarak aktarılmaya devam edecek.`;
+  
+  const fallbackContent = `${p1}\n\n${p2}\n\n${p3}`;
+  const fallbackKeyPoints = [
+    cleanTitle,
+    `${publisher} kaynağından aktarılan son bilgiler değerlendirildi`,
+    'Gelişmeler ve resmi açıklamalar doğrultusunda süreç takip ediliyor'
+  ];
+
+  const enrichedFallback = {
+    summary: cleanSummary,
+    content: fallbackContent,
+    keyPoints: fallbackKeyPoints,
+    imageUrl: realImageUrl
+  };
+
+  enrichedArticleCache.set(cacheKey, enrichedFallback);
+  return {
+    ...article,
+    ...enrichedFallback,
+    imageUrl: realImageUrl
+  };
+}
 
 function cleanRssText(str: string): string {
   if (!str) return '';
@@ -2300,22 +2464,22 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
       const sourceMatch = itemStr.match(/<source[^>]*>([\s\S]*?)<\/source>/i);
       const linkMatch = itemStr.match(/<link[^>]*>([\s\S]*?)<\/link>/i) || itemStr.match(/<guid[^>]*>([\s\S]*?)<\/guid>/i);
 
-      // Real Image extraction
+      // Robust Multi-Pattern Image extraction
       let extractedImg = '';
-      const mediaContent = itemStr.match(/<media:content[^>]+url=["']([^"']+)["']/i);
-      const mediaThumb = itemStr.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
-      const enclosure = itemStr.match(/<enclosure[^>]+url=["']([^"']+)["']/i);
+      const encUrlMatch = itemStr.match(/<enclosure[^>]+url=["']([^"']+)["']/i) || itemStr.match(/<enclosure[^>]+url=([^\s>]+)/i);
+      const mediaContent = itemStr.match(/<media:content[^>]+url=["']([^"']+)["']/i) || itemStr.match(/<media:content[^>]+url=([^\s>]+)/i);
+      const mediaThumb = itemStr.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i) || itemStr.match(/<media:thumbnail[^>]+url=([^\s>]+)/i);
       const imageTag = itemStr.match(/<image>[\s\S]*?<url>([^<]+)<\/url>/i) || itemStr.match(/<image>([^<]+)<\/image>/i);
-      const imgTagMatch = itemStr.match(/<img[^>]+src=["']([^"']+)["']/i);
-      const htmlEntityImgMatch = itemStr.match(/&lt;img[^&]+src=(?:&quot;|"|')([^&"']+)(?:&quot;|"|')/i);
+      const imgTagMatch = itemStr.match(/<img[^>]+src=["']([^"']+)["']/i) || itemStr.match(/<img[^>]+src=([^\s>]+)/i);
+      const htmlEntityImgMatch = itemStr.match(/&lt;img[^&]+src=(?:&quot;|"|'|)([^\s&"'>]+)(?:&quot;|"|'|)/i);
 
-      if (enclosure && enclosure[1] && !enclosure[1].includes('.mp3') && !enclosure[1].includes('.m4a')) {
-        extractedImg = enclosure[1].trim();
+      if (encUrlMatch && encUrlMatch[1] && !encUrlMatch[1].endsWith('.mp3') && !encUrlMatch[1].endsWith('.m4a')) {
+        extractedImg = encUrlMatch[1].trim();
       } else if (mediaContent && mediaContent[1]) {
         extractedImg = mediaContent[1].trim();
       } else if (mediaThumb && mediaThumb[1]) {
         extractedImg = mediaThumb[1].trim();
-      } else if (imageTag && imageTag[1] && imageTag[1].startsWith('http')) {
+      } else if (imageTag && imageTag[1] && imageTag[1].trim().startsWith('http')) {
         extractedImg = imageTag[1].trim();
       } else if (imgTagMatch && imgTagMatch[1]) {
         extractedImg = imgTagMatch[1].trim();
@@ -2342,24 +2506,27 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
       }
 
       let title = rawTitle;
+      // Clean publisher suffixes from title (e.g., "- Hürriyet", "| Sözcü", " - NTV")
       if (author && title.endsWith(' - ' + author)) {
         title = title.substring(0, title.length - (author.length + 3)).trim();
       } else if (title.includes(' - ')) {
         const parts = title.split(' - ');
         if (parts.length > 1 && parts[parts.length - 1].length < 30) {
           const possibleAuthor = parts.pop()!.trim();
-          if (!author || author === 'Google Haberler') {
+          if (!author || author === 'Google Haberler' || author === 'VOX') {
             author = possibleAuthor;
           }
           title = parts.join(' - ').trim();
         }
+      } else if (title.includes(' | ')) {
+        const parts = title.split(' | ');
+        if (parts.length > 1 && parts[parts.length - 1].length < 30) {
+          parts.pop();
+          title = parts.join(' | ').trim();
+        }
       }
 
       let summary = descMatch ? cleanRssText(descMatch[1]) : '';
-      if (isGoogleNews && summary.length > 250) {
-        summary = summary.split(/\s{2,}|\.\s/)[0] || summary.substring(0, 200);
-      }
-
       let fullContent = contentMatch ? cleanRssText(contentMatch[1]) : '';
       const sourceUrl = linkMatch ? linkMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
 
@@ -2375,8 +2542,10 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
       }
 
       if (title && title.length > 5) {
-        const finalSummary = summary || `${title} hakkında son dakika gelişmeleri.`;
-        const finalContent = fullContent || `${title}.\n\n${finalSummary}\n\nBu haber ${author} tarafından yayınlanmış olup VOX Akıllı Haber Sistemi ile anlık derlenmiştir.`;
+        const cleanSummary = summary && summary.length > 25 ? summary : `${title}. ${author} kaynağından aktarılan sıcak gelişmelerin detayları.`;
+        const cleanContent = fullContent && fullContent.length > 60 
+          ? fullContent 
+          : `${title}.\n\n${cleanSummary}\n\nKonuyla ilgili resmi makamlar ve yetkili birimler tarafından yapılan açıklamalar doğrultusunda gelişmeler yakından izleniyor.`;
 
         const categoryImages = categoryDefaultImages[feedConfig.category] || categoryDefaultImages['Gündem'];
         const fallbackImg = categoryImages[i % categoryImages.length];
@@ -2385,21 +2554,27 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
         const cleanSlug = title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').substring(0, 40);
         const uniqueId = `vox_${feedConfig.category.toLowerCase()}_${cleanSlug}`;
 
-        parsedItems.push({
+        const articleObj: CachedNewsArticle = {
           id: uniqueId,
           title,
-          summary: finalSummary,
-          content: finalContent,
+          summary: cleanSummary,
+          content: cleanContent,
           category: feedConfig.category,
           author: author || feedConfig.author,
           imageUrl: extractedImg || fallbackImg,
           hasRealImage: !!extractedImg,
           sourceType: 'rss',
           sourceUrl: sourceUrl,
-          durationSeconds: Math.max(120, Math.min(360, (finalSummary.length + finalContent.length) * 2)),
+          durationSeconds: Math.max(120, Math.min(360, (cleanSummary.length + cleanContent.length) * 2)),
           createdAt: itemDate,
-          keyPoints: [title, `Kaynak: ${author || feedConfig.author}`, `Kategori: ${feedConfig.category}`, 'Canlı Akış']
-        });
+          keyPoints: [
+            title,
+            `${author || feedConfig.author} tarafından aktarılan son bilgiler değerlendirildi`,
+            'Resmi açıklamalar ve sahadaki gelişmeler doğrultusunda süreç takip ediliyor'
+          ]
+        };
+
+        parsedItems.push(articleObj);
       }
     }
 
@@ -2613,8 +2788,8 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
-// Direct Article by Slug or ID Endpoint (Supports instant SSR / Direct URLs)
-app.get('/api/news/article/:idOrSlug', (req, res) => {
+// Direct Article by Slug or ID Endpoint (Supports instant SSR / Direct URLs with AI enrichment)
+app.get('/api/news/article/:idOrSlug', async (req, res) => {
   try {
     const { idOrSlug } = req.params;
     if (!idOrSlug) {
@@ -2635,10 +2810,27 @@ app.get('/api/news/article/:idOrSlug', (req, res) => {
     }
 
     if (found) {
-      return res.json({ success: true, article: found });
+      // Automatically enrich with Gemini AI / clean structure
+      const enriched = await enrichNewsArticle(found);
+      return res.json({ success: true, article: enriched });
     }
 
     return res.status(404).json({ success: false, error: 'Article not found in cache' });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+// AI Article Enrichment On-Demand Endpoint
+app.post('/api/news/enrich', async (req, res) => {
+  try {
+    const article = req.body?.article;
+    if (!article || !article.title) {
+      return res.status(400).json({ success: false, error: 'Valid article object is required' });
+    }
+
+    const enriched = await enrichNewsArticle(article);
+    return res.json({ success: true, article: enriched });
   } catch (err) {
     return res.status(500).json({ success: false, error: (err as Error).message });
   }

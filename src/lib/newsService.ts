@@ -1045,6 +1045,44 @@ export function getArticleUrl(article: Article): string {
 }
 
 /**
+ * Request server-side AI enrichment with Gemini (summary, 3-4 paragraphs, key points, high-res image)
+ */
+export async function enrichArticleWithAI(article: Article): Promise<Article> {
+  if (!article || !article.title) return article;
+
+  // If already enriched with rich multi-paragraph text and clean keypoints
+  if (
+    article.content && 
+    article.content.length > 250 && 
+    article.content.includes('\n\n') && 
+    article.keyPoints && 
+    article.keyPoints.length >= 3 && 
+    !article.keyPoints.some(k => k.includes('Canlı Akış') || k.includes('Kategori:'))
+  ) {
+    return article;
+  }
+
+  try {
+    const res = await fetch('/api/news/enrich', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ article })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && data.article) {
+        return data.article;
+      }
+    }
+  } catch (e) {
+    console.warn('AI enrichment fetch notice:', e);
+  }
+
+  return article;
+}
+
+/**
  * Fetch a single article by ID or slug from server API
  */
 export async function fetchArticleByIdOrSlug(idOrSlug: string): Promise<Article | null> {

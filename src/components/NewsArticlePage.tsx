@@ -22,7 +22,16 @@ import { motion } from 'motion/react';
 import { Article } from '../types';
 import { useTheme } from '../lib/ThemeContext';
 import { ttsService } from '../lib/ttsService';
-import { sanitizeImageUrl, getTopicContextualImage, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl, generateArticleSlug, fetchNewsByCategory, sanitizeNewsText } from '../lib/newsService';
+import { 
+  sanitizeImageUrl, 
+  getTopicContextualImage, 
+  DEFAULT_VOX_FALLBACK_IMAGE, 
+  getArticleUrl, 
+  generateArticleSlug, 
+  fetchNewsByCategory, 
+  sanitizeNewsText,
+  enrichArticleWithAI 
+} from '../lib/newsService';
 import { NativeAdCard } from './NativeAdCard';
 import { INITIAL_ARTICLES } from '../data/defaultArticles';
 
@@ -188,7 +197,10 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             // Fallback to first available or initial
             const fb = articles[0] || INITIAL_ARTICLES[0];
             setArticle(fb || null);
-            if (fb) loadRelated(fb);
+            if (fb) {
+              loadRelated(fb);
+              enrichArticleWithAI(fb).then(enr => { if (enr) setArticle(enr); }).catch(() => {});
+            }
           }
         })
         .catch(() => {
@@ -201,6 +213,20 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
       setArticle(found);
       loadRelated(found);
       setIsLoading(false);
+
+      // Check if article needs AI summarization/expansion
+      if (
+        !found.content || 
+        found.content.length < 250 || 
+        !found.keyPoints || 
+        found.keyPoints.some(k => k.includes('Canlı Akış') || k.includes('Kategori:'))
+      ) {
+        enrichArticleWithAI(found).then(enr => {
+          if (enr && (enr.content !== found.content || enr.summary !== found.summary)) {
+            setArticle(enr);
+          }
+        }).catch(() => {});
+      }
     }
   }, [slug, articles]);
 
