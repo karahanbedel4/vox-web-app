@@ -50,8 +50,8 @@ const ai = new GoogleGenAI({
 });
 
 async function callGeminiWithRetry(params: { model?: string; contents: any; config?: any }, retries = 2, delayMs = 300) {
-  const primaryModel = params.model || 'gemini-3.6-flash';
-  const models = Array.from(new Set([primaryModel, 'gemini-2.5-flash', 'gemini-flash-latest']));
+  const primaryModel = params.model || 'gemini-3.7-flash';
+  const models = Array.from(new Set([primaryModel, 'gemini-3.7-flash', 'gemini-2.5-flash', 'gemini-flash-latest']));
   let lastError: any = null;
 
   for (const modelName of models) {
@@ -66,7 +66,7 @@ async function callGeminiWithRetry(params: { model?: string; contents: any; conf
         lastError = err;
         const status = err?.status || err?.code;
         const msg = err?.message || String(err);
-        const isTransient = status === 503 || status === 429 || msg.includes('503') || msg.includes('429') || msg.includes('UNAVAILABLE') || msg.includes('high demand');
+        const isTransient = status === 503 || status === 429 || msg.includes('503') || msg.includes('429') || msg.includes('UNAVAILABLE') || msg.includes('high demand') || msg.includes('quota');
         
         if (isTransient && i < retries - 1) {
           await new Promise(resolve => setTimeout(resolve, delayMs * (i + 1)));
@@ -80,6 +80,56 @@ async function callGeminiWithRetry(params: { model?: string; contents: any; conf
 
   throw lastError;
 }
+
+// Health & System Status Endpoint for API Key and News Feed verification
+app.get('/api/health', async (req, res) => {
+  const hasGeminiKey = !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 5;
+  const keyPrefix = hasGeminiKey ? process.env.GEMINI_API_KEY!.substring(0, 7) + '...' : 'NONE';
+  
+  let geminiTestStatus = 'untested';
+  let geminiLatencyMs = 0;
+  let geminiError: string | null = null;
+
+  if (hasGeminiKey) {
+    const t0 = Date.now();
+    try {
+      const pingRes = await callGeminiWithRetry({
+        model: 'gemini-3.7-flash',
+        contents: 'Ping',
+      });
+      geminiLatencyMs = Date.now() - t0;
+      geminiTestStatus = (pingRes && pingRes.text) ? 'connected_ok' : 'empty_response';
+    } catch (e: any) {
+      geminiTestStatus = 'error';
+      geminiError = e?.message || String(e);
+    }
+  } else {
+    geminiTestStatus = 'missing_api_key';
+  }
+
+  const categoryCounts: Record<string, number> = {};
+  Object.keys(serverNewsCache.byCategory).forEach(cat => {
+    categoryCounts[cat] = serverNewsCache.byCategory[cat]?.length || 0;
+  });
+
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    gemini: {
+      hasKey: hasGeminiKey,
+      keyPrefix,
+      status: geminiTestStatus,
+      latencyMs: geminiLatencyMs,
+      error: geminiError
+    },
+    newsCache: {
+      totalArticles: serverNewsCache.all.length,
+      lastUpdated: serverNewsCache.lastUpdated ? new Date(serverNewsCache.lastUpdated).toISOString() : 'never',
+      isRefreshing: serverNewsCache.isRefreshing,
+      categoryCounts
+    }
+  });
+});
 
 function extractYouTubeId(urlStr: string): string | null {
   if (!urlStr) return null;
@@ -1720,7 +1770,7 @@ Yalnızca aşağıdaki JSON formatında yanıt ver:
     let data;
     try {
       const response = await callGeminiWithRetry({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.7-flash',
         contents: geminiContents,
         config: {
           responseMimeType: 'application/json'
@@ -1854,7 +1904,7 @@ Respond ONLY with valid JSON in this exact structure:
 `;
 
       const response = await callGeminiWithRetry({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.7-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json'
@@ -1886,7 +1936,7 @@ app.post('/api/gemini', async (req, res) => {
     const { prompt, systemInstruction } = req.body;
     try {
       const response = await callGeminiWithRetry({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.7-flash',
         contents: prompt,
         config: {
           systemInstruction: systemInstruction || 'You are VOX AI assistant for podcast audio processing.'
@@ -1982,8 +2032,8 @@ Respond ONLY with valid JSON:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+    const response = await callGeminiWithRetry({
+      model: 'gemini-3.7-flash',
       contents: [imagePart, prompt],
       config: {
         responseMimeType: 'application/json'
@@ -2953,8 +3003,8 @@ XML:
 ${xmlText.substring(0, 15000)}
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+    const response = await callGeminiWithRetry({
+      model: 'gemini-3.7-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json'

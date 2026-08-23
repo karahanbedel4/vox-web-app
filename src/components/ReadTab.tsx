@@ -103,16 +103,18 @@ export const ReadTab: React.FC<ReadTabProps> = ({
 
   const categories = ['Tümü', 'Favoriler', 'Dönüştürülenler', 'Teknoloji', 'Dünya', 'Ekonomi', 'Kültür & Sanat', 'Finans', 'Etik & Bilim', 'Sürdürülebilirlik', 'Felsefe'];
 
-  // Helper to identify user-converted articles vs Google News RSS items
+  // Helper to identify user-converted articles vs Live News items
   const isConvertedArticle = (a: Article) => {
+    if (!a) return false;
     return (
-      ['youtube', 'pdf', 'web', 'ocr', 'text'].includes(a.sourceType) ||
-      a.id.startsWith('vox_') ||
+      ['pdf', 'ocr', 'text'].includes(a.sourceType) ||
+      a.id.startsWith('user_') ||
+      a.id.startsWith('custom_') ||
+      a.id.startsWith('upload_') ||
       a.category === 'Dönüştürülenler' ||
       a.category === 'Dönüştürülen Metin' ||
-      a.category === 'YouTube' ||
       a.category === 'PDF' ||
-      a.category === 'Web'
+      a.category === 'Pano'
     );
   };
 
