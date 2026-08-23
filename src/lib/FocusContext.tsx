@@ -148,6 +148,7 @@ interface FocusContextType {
   sessionType: 'work' | 'break';
   timeLeft: number;
   isRunning: boolean;
+  targetRounds: number;
   completedSessions: number;
   focusGoal: string;
   totalDurationSeconds: number;
@@ -156,6 +157,8 @@ interface FocusContextType {
   // Actions
   setWorkMinutes: (mins: number) => void;
   setBreakMinutes: (mins: number) => void;
+  setTargetRounds: (rounds: number) => void;
+  resetCompletedSessions: () => void;
   setFocusGoal: (goal: string) => void;
   toggleTimer: () => void;
   resetTimer: () => void;
@@ -217,11 +220,31 @@ export const FocusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [timeLeft, setTimeLeft] = useState<number>(workMinutes * 60);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [completedSessions, setCompletedSessions] = useState<number>(0);
+  const [targetRounds, setTargetRoundsState] = useState<number>(() => {
+    try {
+      const saved = appStorage.getItemSync('vox_focus_target_rounds');
+      return saved ? Math.max(1, parseInt(saved, 10) || 4) : 4;
+    } catch (e) {
+      return 4;
+    }
+  });
   const [isTopBannerDismissed, setIsTopBannerDismissed] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const endTimeRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
+
+  const setTargetRounds = (rounds: number) => {
+    const val = Math.max(1, Math.min(12, rounds || 4));
+    setTargetRoundsState(val);
+    try {
+      appStorage.setItemSync('vox_focus_target_rounds', val.toString());
+    } catch (e) {}
+  };
+
+  const resetCompletedSessions = () => {
+    setCompletedSessions(0);
+  };
 
   // Goal
   const [focusGoal, setFocusGoalState] = useState<string>(() => {
@@ -537,12 +560,15 @@ export const FocusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         sessionType,
         timeLeft,
         isRunning,
+        targetRounds,
         completedSessions,
         focusGoal,
         totalDurationSeconds,
         progressPercent,
         setWorkMinutes,
         setBreakMinutes,
+        setTargetRounds,
+        resetCompletedSessions,
         setFocusGoal,
         toggleTimer,
         resetTimer,

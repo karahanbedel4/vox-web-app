@@ -576,12 +576,139 @@ export async function fetchRemoteFeedXml(url: string, timeoutMs: number = 8000):
       headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, */*' }
     });
     if (res.ok) {
-      return await res.text();
+      const text = await res.text();
+      // Ensure we didn't receive index.html SPA fallback
+      if (text && (text.includes('<rss') || text.includes('<feed') || text.includes('<?xml'))) {
+        return text;
+      }
     }
   } catch (err) {
     console.warn(`fetchRemoteFeedXml error for ${url}:`, err);
   }
   return null;
+}
+
+/**
+ * Universal Client-Side Real-Time RSS Fetcher
+ * Used when server API is unavailable or on static CDN deployments (e.g. Vercel SPA)
+ */
+export async function fetchClientSideRssFeeds(category: string = 'Gündem'): Promise<Article[]> {
+  const targetCategory = category === 'Tümü' ? 'Gündem' : category;
+  const articles: Article[] = [];
+
+  // Google News & Direct Turkish Outlets by Topic
+  const feeds: { url: string; source: string; category: string }[] = [];
+
+  if (targetCategory === 'Teknoloji') {
+    feeds.push(
+      { url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=tr&gl=TR&ceid=TR:tr', source: 'Google Haberler Teknoloji', category: 'Teknoloji' },
+      { url: 'https://www.webtekno.com/rss.xml', source: 'Webtekno', category: 'Teknoloji' },
+      { url: 'https://shiftdelete.net/feed', source: 'ShiftDelete', category: 'Teknoloji' },
+      { url: 'https://www.ntv.com.tr/teknoloji.rss', source: 'NTV Teknoloji', category: 'Teknoloji' }
+    );
+  } else if (targetCategory === 'Ekonomi') {
+    feeds.push(
+      { url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=tr&gl=TR&ceid=TR:tr', source: 'Google Haberler Ekonomi', category: 'Ekonomi' },
+      { url: 'https://www.bloomberght.com/rss', source: 'Bloomberg HT', category: 'Ekonomi' },
+      { url: 'https://www.ntv.com.tr/ekonomi.rss', source: 'NTV Ekonomi', category: 'Ekonomi' }
+    );
+  } else if (targetCategory === 'Spor') {
+    feeds.push(
+      { url: 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=tr&gl=TR&ceid=TR:tr', source: 'Google Haberler Spor', category: 'Spor' },
+      { url: 'https://www.ntvspor.net/rss/haber', source: 'NTV Spor', category: 'Spor' },
+      { url: 'https://www.fanatik.com.tr/rss/futbol', source: 'Fanatik', category: 'Spor' }
+    );
+  } else if (targetCategory === 'Dünya') {
+    feeds.push(
+      { url: 'https://news.google.com/rss/headlines/section/topic/WORLD?hl=tr&gl=TR&ceid=TR:tr', source: 'Google Haberler Dünya', category: 'Dünya' },
+      { url: 'https://feeds.bbci.co.uk/turkce/rss.xml', source: 'BBC Türkçe', category: 'Dünya' },
+      { url: 'https://www.ntv.com.tr/dunya.rss', source: 'NTV Dünya', category: 'Dünya' }
+    );
+  } else if (targetCategory === 'Sağlık') {
+    feeds.push(
+      { url: 'https://news.google.com/rss/headlines/section/topic/HEALTH?hl=tr&gl=TR&ceid=TR:tr', source: 'Google Haberler Sağlık', category: 'Sağlık' },
+      { url: 'https://www.ntv.com.tr/saglik.rss', source: 'NTV Sağlık', category: 'Sağlık' }
+    );
+  } else {
+    // Gündem / Genel
+    feeds.push(
+      { url: 'https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr', source: 'Google Haberler Türkiye', category: 'Gündem' },
+      { url: 'https://www.trthaber.com/sondakika_articles.rss', source: 'TRT Haber', category: 'Gündem' },
+      { url: 'https://www.ntv.com.tr/gundem.rss', source: 'NTV Gündem', category: 'Gündem' },
+      { url: 'https://feeds.bbci.co.uk/turkce/rss.xml', source: 'BBC Türkçe', category: 'Gündem' }
+    );
+  }
+
+  const fetchSingleFeed = async (feedItem: { url: string; source: string; category: string }) => {
+    const proxies = [
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(feedItem.url)}`,
+      `https://corsproxy.io/?url=${encodeURIComponent(feedItem.url)}`,
+      feedItem.url
+    ];
+
+    for (const proxyUrl of proxies) {
+      try {
+        const res = await fetch(proxyUrl, {
+          signal: AbortSignal.timeout(5000),
+          headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, */*' }
+        });
+        if (res.ok) {
+          const xml = await res.text();
+          if (xml && (xml.includes('<item') || xml.includes('<entry') || xml.includes('<rss') || xml.includes('<feed'))) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xml, 'text/xml');
+            const items = xmlDoc.querySelectorAll('item, entry');
+
+            const feedArticles: Article[] = [];
+            items.forEach((itemNode, idx) => {
+              if (feedArticles.length >= 15) return;
+              const title = itemNode.querySelector('title')?.textContent?.trim() || '';
+              const desc = itemNode.querySelector('description, summary, content')?.textContent?.trim() || '';
+              const link = itemNode.querySelector('link')?.textContent?.trim() || itemNode.querySelector('link')?.getAttribute('href') || '';
+              const pubDate = itemNode.querySelector('pubDate, updated, published')?.textContent?.trim() || new Date().toISOString();
+
+              if (title && title.length > 5) {
+                const cleanItem = parseGoogleNewsItem(
+                  {
+                    id: `live_${feedItem.category.toLowerCase()}_${idx}_${Date.now()}`,
+                    title,
+                    description: desc,
+                    url: link,
+                    pubDate,
+                    category: feedItem.category,
+                    author: feedItem.source
+                  },
+                  feedItem.category,
+                  idx
+                );
+                feedArticles.push(cleanItem);
+              }
+            });
+
+            if (feedArticles.length > 0) {
+              return feedArticles;
+            }
+          }
+        }
+      } catch (e) {
+        // Try next proxy
+      }
+    }
+    return [];
+  };
+
+  try {
+    const results = await Promise.allSettled(feeds.map(f => fetchSingleFeed(f)));
+    results.forEach(res => {
+      if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+        articles.push(...res.value);
+      }
+    });
+  } catch (e) {
+    console.warn('fetchClientSideRssFeeds notice:', e);
+  }
+
+  return articles;
 }
 
 /**
@@ -703,7 +830,7 @@ export async function fetchTwitterNews(category?: string): Promise<Article[]> {
 }
 
 /**
- * Fetch dynamic Turkish news by category with ultra-fast server-side background cache
+ * Fetch dynamic Turkish news by category with ultra-fast server-side background cache and robust client fallback
  */
 export async function fetchNewsByCategory(category: string = 'Tümü', lang: string = 'tr', limit: number = 80): Promise<Article[]> {
   const targetCategory = category === 'Tümü' ? 'Gündem' : category;
@@ -722,7 +849,8 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
       }
     });
     
-    if (res.ok) {
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
       const data = await res.json();
       const articlesList = Array.isArray(data) ? data : (data.articles || data.data || []);
       
@@ -752,7 +880,19 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
     twitterArticles = [];
   }
 
-  // 3. Secondary Fallback: Direct first-party proxy fetch (/api/fetch-feed) if /api/news returned empty
+  // 3. Robust Client-Side RSS Fetcher (Google News + National Outlets) if /api/news returned empty
+  if (articles.length === 0) {
+    try {
+      const liveRssItems = await fetchClientSideRssFeeds(targetCategory);
+      if (Array.isArray(liveRssItems) && liveRssItems.length > 0) {
+        articles.push(...liveRssItems);
+      }
+    } catch (e) {
+      console.warn('Live client-side RSS fallback notice:', e);
+    }
+  }
+
+  // 4. Secondary Proxy Fallback if still empty
   if (articles.length === 0) {
     try {
       const feedUrl = category === 'Teknoloji' 
@@ -792,7 +932,7 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
     }
   }
 
-  // 4. Tertiary Fallback to default curated articles if both failed
+  // 5. Final fallback to curated initial articles if all network attempts fail
   if (articles.length === 0 && twitterArticles.length === 0) {
     const defaults = (INITIAL_ARTICLES || []).filter(
       a => !category || category === 'Tümü' || a.category.toLowerCase() === category.toLowerCase()
@@ -800,7 +940,7 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
     return defaults;
   }
 
-  // 4. Aggregate Web RSS articles + Twitter articles into one single array
+  // 6. Aggregate Web RSS articles + Twitter articles into one single array
   const allCombined = [...twitterArticles, ...articles];
 
   // Deduplicate by title

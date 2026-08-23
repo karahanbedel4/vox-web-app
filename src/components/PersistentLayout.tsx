@@ -31,7 +31,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Article, UserProfile, PlaybackState } from '../types';
 import { ttsService } from '../lib/ttsService';
 import { AppStorePaywallModal } from './AppStorePaywallModal';
-import { AmbientMixerSheet, AmbientChannel } from './AmbientMixerSheet';
+import { AmbientMixerSheet, AmbientChannel, PlaylistInfo } from './AmbientMixerSheet';
 import { AmbientNotificationBanner } from './AmbientControls';
 import { FocusTopBanner } from './FocusTopBanner';
 import { useFocus, formatFocusTime } from '../lib/FocusContext';
@@ -57,6 +57,10 @@ interface PersistentLayoutProps {
   setAmbientChannels: React.Dispatch<React.SetStateAction<AmbientChannel[]>>;
   isAmbientMixerOpen: boolean;
   setIsAmbientMixerOpen: (open: boolean) => void;
+  onNextAmbientTrack?: () => void;
+  onPrevAmbientTrack?: () => void;
+  onAmbientTrackEnded?: () => void;
+  playlistInfo?: PlaylistInfo | null;
 }
 
 export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
@@ -69,7 +73,11 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   ambientChannels,
   setAmbientChannels,
   isAmbientMixerOpen,
-  setIsAmbientMixerOpen
+  setIsAmbientMixerOpen,
+  onNextAmbientTrack,
+  onPrevAmbientTrack,
+  onAmbientTrackEnded,
+  playlistInfo
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -1313,6 +1321,10 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             active: true
           }]);
         }}
+        onNextTrack={onNextAmbientTrack}
+        onPrevTrack={onPrevAmbientTrack}
+        onTrackEnded={onAmbientTrackEnded}
+        playlistInfo={playlistInfo}
       />
     </div>
   );

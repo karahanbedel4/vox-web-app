@@ -1,5 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CloudRain, Volume2, VolumeX, Plus, X, Check, Youtube, Music, Play, Pause, Square, Sparkles, Trees, Waves, Zap, Moon, Coffee, Sliders, Maximize2, Minimize2 } from 'lucide-react';
+import { 
+  CloudRain, 
+  Volume2, 
+  VolumeX, 
+  Plus, 
+  X, 
+  Check, 
+  Youtube, 
+  Music, 
+  Play, 
+  Pause, 
+  Square, 
+  Sparkles, 
+  Trees, 
+  Waves, 
+  Zap, 
+  Moon, 
+  Coffee, 
+  Sliders, 
+  SkipBack, 
+  SkipForward, 
+  Film, 
+  Tv 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHapticImpact } from '../lib/haptics';
 
@@ -13,6 +36,14 @@ export interface AmbientChannel {
   active: boolean;
 }
 
+export interface PlaylistInfo {
+  title?: string;
+  subtitle?: string;
+  currentIndex?: number;
+  totalTracks?: number;
+  isContinuous?: boolean;
+}
+
 export function extractYouTubeId(url: string): string | null {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -23,6 +54,12 @@ export function extractYouTubeId(url: string): string | null {
 const getSoundIcon = (id: string, active: boolean) => {
   const norm = id.toLowerCase();
   const activeClass = active ? 'text-[#1ed760]' : 'text-gray-400';
+  if (norm.includes('series') || norm.includes('friends') || norm.includes('himym') || norm.includes('got') || norm.includes('peaky') || norm.includes('stranger') || norm.includes('breaking') || norm.includes('sherlock')) {
+    return <Tv className={`w-4 h-4 shrink-0 ${activeClass}`} />;
+  }
+  if (norm.includes('movie') || norm.includes('starwars') || norm.includes('hp') || norm.includes('lotr') || norm.includes('interstellar') || norm.includes('inception') || norm.includes('gladiator') || norm.includes('godfather') || norm.includes('pirates') || norm.includes('pulp')) {
+    return <Film className={`w-4 h-4 shrink-0 ${activeClass}`} />;
+  }
   if (norm.includes('rain') || norm.includes('yagmur')) return <CloudRain className={`w-4 h-4 shrink-0 ${activeClass}`} />;
   if (norm.includes('forest') || norm.includes('orman') || norm.includes('bird')) return <Trees className={`w-4 h-4 shrink-0 ${activeClass}`} />;
   if (norm.includes('wave') || norm.includes('ocean') || norm.includes('dalga')) return <Waves className={`w-4 h-4 shrink-0 ${activeClass}`} />;
@@ -40,6 +77,10 @@ interface AmbientMixerSheetProps {
   onToggleChannel: (id: string) => void;
   onVolumeChange: (id: string, vol: number) => void;
   onAddCustomChannel: (name: string, url: string) => void;
+  onNextTrack?: () => void;
+  onPrevTrack?: () => void;
+  onTrackEnded?: () => void;
+  playlistInfo?: PlaylistInfo | null;
 }
 
 export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
@@ -49,7 +90,11 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
   channels,
   onToggleChannel,
   onVolumeChange,
-  onAddCustomChannel
+  onAddCustomChannel,
+  onNextTrack,
+  onPrevTrack,
+  onTrackEnded,
+  playlistInfo
 }) => {
   const [customInputUrl, setCustomInputUrl] = useState('');
   const [customInputName, setCustomInputName] = useState('');
@@ -60,6 +105,35 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
   // Active playing channels
   const activeChannels = channels.filter(c => c.active && c.volume > 0);
   const primaryActive = activeChannels[0] || null;
+
+  // Listen for YouTube IFrame player onEnded events to auto-advance playlist
+  useEffect(() => {
+    const handleYouTubeMessage = (event: MessageEvent) => {
+      if (!event.data) return;
+      let payload: any;
+      try {
+        payload = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      } catch {
+        return;
+      }
+
+      // YouTube player state: 0 is ENDED
+      const isEndedState = payload?.event === 'onStateChange' && payload?.info === 0;
+      const isEndedInfo = payload?.info?.playerState === 0;
+      const isEndedData = payload?.info === 0 && payload?.event === 'infoDelivery';
+
+      if (isEndedState || isEndedInfo || isEndedData) {
+        if (onTrackEnded) {
+          onTrackEnded();
+        } else if (onNextTrack) {
+          onNextTrack();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleYouTubeMessage);
+    return () => window.removeEventListener('message', handleYouTubeMessage);
+  }, [onTrackEnded, onNextTrack]);
 
   // Sync MP3 audio streams & YouTube Iframes
   useEffect(() => {
@@ -158,7 +232,7 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
               >
                 <iframe
                   id={`yt-player-${ch.id}`}
-                  src={`https://www.youtube-nocookie.com/embed/${ch.youtubeId}?enablejsapi=1&autoplay=1&playsinline=1&loop=1&playlist=${ch.youtubeId}&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                  src={`https://www.youtube-nocookie.com/embed/${ch.youtubeId}?enablejsapi=1&autoplay=1&playsinline=1&loop=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
                   allow="autoplay; encrypted-media; picture-in-picture"
                   width="120"
                   height="120"
@@ -191,7 +265,7 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.94 }}
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-            className="fixed bottom-20 md:bottom-7 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-lg bg-[#0e1410]/95 hover:bg-[#121a15]/95 backdrop-blur-2xl border border-[#1ed760]/30 hover:border-[#1ed760]/50 rounded-2xl sm:rounded-full shadow-[0_16px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(30,215,96,0.18)] px-3 py-2 sm:px-4 sm:py-2 text-white flex items-center justify-between gap-2.5 sm:gap-4 transition-colors"
+            className="fixed bottom-20 md:bottom-7 left-1/2 -translate-x-1/2 z-40 w-[96%] max-w-xl bg-[#0e1410]/95 hover:bg-[#121a15]/95 backdrop-blur-2xl border border-[#1ed760]/30 hover:border-[#1ed760]/50 rounded-2xl sm:rounded-full shadow-[0_16px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(30,215,96,0.18)] px-3 py-2 sm:px-4 sm:py-2 text-white flex items-center justify-between gap-2.5 sm:gap-3 transition-colors"
           >
             {/* Left: Thumbnail + Live EQ + Track Info (Clicking opens Full Mixer Sheet) */}
             <div 
@@ -229,9 +303,14 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse" />
                   <span className="text-[10px] font-extrabold uppercase text-[#1ed760] tracking-wider truncate">
-                    ODAK MÜZİĞİ
+                    {playlistInfo?.title || 'ODAK MÜZİĞİ'}
                   </span>
-                  {activeChannels.length > 1 && (
+                  {playlistInfo && playlistInfo.totalTracks && playlistInfo.totalTracks > 1 && (
+                    <span className="text-[9px] font-bold bg-[#1ed760]/20 border border-[#1ed760]/40 text-[#1ed760] px-1.5 py-0.2 rounded-full">
+                      {(playlistInfo.currentIndex ?? 0) + 1}/{playlistInfo.totalTracks}
+                    </span>
+                  )}
+                  {activeChannels.length > 1 && !playlistInfo && (
                     <span className="text-[9px] font-bold bg-[#1ed760]/20 border border-[#1ed760]/40 text-[#1ed760] px-1.5 py-0.5 rounded-full">
                       +{activeChannels.length - 1} ses
                     </span>
@@ -243,10 +322,54 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
               </div>
             </div>
 
+            {/* Middle: Prev / Next buttons for playlist */}
+            <div className="flex items-center gap-1 shrink-0">
+              {onPrevTrack && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    triggerHaptic();
+                    onPrevTrack();
+                  }}
+                  className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                  title="Önceki Parça"
+                >
+                  <SkipBack className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              {/* Pause / Play Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerHaptic();
+                  onToggleChannel(primaryActive.id);
+                }}
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1ed760] hover:bg-[#1ed760]/90 text-black flex items-center justify-center font-bold hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-[0_0_15px_rgba(30,215,96,0.35)]"
+                title="Durdur / Oynat"
+              >
+                <Pause className="w-4 h-4 fill-current" />
+              </button>
+
+              {onNextTrack && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    triggerHaptic();
+                    onNextTrack();
+                  }}
+                  className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                  title="Sonraki Parça (Biri Bitince Diğeri Başlar)"
+                >
+                  <SkipForward className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
             {/* Right: Inline Volume Slider + Controls */}
-            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {/* Minimal Inline Volume Slider with Mute Toggle */}
-              <div className="flex items-center gap-1.5 bg-black/45 hover:bg-black/60 border border-white/10 px-2 py-1 rounded-full transition-colors">
+              <div className="hidden xs:flex items-center gap-1.5 bg-black/45 hover:bg-black/60 border border-white/10 px-2 py-1 rounded-full transition-colors">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -275,26 +398,10 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
                     e.stopPropagation();
                     onVolumeChange(primaryActive.id, parseInt(e.target.value));
                   }}
-                  className="w-14 sm:w-20 accent-[#1ed760] bg-white/20 h-1 rounded-lg cursor-pointer"
+                  className="w-12 sm:w-16 accent-[#1ed760] bg-white/20 h-1 rounded-lg cursor-pointer"
                   title={`Ses Düzeyi: %${primaryActive.volume}`}
                 />
-                <span className="text-[10px] font-mono text-gray-300 w-6 text-right hidden xs:inline-block">
-                  %{primaryActive.volume}
-                </span>
               </div>
-
-              {/* Pause / Play Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  triggerHaptic();
-                  onToggleChannel(primaryActive.id);
-                }}
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1ed760] hover:bg-[#1ed760]/90 text-black flex items-center justify-center font-bold hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-[0_0_15px_rgba(30,215,96,0.35)]"
-                title="Durdur / Oynat"
-              >
-                <Pause className="w-4 h-4 fill-current" />
-              </button>
 
               {/* Mikser (Sliders) Button */}
               <button
@@ -335,20 +442,22 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
           onClick={onClose}
         >
           <div 
-            className="w-full max-w-md bg-[#121814] border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 space-y-5 shadow-2xl overflow-y-auto max-h-[85vh] text-gray-200 cursor-default"
+            className="w-full max-w-lg bg-[#121814] border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 space-y-5 shadow-2xl overflow-y-auto max-h-[85vh] text-gray-200 cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-[#1ed760]/20 border border-[#1ed760]/30 flex items-center justify-center text-[#1ed760] shadow-sm">
-                  <CloudRain className="w-5 h-5" />
+                  <Music className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-display font-extrabold text-base text-white">
-                    Doğa & Odak Sesleri Mikseri
+                    Müzik & Ambiyans Stüdyosu
                   </h3>
-                  <p className="text-xs text-gray-400 font-medium">Stüdyo Kalitesinde Canlı Müzik & Ambiyans</p>
+                  <p className="text-xs text-gray-400 font-medium">
+                    {playlistInfo ? `${playlistInfo.title || 'Playlist'} • Otomatik Kesintisiz Çalma` : 'Dizi/Film Müzikleri & Canlı Ambiyans Mikseri'}
+                  </p>
                 </div>
               </div>
               <button 
@@ -358,6 +467,53 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Quick Playlist Controls Banner inside Mixer */}
+            {primaryActive && (
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#1ed760]/15 via-emerald-900/20 to-black border border-[#1ed760]/30 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl overflow-hidden bg-black shrink-0 border border-[#1ed760]/40">
+                    {primaryActive.youtubeId ? (
+                      <img 
+                        src={`https://img.youtube.com/vi/${primaryActive.youtubeId}/mqdefault.jpg`} 
+                        alt={primaryActive.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Music className="w-5 h-5 text-[#1ed760] m-2" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-[10px] text-[#1ed760] font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse" />
+                      <span>ÇALIYOR {playlistInfo ? `(${(playlistInfo.currentIndex ?? 0) + 1}/${playlistInfo.totalTracks})` : ''}</span>
+                    </div>
+                    <p className="text-xs font-bold text-white truncate">{primaryActive.name}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {onPrevTrack && (
+                    <button
+                      onClick={() => { triggerHaptic(); onPrevTrack(); }}
+                      className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-colors"
+                      title="Önceki Parça"
+                    >
+                      <SkipBack className="w-4 h-4" />
+                    </button>
+                  )}
+                  {onNextTrack && (
+                    <button
+                      onClick={() => { triggerHaptic(); onNextTrack(); }}
+                      className="p-2 rounded-xl bg-[#1ed760] text-black hover:bg-[#1ed760]/90 font-bold cursor-pointer transition-colors"
+                      title="Sonraki Parça"
+                    >
+                      <SkipForward className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Channel Cards */}
             <div className="space-y-3">
@@ -476,4 +632,3 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
     </>
   );
 };
-

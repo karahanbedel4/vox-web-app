@@ -39,7 +39,14 @@ import {
   Award,
   PartyPopper,
   ListTodo,
-  CheckCheck
+  CheckCheck,
+  Film,
+  Tv,
+  ListMusic,
+  SkipForward,
+  SkipBack,
+  Shuffle,
+  Repeat
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Article } from '../types';
@@ -57,6 +64,7 @@ import {
   playTaskCompleteChime,
   playMindfulnessBell
 } from '../lib/FocusContext';
+import { ALL_SOUND_SHELVES, SoundTrack, getShelfIcon } from '../lib/soundtrackData';
 
 interface FocusTabProps {
   articles: Article[];
@@ -69,6 +77,12 @@ interface FocusTabProps {
   onToggleAmbientChannel: (id: string) => void;
   onVolumeChange?: (id: string, vol: number) => void;
   onOpenAmbientMixer: () => void;
+  onStartPlaylist?: (shelfId: string, trackId?: string) => void;
+  onNextTrack?: () => void;
+  onPrevTrack?: () => void;
+  activePlaylistShelfId?: string;
+  isContinuousPlaylistMode?: boolean;
+  onToggleContinuousPlaylistMode?: () => void;
 }
 
 /**
@@ -104,127 +118,6 @@ function getChannelIconComponent(name: string = '', id: string = '') {
   return Music;
 }
 
-// Horizontal Music Shelf Data Model (Spotify / Apple Music Architecture)
-export interface ShelfTrack {
-  id: string;
-  name: string;
-  subtitle: string;
-  youtubeId: string;
-}
-
-export interface MusicShelf {
-  id: string;
-  title: string;
-  subtitle: string;
-  icon: React.ComponentType<{ className?: string }>;
-  tracks: ShelfTrack[];
-}
-
-export const MUSIC_SHELVES: MusicShelf[] = [
-  {
-    id: 'nature',
-    title: 'Doğa & Ambiyans',
-    subtitle: 'Sakinleştirici doğa sesleri ve yağmur tonları',
-    icon: CloudRain,
-    tracks: [
-      {
-        id: 'yt-nature-rain',
-        name: 'Doğada Yağmur Sesi',
-        subtitle: 'Doğa & Yağmur',
-        youtubeId: '3mst47Uu3IU'
-      },
-      {
-        id: 'yt-forest-birds',
-        name: 'Sakin Orman & Kuş Sesi',
-        subtitle: 'Orman & Kuşlar',
-        youtubeId: 'xNN7iTA57jM'
-      },
-      {
-        id: 'yt-thunder-rain',
-        name: 'Şimşek ve Fırtına Sesi',
-        subtitle: 'Gece Fırtınası',
-        youtubeId: '9JEL_n6egA8'
-      },
-      {
-        id: 'yt-ocean-waves',
-        name: 'Okyanus & Dalga Sesi',
-        subtitle: 'Sahil Dalgaları',
-        youtubeId: 'bn9F19Hi1Lk'
-      },
-      {
-        id: 'yt-campfire-night',
-        name: 'Gece & Kamp Ateşi Sesi',
-        subtitle: 'Çıtırdayan Ateş',
-        youtubeId: 'L_LUpnjgPso'
-      },
-      {
-        id: 'yt-cozy-cafe',
-        name: 'Sakin Kafe Ambiyansı',
-        subtitle: 'Kahve Dükkanı',
-        youtubeId: 'gaGrHUekGrc'
-      }
-    ]
-  },
-  {
-    id: 'lofi',
-    title: 'Lo-Fi Odaklanma',
-    subtitle: 'Ritmik chillhop ve derin konsantrasyon beats',
-    icon: Music,
-    tracks: [
-      {
-        id: 'yt-lofi-rain',
-        name: 'Lo-Fi & Yağmur',
-        subtitle: 'Chillhop Yağmur',
-        youtubeId: 'sF80I-TQiW0'
-      },
-      {
-        id: 'yt-lofi-chill',
-        name: 'Lo-Fi Chill',
-        subtitle: 'Huzurlu Beats',
-        youtubeId: 'fsPRybb-xXg'
-      },
-      {
-        id: 'yt-deep-work',
-        name: 'Derin Çalışma Müziği',
-        subtitle: 'Binaural Focus',
-        youtubeId: 'czMO-L42nnc'
-      }
-    ]
-  },
-  {
-    id: 'epic',
-    title: 'Epik & Sinema',
-    subtitle: 'Efsanevi film temaları ve atmosferik tınılar',
-    icon: Sparkles,
-    tracks: [
-      {
-        id: 'yt-shire-study',
-        name: 'Shire Sakin Çalışma',
-        subtitle: 'Lord of the Rings',
-        youtubeId: 'HFlxEM6zZsc'
-      },
-      {
-        id: 'yt-lotr-soundtrack',
-        name: 'Yüzüklerin Efendisi Müzikleri',
-        subtitle: 'Orta Dünya Temaları',
-        youtubeId: 'FrWuCPgsp_c'
-      },
-      {
-        id: 'yt-hp-ambient',
-        name: 'Harry Potter Ambiyans',
-        subtitle: 'Hogwarts Kütüphanesi',
-        youtubeId: 'BQrxsyGTztM'
-      },
-      {
-        id: 'yt-hp-seasons',
-        name: 'Harry Potter Mevsimler',
-        subtitle: 'Büyülü Mevsimler',
-        youtubeId: 'FZXWmqVorQc'
-      }
-    ]
-  }
-];
-
 // Preset cycle options (Clean paired sets)
 const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6];
 const WORK_OPTIONS = [15, 20, 25, 45, 50];
@@ -240,7 +133,13 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   ambientChannels,
   onToggleAmbientChannel,
   onVolumeChange,
-  onOpenAmbientMixer
+  onOpenAmbientMixer,
+  onStartPlaylist,
+  onNextTrack,
+  onPrevTrack,
+  activePlaylistShelfId = 'series',
+  isContinuousPlaylistMode = true,
+  onToggleContinuousPlaylistMode
 }) => {
   const { theme } = useTheme();
 
@@ -504,21 +403,21 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         <div className="flex items-center gap-2.5">
           {/* Completed Session Progress Badge */}
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-colors ${
-            completedSessions >= targetRounds
+            (completedSessions || 0) >= (targetRounds || 4)
               ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
               : theme === 'light'
                 ? 'bg-white border border-slate-200 text-slate-800'
                 : 'bg-[#161c23] border border-white/10 text-white'
           }`}>
-            {completedSessions >= targetRounds ? (
+            {(completedSessions || 0) >= (targetRounds || 4) ? (
               <Trophy className="w-3.5 h-3.5 text-emerald-500 animate-bounce" />
             ) : (
               <Flame className="w-3.5 h-3.5 text-[#10b981] fill-current" />
             )}
             <span>
-              {completedSessions >= targetRounds 
-                ? `Hedef Tamamlandı! (${completedSessions}/${targetRounds} Tur)` 
-                : `${completedSessions} / ${targetRounds} Tur Tamamlandı`}
+              {(completedSessions || 0) >= (targetRounds || 4) 
+                ? `Hedef Tamamlandı! (${completedSessions || 0}/${targetRounds || 4} Tur)` 
+                : `${completedSessions || 0} / ${targetRounds || 4} Tur Tamamlandı`}
             </span>
           </div>
 
@@ -593,7 +492,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   <span>Hedef Seans Sayısı (Kaç Tur):</span>
                 </span>
                 <span className="font-mono font-bold text-[#1ed760]">
-                  {targetRounds} Tur ({targetRounds * workMinutes} dk Toplam)
+                  {targetRounds || 4} Tur ({(targetRounds || 4) * (workMinutes || 25)} dk Toplam)
                 </span>
               </div>
               <div className="grid grid-cols-6 gap-1.5">
@@ -602,7 +501,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     key={r}
                     onClick={() => handleSelectTargetRounds(r)}
                     className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                      targetRounds === r
+                      (targetRounds || 4) === r
                         ? 'bg-[#1ed760] text-black border-[#1ed760] shadow-md shadow-[#1ed760]/20 font-black'
                         : theme === 'light'
                           ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -627,7 +526,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     <span className="w-2 h-2 rounded-full bg-[#1ed760]" />
                     <span>Tur Süresi</span>
                   </span>
-                  <span className="font-mono font-bold text-[#1ed760]">{workMinutes} dk</span>
+                  <span className="font-mono font-bold text-[#1ed760]">{workMinutes || 25} dk</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {WORK_OPTIONS.map((m) => (
@@ -635,7 +534,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       key={m}
                       onClick={() => handleSelectWorkMinutes(m)}
                       className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                        workMinutes === m
+                        (workMinutes || 25) === m
                           ? 'bg-[#1ed760] text-black border-[#1ed760] shadow-md shadow-[#1ed760]/20'
                           : theme === 'light'
                             ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -660,7 +559,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     <span className="w-2 h-2 rounded-full bg-amber-400" />
                     <span>Mola Süresi</span>
                   </span>
-                  <span className="font-mono font-bold text-amber-500 dark:text-amber-400">{breakMinutes} dk</span>
+                  <span className="font-mono font-bold text-amber-500 dark:text-amber-400">{breakMinutes || 5} dk</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {BREAK_OPTIONS.map((m) => (
@@ -668,7 +567,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       key={m}
                       onClick={() => handleSelectBreakMinutes(m)}
                       className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                        breakMinutes === m
+                        (breakMinutes || 5) === m
                           ? 'bg-amber-400 text-black border-amber-400 shadow-md shadow-amber-400/20 font-black'
                           : theme === 'light'
                             ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -689,26 +588,26 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 <div className="flex items-center gap-2">
                   <span className={theme === 'light' ? 'text-slate-600' : 'text-gray-400'}>İlerleme:</span>
                   <div className="flex items-center gap-1.5">
-                    {Array.from({ length: targetRounds }).map((_, idx) => (
+                    {Array.from({ length: targetRounds || 4 }).map((_, idx) => (
                       <span
                         key={idx}
                         className={`w-3 h-3 rounded-full transition-all flex items-center justify-center text-[8px] font-black ${
-                          idx < completedSessions
+                          idx < (completedSessions || 0)
                             ? 'bg-[#1ed760] text-black ring-2 ring-[#1ed760]/30'
-                            : idx === completedSessions && isRunning
+                            : idx === (completedSessions || 0) && isRunning
                               ? 'bg-amber-400 animate-pulse text-black ring-2 ring-amber-400/40'
                               : theme === 'light' ? 'bg-slate-200 text-slate-400' : 'bg-white/10 text-gray-500'
                         }`}
-                        title={`Tur ${idx + 1} ${idx < completedSessions ? '(Tamamlandı)' : ''}`}
+                        title={`Tur ${idx + 1} ${idx < (completedSessions || 0) ? '(Tamamlandı)' : ''}`}
                       >
-                        {idx < completedSessions ? '✓' : idx + 1}
+                        {idx < (completedSessions || 0) ? '✓' : idx + 1}
                       </span>
                     ))}
                   </div>
                 </div>
 
                 <span className="font-mono font-bold text-[#1ed760]">
-                  %{Math.min(100, Math.round((completedSessions / targetRounds) * 100))}
+                  %{Math.min(100, Math.round(((completedSessions || 0) / (targetRounds || 4)) * 100))}
                 </span>
               </div>
 
@@ -716,7 +615,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'light' ? 'bg-slate-100' : 'bg-white/10'}`}>
                 <div 
                   className="h-full bg-gradient-to-r from-[#1ed760] to-emerald-400 transition-all duration-500 rounded-full"
-                  style={{ width: `${Math.min(100, (completedSessions / targetRounds) * 100)}%` }}
+                  style={{ width: `${Math.min(100, ((completedSessions || 0) / (targetRounds || 4)) * 100)}%` }}
                 />
               </div>
             </div>
@@ -1162,47 +1061,74 @@ export const FocusTab: React.FC<FocusTabProps> = ({
             </div>
           </div>
 
-          {/* SPOTIFY / APPLE MUSIC STYLE HORIZONTAL ALBUM SHELVES */}
+          {/* SPOTIFY / APPLE MUSIC STYLE HORIZONTAL ALBUM SHELVES WITH PLAYLIST CONTINUOUS AUTO-ADVANCE */}
           <section className="space-y-6 pt-2">
-            <div className={`flex items-center justify-between border-b pb-3 ${
+            <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${
               theme === 'light' ? 'border-slate-200' : 'border-white/10'
             }`}>
-              <div className="flex items-center gap-2">
-                <Headphones className="w-5 h-5 text-[#1ed760]" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-[#1ed760]/20 border border-[#1ed760]/30 flex items-center justify-center text-[#1ed760] shadow-sm">
+                  <Headphones className="w-5 h-5" />
+                </div>
                 <div>
                   <h2 className={`font-display text-base md:text-lg font-bold ${
                     theme === 'light' ? 'text-slate-900' : 'text-white'
                   }`}>
-                    Odaklanma Müzikleri & Ambiyans
+                    Odaklanma Müzikleri & Efsane Soundtracks
                   </h2>
                   <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                    Arka planda kesintisiz çalan özel ses atmosferleri
+                    Dizi, film müzikleri ve doğa sesleri • Biri bitince diğeri otomatik başlar
                   </p>
                 </div>
               </div>
 
-              <button
-                onClick={onOpenAmbientMixer}
-                className="px-3 py-1.5 rounded-xl bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30 text-xs font-bold hover:bg-[#1ed760]/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
-              >
-                <Sliders className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Gelişmiş Mikser</span>
-                <span className="sm:hidden">Mikser</span>
-              </button>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                {onToggleContinuousPlaylistMode && (
+                  <button
+                    onClick={() => {
+                      triggerHapticImpact('light').catch(() => {});
+                      onToggleContinuousPlaylistMode();
+                    }}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                      isContinuousPlaylistMode
+                        ? 'bg-[#1ed760]/20 text-[#1ed760] border-[#1ed760]/40 shadow-sm'
+                        : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
+                    }`}
+                    title="Playlist Otomatik Geçiş Modu: Bir parça bitince sonrakine otomatik geçer"
+                  >
+                    <Repeat className="w-3.5 h-3.5" />
+                    <span>{isContinuousPlaylistMode ? 'Sıralı Çalma: Açık' : 'Sıralı Çalma: Kapalı'}</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={onOpenAmbientMixer}
+                  className="px-3 py-1.5 rounded-xl bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30 text-xs font-bold hover:bg-[#1ed760]/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Gelişmiş Mikser</span>
+                  <span className="sm:hidden">Mikser</span>
+                </button>
+              </div>
             </div>
 
-            {/* 3 Horizontal Shelves */}
-            <div className="space-y-6">
-              {MUSIC_SHELVES.map((shelf) => {
-                const ShelfIcon = shelf.icon;
+            {/* Horizontal Sound Shelves */}
+            <div className="space-y-7">
+              {ALL_SOUND_SHELVES.map((shelf) => {
+                const ShelfIcon = getShelfIcon(shelf.iconName);
+                const isCurrentActiveShelf = activePlaylistShelfId === shelf.id;
+                const activeTrackInShelf = shelf.tracks.find(t => {
+                  const ch = ambientChannels.find(c => (c.id === t.id || c.youtubeId === t.youtubeId) && c.active && c.volume > 0);
+                  return Boolean(ch);
+                });
 
                 return (
-                  <div key={shelf.id} className="space-y-2.5">
+                  <div key={shelf.id} className="space-y-3">
                     {/* Shelf Header */}
                     <div className="flex items-center justify-between px-0.5">
                       <div className="flex items-center gap-2">
                         <ShelfIcon className="w-4 h-4 text-[#1ed760]" />
-                        <h3 className={`text-sm font-bold tracking-tight ${
+                        <h3 className={`text-sm md:text-base font-bold tracking-tight ${
                           theme === 'light' ? 'text-slate-900' : 'text-white'
                         }`}>
                           {shelf.title}
@@ -1213,11 +1139,46 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                           • {shelf.subtitle}
                         </span>
                       </div>
+
+                      {/* Play All Playlist Button for this shelf */}
+                      <button
+                        onClick={() => {
+                          triggerHapticImpact('medium').catch(() => {});
+                          if (onStartPlaylist) {
+                            onStartPlaylist(shelf.id);
+                          } else {
+                            woodRainSynth.unlockAudioContext();
+                            onToggleAmbientChannel(shelf.tracks[0].id);
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm ${
+                          activeTrackInShelf
+                            ? 'bg-[#1ed760] text-black hover:bg-[#1ed760]/90 shadow-[#1ed760]/30'
+                            : 'bg-white/10 hover:bg-[#1ed760]/20 hover:text-[#1ed760] text-gray-200 border border-white/10 hover:border-[#1ed760]/30'
+                        }`}
+                        title={`${shelf.title} listesini baştan sona kesintisiz çal`}
+                      >
+                        {activeTrackInShelf ? (
+                          <>
+                            <div className="flex items-end gap-0.5 h-3">
+                              <div className="w-0.5 bg-black rounded-full animate-eq-1" />
+                              <div className="w-0.5 bg-black rounded-full animate-eq-2" />
+                              <div className="w-0.5 bg-black rounded-full animate-eq-3" />
+                            </div>
+                            <span>Oynatılıyor ({shelf.tracks.length})</span>
+                          </>
+                        ) : (
+                          <>
+                            <ListMusic className="w-3.5 h-3.5" />
+                            <span>Tümünü Çal ({shelf.tracks.length})</span>
+                          </>
+                        )}
+                      </button>
                     </div>
 
                     {/* Horizontal Scrollable Album Cards Shelf */}
                     <div className="flex overflow-x-auto snap-x snap-mandatory space-x-3.5 sm:space-x-4 pb-3 pt-1 scrollbar-thin scrollbar-thumb-emerald-500/20">
-                      {shelf.tracks.map((track) => {
+                      {shelf.tracks.map((track, trackIndex) => {
                         const channelState = ambientChannels.find(
                           (c) => c.id === track.id || c.youtubeId === track.youtubeId
                         );
@@ -1229,14 +1190,19 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                             key={track.id}
                             onClick={() => {
                               woodRainSynth.unlockAudioContext();
-                              onToggleAmbientChannel(track.id);
+                              triggerHapticImpact('light').catch(() => {});
+                              if (onStartPlaylist) {
+                                onStartPlaylist(shelf.id, track.id);
+                              } else {
+                                onToggleAmbientChannel(track.id);
+                              }
                             }}
-                            className="group relative shrink-0 w-32 sm:w-36 md:w-40 snap-start flex flex-col cursor-pointer transition-all duration-300"
+                            className="group relative shrink-0 w-36 sm:w-40 md:w-44 snap-start flex flex-col cursor-pointer transition-all duration-300"
                           >
                             {/* Square Cover Artwork Container */}
                             <div className={`relative aspect-square w-full rounded-2xl overflow-hidden shadow-md bg-neutral-900 border transition-all duration-300 ${
                               isPlaying
-                                ? 'border-[#1ed760] ring-2 ring-[#1ed760] shadow-xl shadow-[#1ed760]/25 scale-[1.02]'
+                                ? 'border-[#1ed760] ring-2 ring-[#1ed760] shadow-xl shadow-[#1ed760]/30 scale-[1.02]'
                                 : theme === 'light'
                                   ? 'border-slate-200 hover:border-[#1ed760]/50 hover:shadow-lg group-hover:scale-[1.02]'
                                   : 'border-white/10 hover:border-[#1ed760]/50 hover:shadow-lg group-hover:scale-[1.02]'
@@ -1251,22 +1217,26 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                                 }`}
                                 loading="lazy"
                                 onError={(e) => {
-                                  // Fallback gradient if thumbnail fails
                                   (e.target as HTMLElement).style.display = 'none';
                                 }}
                               />
 
                               {/* Subtle Aesthetic Vignette Gradient */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent pointer-events-none" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
+
+                              {/* Track Index Badge */}
+                              <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[10px] font-bold text-gray-300">
+                                <span>#{trackIndex + 1}</span>
+                              </div>
 
                               {/* Playing Animation Equalizer / Status Badge */}
                               {isPlaying && (
-                                <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-[#1ed760]/50 text-[10px] font-black text-[#1ed760]">
+                                <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#1ed760] text-black text-[10px] font-black shadow-lg">
                                   <div className="flex items-end gap-0.5 h-3">
-                                    <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-1" />
-                                    <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-2" />
-                                    <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-3" />
-                                    <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-4" />
+                                    <div className="w-0.5 bg-black rounded-full animate-eq-1" />
+                                    <div className="w-0.5 bg-black rounded-full animate-eq-2" />
+                                    <div className="w-0.5 bg-black rounded-full animate-eq-3" />
+                                    <div className="w-0.5 bg-black rounded-full animate-eq-4" />
                                   </div>
                                   <span>Çalıyor</span>
                                 </div>

@@ -13,6 +13,17 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '50mb' }));
 
+// Corporate Security Headers Middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  next();
+});
+
 // Set default Content-Type for all /api endpoints to application/json
 app.use('/api', (req, res, next) => {
   if (!req.path.startsWith('/tts')) {
@@ -37,6 +48,63 @@ app.get('/ads.txt', (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send('google.com, pub-4663082689738592, DIRECT, f08c47fec0942fa0\n');
+});
+
+// Dynamic robots.txt endpoint
+app.get('/robots.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send(`User-agent: *
+Allow: /
+Allow: /gundem
+Allow: /teknoloji
+Allow: /ekonomi
+Allow: /dunya
+Allow: /spor
+Allow: /saglik
+Allow: /haber/
+Allow: /odaklan
+Allow: /kitaplik
+Disallow: /api/
+Disallow: /api/*
+
+Sitemap: https://voxozet.com/sitemap.xml
+`);
+});
+
+// Dynamic sitemap.xml endpoint for Search Engines
+app.get('/sitemap.xml', (req, res) => {
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+
+  const baseUrl = 'https://voxozet.com';
+  const now = new Date().toISOString().split('T')[0];
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${baseUrl}/</loc><lastmod>${now}</lastmod><changefreq>always</changefreq><priority>1.0</priority></url>
+  <url><loc>${baseUrl}/gundem</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>
+  <url><loc>${baseUrl}/teknoloji</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>
+  <url><loc>${baseUrl}/ekonomi</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>
+  <url><loc>${baseUrl}/odaklan</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>${baseUrl}/kitaplik</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+`;
+
+  serverNewsCache.all.slice(0, 150).forEach(art => {
+    const cleanSlug = art.title.toLowerCase()
+      .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 70);
+
+    const artDate = art.createdAt ? art.createdAt.split('T')[0] : now;
+    if (cleanSlug && cleanSlug.length > 5) {
+      xml += `  <url><loc>${baseUrl}/haber/${cleanSlug}-voxozet</loc><lastmod>${artDate}</lastmod><changefreq>never</changefreq><priority>0.8</priority></url>\n`;
+    }
+  });
+
+  xml += `</urlset>`;
+  res.send(xml);
 });
 
 // Initialize Gemini API client server-side
@@ -2423,9 +2491,19 @@ async function refreshServerNewsWorker(): Promise<void> {
       ]);
       const flatList = [...rssResults.flat(), ...tgResults.flat()];
 
+      const now = Date.now();
+      const MAX_AGE_MS = 48 * 60 * 60 * 1000; // 48 saatten eski haberleri filtrele
+
+      // Keep only fresh articles
+      const freshArticles = flatList.filter(item => {
+        if (!item.createdAt) return true;
+        const d = new Date(item.createdAt).getTime();
+        return isNaN(d) || (now - d) < MAX_AGE_MS;
+      });
+
       // Deduplicate strictly by normalized title
       const seenMap = new Map<string, CachedNewsArticle>();
-      flatList.forEach(item => {
+      freshArticles.forEach(item => {
         const normTitle = item.title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
         if (normTitle && !seenMap.has(normTitle)) {
           seenMap.set(normTitle, item);
@@ -2453,11 +2531,12 @@ async function refreshServerNewsWorker(): Promise<void> {
         byCategoryMap[cat].push(a);
       });
 
-      serverNewsCache.all = allArticles.slice(0, 350);
+      // Keep top 250 most recent, relevant articles in memory to prevent clutter
+      serverNewsCache.all = allArticles.slice(0, 250);
       serverNewsCache.byCategory = byCategoryMap;
       serverNewsCache.lastUpdated = Date.now();
 
-      console.log(`[VOX News Worker] Cache updated: ${allArticles.length} active articles across ${Object.keys(byCategoryMap).length} categories.`);
+      console.log(`[VOX News Worker] Cache updated: ${serverNewsCache.all.length} active fresh articles across ${Object.keys(byCategoryMap).length} categories.`);
     } catch (err) {
       console.warn('[VOX News Worker] Update notice:', err);
     } finally {
@@ -3044,6 +3123,65 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
 });
 
 function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: string): string {
+  // If this is an article page (/haber/:slug), dynamically inject specific article metadata for Googlebot, Twitterbot, LinkedIn, etc.
+  if (reqPath.startsWith('/haber/')) {
+    const slug = reqPath.replace('/haber/', '').split('?')[0].toLowerCase().trim();
+    const article = serverNewsCache.all.find(a => {
+      const cleanSlug = a.title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').substring(0, 40);
+      return (cleanSlug && slug.includes(cleanSlug)) || a.id.toLowerCase() === slug || slug.includes(a.id.toLowerCase());
+    });
+
+    if (article) {
+      const artTitle = `${article.title} | VOX`;
+      const artDesc = (article.summary || article.title).replace(/["'\n\r]/g, ' ').substring(0, 200).trim();
+      const artImg = article.imageUrl || 'https://voxozet.com/og-image.png';
+      const artUrl = `https://voxozet.com/haber/${slug}`;
+      const pubDate = article.createdAt || new Date().toISOString();
+
+      const schemaJson = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'NewsArticle',
+        'headline': article.title,
+        'description': artDesc,
+        'image': [artImg],
+        'datePublished': pubDate,
+        'dateModified': pubDate,
+        'author': [{
+          '@type': 'Person',
+          'name': article.author || 'VOX'
+        }],
+        'publisher': {
+          '@type': 'Organization',
+          'name': 'VOX',
+          'logo': {
+            '@type': 'ImageObject',
+            'url': 'https://voxozet.com/logo.png'
+          }
+        },
+        'mainEntityOfPage': {
+          '@type': 'WebPage',
+          '@id': artUrl
+        }
+      });
+
+      const schemaScript = `<script type="application/ld+json">${schemaJson}</script>`;
+
+      return template
+        .replace(/<title>.*?<\/title>/, `<title>${artTitle}</title>`)
+        .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${artTitle}" />`)
+        .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${artDesc}" />`)
+        .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${artTitle}" />`)
+        .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${artDesc}" />`)
+        .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${artUrl}" />`)
+        .replace(/<meta property="og:image" content=".*?" \/>/, `<meta property="og:image" content="${artImg}" />`)
+        .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${artTitle}" />`)
+        .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${artDesc}" />`)
+        .replace(/<meta name="twitter:image" content=".*?" \/>/, `<meta name="twitter:image" content="${artImg}" />`)
+        .replace(/<meta name="twitter:url" content=".*?" \/>/, `<meta name="twitter:url" content="${artUrl}" />`)
+        .replace('</head>', `  ${schemaScript}\n  </head>`);
+    }
+  }
+
   const isEnglish = reqPath.startsWith('/en') || reqPath === '/focus' || queryLang === 'en';
   const isFocus = reqPath === '/odaklan' || reqPath === '/focus' || reqPath.includes('/focus');
 

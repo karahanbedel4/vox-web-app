@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /gundem
+Allow: /teknoloji
+Allow: /ekonomi
+Allow: /dunya
+Allow: /spor
+Allow: /saglik
+Allow: /haber/
+Allow: /odaklan
+Allow: /kitaplik
+Disallow: /api/
+Disallow: /api/*
+
+Sitemap: https://voxozet.com/sitemap.xml

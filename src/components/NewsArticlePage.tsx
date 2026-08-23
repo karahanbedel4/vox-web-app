@@ -66,6 +66,73 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
     return () => clearInterval(interval);
   }, [article]);
 
+  // Update document title, meta tags, and JSON-LD for SEO on client-side
+  useEffect(() => {
+    if (!article) return;
+
+    const fullTitle = `${article.title} | VOX`;
+    document.title = fullTitle;
+
+    const desc = article.summary || article.title;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute('content', desc);
+
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', fullTitle);
+
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', desc);
+
+    const ogImg = document.querySelector('meta[property="og:image"]');
+    if (ogImg && article.imageUrl) ogImg.setAttribute('content', article.imageUrl);
+
+    const canonicalLink = document.querySelector('link[rel="canonical"]');
+    if (canonicalLink) canonicalLink.setAttribute('href', window.location.href);
+
+    // Inject/update JSON-LD structured data for Google News
+    let scriptTag = document.getElementById('vox-news-schema') as HTMLScriptElement;
+    if (!scriptTag) {
+      scriptTag = document.createElement('script');
+      scriptTag.id = 'vox-news-schema';
+      scriptTag.type = 'application/ld+json';
+      document.head.appendChild(scriptTag);
+    }
+    scriptTag.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'NewsArticle',
+      'headline': article.title,
+      'description': desc,
+      'image': [article.imageUrl || 'https://voxozet.com/og-image.png'],
+      'datePublished': article.createdAt || new Date().toISOString(),
+      'dateModified': article.createdAt || new Date().toISOString(),
+      'author': [{
+        '@type': 'Person',
+        'name': article.author || 'VOX'
+      }],
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'VOX',
+        'logo': {
+          '@type': 'ImageObject',
+          'url': 'https://voxozet.com/logo.png'
+        }
+      },
+      'mainEntityOfPage': {
+        '@type': 'WebPage',
+        '@id': window.location.href
+      }
+    });
+
+    return () => {
+      document.title = 'VOX | Oku, Dinle, Odaklan';
+      const defaultDesc = 'Daha az oku. Daha çok dinle. Daha iyi odaklan.';
+      if (metaDesc) metaDesc.setAttribute('content', defaultDesc);
+      if (ogTitle) ogTitle.setAttribute('content', 'VOX | Oku, Dinle, Odaklan');
+      if (ogDesc) ogDesc.setAttribute('content', defaultDesc);
+      if (canonicalLink) canonicalLink.setAttribute('href', 'https://voxozet.com/');
+    };
+  }, [article]);
+
   // Find or fetch the article based on URL slug or ID
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -321,6 +388,11 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             )}
           </button>
         </div>
+      </div>
+
+      {/* TOP LEADERBOARD BANNER AD AREA */}
+      <div className="mb-6">
+        <NativeAdCard variant="banner" />
       </div>
 
       {/* BUNDLE-STYLE 2-COLUMN MAIN LAYOUT */}

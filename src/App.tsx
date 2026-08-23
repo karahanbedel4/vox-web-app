@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrowserRouter as Router, Routes as RouterRoutes, Route as RouterRoute, Navigate as RouterNavigate } from 'react-router-dom';
 import { ThemeProvider } from './lib/ThemeContext';
 import { FocusProvider } from './lib/FocusContext';
@@ -28,133 +28,9 @@ import { calculateUserStreak, StreakInfo } from './lib/streakService';
 import { subscribeNetworkStatus, cacheTop3Articles, getCachedOfflineArticles } from './lib/offlineService';
 import { onAuthStateChanged } from 'firebase/auth';
 import { appStorage } from './lib/storage';
-import { AmbientChannel } from './components/AmbientMixerSheet';
+import { AmbientChannel, PlaylistInfo } from './components/AmbientMixerSheet';
 import { woodRainSynth } from './lib/audioSynth';
-
-const DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = [
-  // 1. DOĞA & AMBİYANS
-  {
-    id: 'yt-nature-rain',
-    name: 'Doğada Yağmur Sesi',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=3mst47Uu3IU',
-    youtubeId: '3mst47Uu3IU',
-    volume: 65,
-    active: false
-  },
-  {
-    id: 'yt-forest-birds',
-    name: 'Sakin Orman & Kuş Sesi',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=xNN7iTA57jM',
-    youtubeId: 'xNN7iTA57jM',
-    volume: 65,
-    active: false
-  },
-  {
-    id: 'yt-thunder-rain',
-    name: 'Şimşek ve Fırtına Sesi',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=9JEL_n6egA8',
-    youtubeId: '9JEL_n6egA8',
-    volume: 60,
-    active: false
-  },
-  {
-    id: 'yt-ocean-waves',
-    name: 'Okyanus & Dalga Sesi',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=bn9F19Hi1Lk',
-    youtubeId: 'bn9F19Hi1Lk',
-    volume: 60,
-    active: false
-  },
-  {
-    id: 'yt-campfire-night',
-    name: 'Gece & Kamp Ateşi Sesi',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=L_LUpnjgPso',
-    youtubeId: 'L_LUpnjgPso',
-    volume: 55,
-    active: false
-  },
-  {
-    id: 'yt-cozy-cafe',
-    name: 'Sakin Kafe Ambiyansı',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=gaGrHUekGrc',
-    youtubeId: 'gaGrHUekGrc',
-    volume: 55,
-    active: false
-  },
-
-  // 2. LO-FI ODAKLANMA
-  {
-    id: 'yt-lofi-rain',
-    name: 'Lo-Fi & Yağmur',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=sF80I-TQiW0',
-    youtubeId: 'sF80I-TQiW0',
-    volume: 60,
-    active: false
-  },
-  {
-    id: 'yt-lofi-chill',
-    name: 'Lo-Fi Chill',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=fsPRybb-xXg',
-    youtubeId: 'fsPRybb-xXg',
-    volume: 60,
-    active: false
-  },
-  {
-    id: 'yt-deep-work',
-    name: 'Derin Çalışma Müziği',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=czMO-L42nnc',
-    youtubeId: 'czMO-L42nnc',
-    volume: 55,
-    active: false
-  },
-
-  // 3. EPİK & SİNEMA
-  {
-    id: 'yt-shire-study',
-    name: 'Shire Sakin Çalışma',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=HFlxEM6zZsc',
-    youtubeId: 'HFlxEM6zZsc',
-    volume: 60,
-    active: false
-  },
-  {
-    id: 'yt-lotr-soundtrack',
-    name: 'Yüzüklerin Efendisi Müzikleri',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=FrWuCPgsp_c',
-    youtubeId: 'FrWuCPgsp_c',
-    volume: 60,
-    active: false
-  },
-  {
-    id: 'yt-hp-ambient',
-    name: 'Harry Potter Ambiyans',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=BQrxsyGTztM',
-    youtubeId: 'BQrxsyGTztM',
-    volume: 60,
-    active: false
-  },
-  {
-    id: 'yt-hp-seasons',
-    name: 'Harry Potter Mevsimler',
-    type: 'youtube',
-    url: 'https://www.youtube.com/watch?v=FZXWmqVorQc',
-    youtubeId: 'FZXWmqVorQc',
-    volume: 60,
-    active: false
-  }
-];
+import { ALL_DEFAULT_AMBIENT_CHANNELS, ALL_TRACKS, ALL_SOUND_SHELVES, SoundTrack } from './lib/soundtrackData';
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -166,25 +42,30 @@ export default function App() {
   const [readingArticle, setReadingArticle] = useState<Article | null>(null);
   const [isAmbientMixerOpen, setIsAmbientMixerOpen] = useState<boolean>(false);
 
+  // Active playlist shelf ID & sequential playback queue
+  const [activePlaylistShelfId, setActivePlaylistShelfId] = useState<string>('series');
+  const [isContinuousPlaylistMode, setIsContinuousPlaylistMode] = useState<boolean>(true);
+
+  // Initialize and merge ambient channels
   const [ambientChannels, setAmbientChannels] = useState<AmbientChannel[]>(() => {
     try {
-      const saved = appStorage.getItemSync('vox_ambient_channels_v6');
+      const saved = appStorage.getItemSync('vox_ambient_channels_v7');
       if (saved) {
         const parsed: AmbientChannel[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id.startsWith('yt-')) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           const existingIds = new Set(parsed.map(c => c.id));
-          const newChannels = DEFAULT_AMBIENT_CHANNELS.filter(c => !existingIds.has(c.id));
-          return [...parsed.map(c => ({ ...c, type: 'youtube' as const, active: false })), ...newChannels];
+          const newChannels = ALL_DEFAULT_AMBIENT_CHANNELS.filter(c => !existingIds.has(c.id));
+          return [...parsed.map(c => ({ ...c, type: 'youtube' as const })), ...newChannels];
         }
       }
     } catch (e) {}
-    return DEFAULT_AMBIENT_CHANNELS;
+    return ALL_DEFAULT_AMBIENT_CHANNELS;
   });
 
-  // Keep ambient channels and active channel persisted in storage & cookies
+  // Keep ambient channels persisted
   useEffect(() => {
     try {
-      appStorage.setItemSync('vox_ambient_channels_v6', JSON.stringify(ambientChannels));
+      appStorage.setItemSync('vox_ambient_channels_v7', JSON.stringify(ambientChannels));
       const activeCh = ambientChannels.find(c => c.active && c.volume > 0);
       if (activeCh) {
         appStorage.setItemSync('vox_last_ambient_id', activeCh.id);
@@ -218,23 +99,19 @@ export default function App() {
         const guestProfile: UserProfile = {
           uid: guestId,
           displayName: 'Misafir Kullanıcı',
-          email: 'misafir@vox.app',
+          email: '',
           photoURL: '',
-          birthdate: '1998-05-14',
           authProvider: 'guest',
-          isPremium: false,
-          subscriptionTier: 'free',
           dailyQuotaUsed: 0,
-          lastQuotaResetDate: new Date().toISOString().split('T')[0],
-          focusScore: 85,
+          isPremium: false,
           streakCount: 0,
           weeklyMinutes: 0,
           totalArticlesRead: 0,
           totalListenedMinutes: 0,
+          focusScore: 50,
           createdAt: new Date().toISOString()
         };
         setUser(guestProfile);
-        ttsService.setUserId(guestId);
       }
     });
 
@@ -244,9 +121,24 @@ export default function App() {
     };
   }, []);
 
-  // Fetch Initial Articles
+  // Offline status & top articles cache
   useEffect(() => {
-    getArticlesPaginated(12, null).then(async res => {
+    const unsubNet = subscribeNetworkStatus((online) => {
+      if (!online) {
+        getCachedOfflineArticles().then(cached => {
+          if (cached.length > 0) {
+            setArticles(cached);
+          }
+        });
+      }
+    });
+
+    return () => unsubNet();
+  }, []);
+
+  // Initial Articles Fetch
+  useEffect(() => {
+    getArticlesPaginated(15, null).then(async (res) => {
       setArticles(res.articles);
       setLastDocSnapshot(res.lastDoc);
       setHasMoreArticles(res.hasMore);
@@ -308,6 +200,7 @@ export default function App() {
     subscription.setIsPaywallOpen(true);
   };
 
+  // Play a single ambient sound channel
   const handleToggleAmbientChannel = (id: string) => {
     woodRainSynth.unlockAudioContext();
     setAmbientChannels(prev =>
@@ -322,6 +215,7 @@ export default function App() {
     );
   };
 
+  // Volume change
   const handleAmbientVolumeChange = (id: string, vol: number) => {
     woodRainSynth.unlockAudioContext();
     setAmbientChannels(prev =>
@@ -333,6 +227,100 @@ export default function App() {
       })
     );
   };
+
+  // Currently active primary channel
+  const activeAmbientChannel = ambientChannels.find(c => c.active && c.volume > 0) || null;
+
+  // Active playlist queue resolution
+  const currentShelf = ALL_SOUND_SHELVES.find(s => s.id === activePlaylistShelfId) || ALL_SOUND_SHELVES[0];
+  const activePlaylistTracks = currentShelf.tracks;
+
+  // Current track index in active playlist
+  const currentTrackIndex = useMemo(() => {
+    if (!activeAmbientChannel) return 0;
+    const idx = activePlaylistTracks.findIndex(t => t.id === activeAmbientChannel.id || t.youtubeId === activeAmbientChannel.youtubeId);
+    return idx >= 0 ? idx : 0;
+  }, [activeAmbientChannel, activePlaylistTracks]);
+
+  // Playlist Info metadata for Mini Player & Mixer Sheet
+  const playlistInfo: PlaylistInfo | null = useMemo(() => {
+    if (!activeAmbientChannel) return null;
+    const currentTrack = ALL_TRACKS.find(t => t.id === activeAmbientChannel.id || t.youtubeId === activeAmbientChannel.youtubeId);
+    return {
+      title: currentTrack?.categoryTitle || currentShelf.title,
+      subtitle: currentTrack?.subtitle || activeAmbientChannel.name,
+      currentIndex: currentTrackIndex,
+      totalTracks: activePlaylistTracks.length,
+      isContinuous: isContinuousPlaylistMode
+    };
+  }, [activeAmbientChannel, currentShelf, currentTrackIndex, activePlaylistTracks.length, isContinuousPlaylistMode]);
+
+  // Play a specific track in playlist mode (only this track is active)
+  const playTrackInPlaylist = useCallback((track: SoundTrack) => {
+    woodRainSynth.unlockAudioContext();
+    setAmbientChannels(prev => {
+      // Ensure target channel exists
+      const exists = prev.some(c => c.id === track.id || c.youtubeId === track.youtubeId);
+      const baseList = exists ? prev : [...prev, {
+        id: track.id,
+        name: track.name,
+        type: 'youtube' as const,
+        url: `https://www.youtube.com/watch?v=${track.youtubeId}`,
+        youtubeId: track.youtubeId,
+        volume: 65,
+        active: true
+      }];
+
+      return baseList.map(ch => {
+        if (ch.id === track.id || ch.youtubeId === track.youtubeId) {
+          return { ...ch, active: true, volume: ch.volume > 0 ? ch.volume : 65 };
+        }
+        return { ...ch, active: false };
+      });
+    });
+  }, []);
+
+  // Start continuous playlist from a shelf
+  const handleStartPlaylist = useCallback((shelfId: string, startTrackId?: string) => {
+    setActivePlaylistShelfId(shelfId);
+    setIsContinuousPlaylistMode(true);
+
+    const shelf = ALL_SOUND_SHELVES.find(s => s.id === shelfId) || ALL_SOUND_SHELVES[0];
+    const targetTrack = startTrackId 
+      ? (shelf.tracks.find(t => t.id === startTrackId || t.youtubeId === startTrackId) || shelf.tracks[0])
+      : shelf.tracks[0];
+
+    if (targetTrack) {
+      playTrackInPlaylist(targetTrack);
+    }
+  }, [playTrackInPlaylist]);
+
+  // Sequential Playback: Next Track ("biri bitince diğeri başlasın")
+  const handleNextAmbientTrack = useCallback(() => {
+    if (activePlaylistTracks.length === 0) return;
+    const nextIndex = (currentTrackIndex + 1) % activePlaylistTracks.length;
+    const nextTrack = activePlaylistTracks[nextIndex];
+    if (nextTrack) {
+      playTrackInPlaylist(nextTrack);
+    }
+  }, [activePlaylistTracks, currentTrackIndex, playTrackInPlaylist]);
+
+  // Sequential Playback: Previous Track
+  const handlePrevAmbientTrack = useCallback(() => {
+    if (activePlaylistTracks.length === 0) return;
+    const prevIndex = (currentTrackIndex - 1 + activePlaylistTracks.length) % activePlaylistTracks.length;
+    const prevTrack = activePlaylistTracks[prevIndex];
+    if (prevTrack) {
+      playTrackInPlaylist(prevTrack);
+    }
+  }, [activePlaylistTracks, currentTrackIndex, playTrackInPlaylist]);
+
+  // When a track finishes on YouTube: auto-advance to next track!
+  const handleAmbientTrackEnded = useCallback(() => {
+    if (isContinuousPlaylistMode) {
+      handleNextAmbientTrack();
+    }
+  }, [isContinuousPlaylistMode, handleNextAmbientTrack]);
 
   return (
     <ThemeProvider>
@@ -352,6 +340,10 @@ export default function App() {
                 setAmbientChannels={setAmbientChannels}
                 isAmbientMixerOpen={isAmbientMixerOpen}
                 setIsAmbientMixerOpen={setIsAmbientMixerOpen}
+                onNextAmbientTrack={handleNextAmbientTrack}
+                onPrevAmbientTrack={handlePrevAmbientTrack}
+                onAmbientTrackEnded={handleAmbientTrackEnded}
+                playlistInfo={playlistInfo}
               />
             }
           >
@@ -446,6 +438,12 @@ export default function App() {
                   onToggleAmbientChannel={handleToggleAmbientChannel}
                   onVolumeChange={handleAmbientVolumeChange}
                   onOpenAmbientMixer={() => setIsAmbientMixerOpen(true)}
+                  onStartPlaylist={handleStartPlaylist}
+                  onNextTrack={handleNextAmbientTrack}
+                  onPrevTrack={handlePrevAmbientTrack}
+                  activePlaylistShelfId={activePlaylistShelfId}
+                  isContinuousPlaylistMode={isContinuousPlaylistMode}
+                  onToggleContinuousPlaylistMode={() => setIsContinuousPlaylistMode(prev => !prev)}
                 />
               }
             />
