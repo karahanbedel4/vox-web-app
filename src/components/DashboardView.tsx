@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown, Send } from 'lucide-react';
+import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown, Send, Radio, Zap } from 'lucide-react';
 import { Article } from '../types';
-import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl } from '../lib/newsService';
+import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl, sanitizeNewsText } from '../lib/newsService';
 import { getArticlesPaginated } from '../lib/firebase';
 import { cacheTop3Articles } from '../lib/offlineService';
 import { useTheme } from '../lib/ThemeContext';
@@ -20,6 +20,21 @@ interface DashboardViewProps {
   onToggleBookmark: (articleId: string) => void;
   onSelectArticle: (article: Article) => void;
   onOpenPaywall: (reason?: 'limit_reached' | 'pages_exceeded' | 'not_logged_in') => void;
+}
+
+function isDummyArticle(a: Article): boolean {
+  if (!a || !a.id || !a.title) return true;
+  const id = a.id.toLowerCase();
+  const title = (a.title || '').toLowerCase();
+  return id.includes('quantum-geopolitics') || 
+         id.includes('silicon-forest') || 
+         id.includes('ethics-of-ai') || 
+         id.includes('dunya-diplomasi-2026') || 
+         id.includes('kultur-sanat-dijital-muze') ||
+         id.includes('fallback_') ||
+         title.includes('quantum geopolitics') ||
+         title.includes('silicon forest') ||
+         title.includes('yapay zeka etiği');
 }
 
 function formatTwitterAuthor(author?: string): string {
@@ -58,17 +73,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       const cached = localStorage.getItem('vox_cached_articles');
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter(a => !isDummyArticle(a));
+          if (valid.length > 0) return valid;
+        }
       }
     } catch (e) {}
-    return INITIAL_ARTICLES;
+    return [];
   });
   const [isLoading, setIsLoading] = useState<boolean>(() => {
     try {
       const cached = localStorage.getItem('vox_cached_articles');
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return false;
+        if (Array.isArray(parsed) && parsed.filter(a => !isDummyArticle(a)).length > 0) return false;
       }
     } catch (e) {}
     return true;
@@ -88,19 +106,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [isSearchingGoogle, setIsSearchingGoogle] = useState<boolean>(false);
   const [googleSearchResults, setGoogleSearchResults] = useState<Article[] | null>(null);
 
-  const isDummyArticle = (a: Article) => {
-    if (!a || !a.id) return true;
-    const id = a.id.toLowerCase();
-    return id.includes('quantum-geopolitics') || 
-           id.includes('silicon-forest') || 
-           id.includes('ethics-of-ai') || 
-           id.includes('dunya-diplomasi-2026') || 
-           id.includes('kultur-sanat-dijital-muze') ||
-           id.includes('fallback_');
-  };
-
   const loadCategoryArticles = async (showFullLoader = true) => {
-    if (showFullLoader) setIsLoading(true);
+    if (showFullLoader && liveNews.length === 0) setIsLoading(true);
     setIsRefreshing(true);
 
     try {
@@ -137,13 +144,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         }
       } else {
         const fallbackList = articles.filter(a => !isDummyArticle(a) && (activeCategory === 'Tümü' || a.category === activeCategory));
-        setLiveNews(fallbackList);
+        if (fallbackList.length > 0) setLiveNews(fallbackList);
       }
       setNewArticlesCount(0);
     } catch (e) {
       console.warn('DashboardView fetch error:', e);
       const fallbackList = articles.filter(a => !isDummyArticle(a) && (activeCategory === 'Tümü' || a.category === activeCategory));
-      setLiveNews(fallbackList);
+      if (fallbackList.length > 0) setLiveNews(fallbackList);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -261,10 +268,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [googleSearchResults, liveNews, articles, activeCategory, searchQuery]);
 
   const visibleArticles = useMemo(() => {
-    return displayList.slice(0, visibleCount);
+    return displayList.slice(0, visibleCount).map(art => ({
+      ...art,
+      title: sanitizeNewsText(art.title),
+      summary: sanitizeNewsText(art.summary),
+      author: sanitizeNewsText(art.author)
+    }));
   }, [displayList, visibleCount]);
 
   const hasMore = visibleCount < displayList.length;
+
+  const isHotNews = (dateStr?: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return false;
+    const diffMins = Math.floor((Date.now() - d.getTime()) / 60000);
+    return diffMins <= 25;
+  };
 
   return (
     <div className={`p-4 md:p-8 max-w-5xl mx-auto space-y-6 transition-colors duration-300 ${
@@ -399,13 +419,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* SKELETON LOADER WITH EXPLICIT MESSAGE */}
+      {/* SKELETON LOADER WITH LIVE RADAR SCANNER */}
       {isLoading || isSearchingGoogle ? (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-xs font-bold text-[#1ed760] bg-[#1ed760]/10 border border-[#1ed760]/20 px-4 py-3 rounded-2xl animate-pulse">
-            <RefreshCw className="w-4 h-4 animate-spin text-[#1ed760]" />
-            <span>Gündem ve son dakika haberleri çekiliyor...</span>
+          <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
+            theme === 'light'
+              ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
+              : 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="relative w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                <Radio className="w-4 h-4 text-emerald-400 relative z-10" />
+              </div>
+              <div>
+                <p className="text-xs font-bold flex items-center gap-1.5">
+                  <span>VOX Akıllı Canlı Akış Taranıyor...</span>
+                  <span className="text-[10px] font-medium opacity-80">(Son 10-15 dk gelişmeler)</span>
+                </p>
+                <p className="text-[11px] opacity-75">TRT, NTV, Habertürk ve canlı RSS akışları çekiliyor...</p>
+              </div>
+            </div>
+            <RefreshCw className="w-4 h-4 text-emerald-400 animate-spin shrink-0" />
           </div>
+
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className={`p-4 rounded-2xl flex gap-4 items-center animate-pulse ${
               theme === 'light' ? 'bg-white border border-slate-200' : 'bg-[#161c23] border border-white/5'

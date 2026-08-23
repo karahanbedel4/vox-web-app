@@ -1,6 +1,6 @@
 {
   "name": "VOX OZET - Odak, Haber - WEB",
-  "description": "Yapay zeka destekli haber özetleme, stüdyo seslendirmesi, ahşap yağmuru mikseri ve Focus Score takibi.",
+  "description": "Daha az oku, daha çok dinle, daha iyi odaklan. Yapay zeka ile haberleri sesli podcaste çeviren ve efsane dizi-film müzikleriyle odaklanma sağlayan akıllı haber platformu.",
   "requestFramePermissions": [
     "camera",
     "microphone",

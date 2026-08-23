@@ -9,7 +9,13 @@ import {
   ChevronRight,
   BarChart2,
   RefreshCw,
-  Trash2
+  Trash2,
+  ShieldCheck,
+  Server,
+  Database,
+  Cloud,
+  Cpu,
+  Info
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -22,6 +28,7 @@ import {
 } from 'recharts';
 import { UserProfile } from '../types';
 import { appStorage } from '../lib/storage';
+import { quotaMonitor, CloudQuotaReport } from '../lib/quotaMonitor';
 
 interface ProfileTabProps {
   user: UserProfile | null;
@@ -49,6 +56,13 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   // Clear Cache state
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [cacheClearedMsg, setCacheClearedMsg] = useState<string | null>(null);
+
+  // Cloud Quota Report state
+  const [quotaReport, setQuotaReport] = useState<CloudQuotaReport>(() => quotaMonitor.getReport());
+
+  useEffect(() => {
+    setQuotaReport(quotaMonitor.getReport());
+  }, []);
 
   useEffect(() => {
     if (themeMode === 'light') {
@@ -242,6 +256,121 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               AKTİF
             </span>
           </div>
+        </div>
+      </section>
+
+      {/* Firebase & Google Cloud Free Tier Protection Guard */}
+      <section className="bg-surface-container/80 border border-emerald-500/20 p-5 rounded-3xl space-y-4 shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            <h3 className="text-xs font-bold text-white uppercase tracking-widest">
+              BULUT VE KOTA KORUMA SİSTEMİ
+            </h3>
+          </div>
+          <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+            %100 GÜVENLİ
+          </span>
+        </div>
+
+        <p className="text-xs text-gray-400 leading-relaxed">
+          Google Cloud ve Firebase ücretsiz kullanım limitlerinin (Free-Tier) aşılmaması için optimize edilmiş bellek ve CDN mimarisi.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+          {/* Firestore Reads */}
+          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+            <div className="flex items-center justify-between text-gray-300">
+              <span className="flex items-center gap-1.5 text-[11px] font-bold">
+                <Database className="w-3.5 h-3.5 text-emerald-400" />
+                Firestore Okuma
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400">
+                {quotaReport.firestoreReads.usagePercent}%
+              </span>
+            </div>
+            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+              <div 
+                className="bg-emerald-400 h-full rounded-full transition-all" 
+                style={{ width: `${Math.max(2, quotaReport.firestoreReads.usagePercent)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-gray-400 font-mono">
+              <span>{quotaReport.firestoreReads.current.toLocaleString()} okuma</span>
+              <span>Limit: 50.000 / gün</span>
+            </div>
+          </div>
+
+          {/* Firestore Writes */}
+          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+            <div className="flex items-center justify-between text-gray-300">
+              <span className="flex items-center gap-1.5 text-[11px] font-bold">
+                <Server className="w-3.5 h-3.5 text-emerald-400" />
+                Firestore Yazma
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400">
+                {quotaReport.firestoreWrites.usagePercent}%
+              </span>
+            </div>
+            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+              <div 
+                className="bg-emerald-400 h-full rounded-full transition-all" 
+                style={{ width: `${Math.max(2, quotaReport.firestoreWrites.usagePercent)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-gray-400 font-mono">
+              <span>{quotaReport.firestoreWrites.current.toLocaleString()} yazma</span>
+              <span>Limit: 20.000 / gün</span>
+            </div>
+          </div>
+
+          {/* Storage Safety */}
+          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+            <div className="flex items-center justify-between text-gray-300">
+              <span className="flex items-center gap-1.5 text-[11px] font-bold">
+                <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+                Firebase Depolama
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400">0 MB (%0)</span>
+            </div>
+            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+              <div className="bg-emerald-400 h-full rounded-full w-0" />
+            </div>
+            <div className="flex justify-between text-[10px] text-gray-400 font-mono">
+              <span>0 MB (CDN URL korumalı)</span>
+              <span>Limit: 5 GB</span>
+            </div>
+          </div>
+
+          {/* AI Quota */}
+          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+            <div className="flex items-center justify-between text-gray-300">
+              <span className="flex items-center gap-1.5 text-[11px] font-bold">
+                <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+                Gemini AI İstekleri
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400">
+                {quotaReport.geminiRequests.usagePercent}%
+              </span>
+            </div>
+            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+              <div 
+                className="bg-emerald-400 h-full rounded-full transition-all" 
+                style={{ width: `${Math.max(2, quotaReport.geminiRequests.usagePercent)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-gray-400 font-mono">
+              <span>{quotaReport.geminiRequests.current.toLocaleString()} istek</span>
+              <span>Limit: 1.500 / gün</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] flex items-start gap-2">
+          <Info className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+          <span>
+            Haber görselleri Firebase Storage'a yüklenmek yerine doğrudan yayıncı HTTPS CDN URL'leri üzerinden çekilir. Böylece depolama kotası harcanmaz ve sunucu maliyeti 0₺ kalır.
+          </span>
         </div>
       </section>
 

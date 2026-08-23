@@ -22,7 +22,7 @@ import { motion } from 'motion/react';
 import { Article } from '../types';
 import { useTheme } from '../lib/ThemeContext';
 import { ttsService } from '../lib/ttsService';
-import { sanitizeImageUrl, getTopicContextualImage, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl, generateArticleSlug, fetchNewsByCategory } from '../lib/newsService';
+import { sanitizeImageUrl, getTopicContextualImage, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl, generateArticleSlug, fetchNewsByCategory, sanitizeNewsText } from '../lib/newsService';
 import { NativeAdCard } from './NativeAdCard';
 import { INITIAL_ARTICLES } from '../data/defaultArticles';
 
@@ -422,7 +422,7 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
           <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight sm:leading-tight ${
             theme === 'light' ? 'text-slate-900' : 'text-white'
           }`}>
-            {article.title}
+            {sanitizeNewsText(article.title)}
           </h1>
 
           {/* Quick Summary Capsule (Bundle "Haberin Özeti" style) */}
@@ -437,7 +437,7 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                 <span>Haberin Özeti</span>
               </div>
               <p className="text-sm sm:text-base leading-relaxed font-medium">
-                {article.summary}
+                {sanitizeNewsText(article.summary)}
               </p>
             </div>
           )}
@@ -458,7 +458,7 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             />
             {/* Publisher Watermark / Tag */}
             <div className="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/70 backdrop-blur-md text-[11px] font-bold text-white border border-white/20">
-              {article.author || 'VOX Akıllı Haber'}
+              {sanitizeNewsText(article.author) || 'VOX Akıllı Haber'}
             </div>
           </div>
 
@@ -478,7 +478,7 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                 {article.keyPoints.map((point, idx) => (
                   <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm font-medium leading-relaxed">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
-                    <span>{point}</span>
+                    <span>{sanitizeNewsText(point)}</span>
                   </li>
                 ))}
               </ul>
@@ -490,13 +490,13 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             theme === 'light' ? 'text-slate-800' : 'text-gray-200'
           }`}>
             {article.content ? (
-              article.content.split('\n\n').map((paragraph, pIdx) => (
+              sanitizeNewsText(article.content).split('\n\n').map((paragraph, pIdx) => (
                 <p key={pIdx} className="leading-relaxed">
                   {paragraph}
                 </p>
               ))
             ) : (
-              <p>{article.summary}</p>
+              <p>{sanitizeNewsText(article.summary)}</p>
             )}
           </div>
 

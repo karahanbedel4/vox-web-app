@@ -1,8 +1,48 @@
 import { Article } from '../types';
 import { appStorage } from './storage';
 import { INITIAL_ARTICLES } from '../data/defaultArticles';
+import { quotaMonitor } from './quotaMonitor';
 
 export const DEFAULT_VOX_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&auto=format&fit=crop&q=80';
+
+/**
+ * Universal Text Sanitizer: Cleans all HTML entities, tags, URL codes, and artifacts
+ */
+export function sanitizeNewsText(str: string): string {
+  if (!str) return '';
+  let text = str.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1');
+  
+  // Recursively unescape HTML entities FIRST so all &lt; become <
+  for (let k = 0; k < 3; k++) {
+    text = text
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&apos;/gi, "'")
+      .replace(/&amp;/gi, '&')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&mdash;/gi, '—')
+      .replace(/&ndash;/gi, '–')
+      .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(Number(dec)))
+      .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  }
+
+  // Remove scripts & style tags
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ');
+  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ');
+
+  // Strip all HTML tags
+  text = text.replace(/<[^>]+>/g, ' ');
+
+  // Strip link fragments and attributes
+  text = text.replace(/https?:\/\/[^\s]+/gi, '');
+  text = text.replace(/\b(a\s+href|href|target=|[a-z0-9_-]+\.html)\b[^\s]*/gi, '');
+  text = text.replace(/target=["'][^"']*["']/gi, '');
+  text = text.replace(/href=["'][^"']*["']/gi, '');
+
+  return text.replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n\n').trim();
+}
 
 const TOPIC_PHOTOS: Record<string, string[]> = {
   police: [
@@ -343,7 +383,7 @@ function parseGoogleNewsItem(item: any, defaultCategory: string = 'Gündem', ind
   }
 
   // 3. CLEAN PLAIN TEXT
-  const cleanPlainText = htmlToPlainText(rawHtml);
+  let cleanPlainText = sanitizeNewsText(htmlToPlainText(rawHtml));
 
   // 4. GENERATE CLEAN SINGLE-PARAGRAPH 1-2 SENTENCE AI SUMMARY
   let aiSummary = '';
@@ -356,7 +396,7 @@ function parseGoogleNewsItem(item: any, defaultCategory: string = 'Gündem', ind
   const validSentences: string[] = [];
 
   for (const sentence of sentences) {
-    const trimmed = sentence.trim();
+    const trimmed = sanitizeNewsText(sentence.trim());
     if (trimmed.length > 15 && !trimmed.toLowerCase().includes('google haberler')) {
       validSentences.push(trimmed);
       if (validSentences.length >= 2) break;
@@ -373,20 +413,22 @@ function parseGoogleNewsItem(item: any, defaultCategory: string = 'Gündem', ind
     aiSummary = aiSummary.substring(0, 195).trim() + '...';
   }
 
+  aiSummary = sanitizeNewsText(aiSummary);
+
   return {
     id: item.id || `news-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 6)}`,
-    title: cleanTitle,
+    title: sanitizeNewsText(cleanTitle),
     summary: aiSummary,
     content: cleanPlainText || `${cleanTitle}. ${extractedAuthor} haberi.`,
     rawHtml: rawHtml,
     category: item.category || defaultCategory,
-    author: extractedAuthor,
+    author: sanitizeNewsText(extractedAuthor),
     imageUrl: extractedImage,
     durationSeconds: item.durationSeconds || 180,
     sourceType: 'rss',
     sourceUrl: item.url || item.link,
     createdAt: item.createdAt || item.pubDate || new Date().toISOString(),
-    keyPoints: keyPoints.length > 0 ? keyPoints : undefined
+    keyPoints: keyPoints.length > 0 ? keyPoints.map(k => sanitizeNewsText(k)) : undefined
   };
 }
 

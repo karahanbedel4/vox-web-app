@@ -2236,19 +2236,37 @@ const categoryDefaultImages: Record<string, string[]> = {
 
 function cleanRssText(str: string): string {
   if (!str) return '';
-  let text = str.replace(/<!\[CDATA\[|\]\]>/g, '');
-  for (let k = 0; k < 2; k++) {
+  let text = str.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1');
+  
+  // Recursively unescape HTML entities FIRST so all &lt; become <
+  for (let k = 0; k < 3; k++) {
     text = text
       .replace(/&lt;/gi, '<')
       .replace(/&gt;/gi, '>')
       .replace(/&quot;/gi, '"')
       .replace(/&#39;/gi, "'")
+      .replace(/&apos;/gi, "'")
       .replace(/&amp;/gi, '&')
-      .replace(/&nbsp;/gi, ' ');
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&mdash;/gi, '—')
+      .replace(/&ndash;/gi, '–')
+      .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+      .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
   }
-  text = text.replace(/<[^>]+>/g, '');
+
+  // Remove scripts and style blocks
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ');
+  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ');
+
+  // Strip all HTML tags
+  text = text.replace(/<[^>]+>/g, ' ');
+
+  // Strip URL fragments and leftover attributes
   text = text.replace(/https?:\/\/[^\s]+/gi, '');
   text = text.replace(/\b(a\s+href|href|target=|[a-z0-9_-]+\.html)\b[^\s]*/gi, '');
+  text = text.replace(/target=["'][^"']*["']/gi, '');
+  text = text.replace(/href=["'][^"']*["']/gi, '');
+
   return text.replace(/\s+/g, ' ').trim();
 }
 
@@ -2657,6 +2675,19 @@ app.get('/api/news/check-new', (req, res) => {
   } catch (err) {
     res.json({ hasNew: false, count: 0 });
   }
+});
+
+// Quota & Cloud Health Status Endpoint
+app.get('/api/quota-status', (req, res) => {
+  res.json({
+    success: true,
+    serverCacheCount: serverNewsCache.all.length,
+    serverLastUpdated: serverNewsCache.lastUpdated,
+    cachedCategories: Object.keys(serverNewsCache.byCategory),
+    storagePolicy: 'cdn_remote_referencing',
+    storageUsageBytes: 0, // 0 bytes in Firebase Storage due to CDN referencing
+    status: 'optimal'
+  });
 });
 
 // Safe first-party Feed Proxy Endpoint (/api/fetch-feed)
@@ -3190,8 +3221,12 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
     : (isFocus ? 'VOX | Odaklan' : 'VOX | Oku, Dinle, Odaklan');
 
   const description = isEnglish
-    ? 'Read less. Listen more. Focus better.'
-    : 'Daha az oku. Daha çok dinle. Daha iyi odaklan.';
+    ? 'Read less. Listen more. Focus better. Cut through the noise with AI podcast news and deep focus soundscapes.'
+    : 'Daha az oku. Daha çok dinle. Daha iyi odaklan. Güncel haber akışında kalabalıktan kurtulun; yapay zeka ile haberleri sesli dinleyin ve film müzikleriyle odaklanın.';
+
+  const fullDescription = isEnglish
+    ? 'Read less. Listen more. Focus better. VOX cuts through the noise in current news, turns articles into audio podcasts with AI, and provides deep focus environments with legendary soundtracks.'
+    : 'Daha az oku. Daha çok dinle. Daha iyi odaklan. Güncel haber akışında kalabalıktan kurtulmanızı ve asıl olana odaklanmanızı sağlar. Haberleri podcaste çevirin, dizi-film müzikleri ve ambiyans ile derin odaklanın.';
 
   const url = `https://voxozet.com${reqPath}`;
   const locale = isEnglish ? 'en_US' : 'tr_TR';
@@ -3201,11 +3236,11 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
     .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${title}" />`)
     .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${description}" />`)
     .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${title}" />`)
-    .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${description}" />`)
+    .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${fullDescription}" />`)
     .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${url}" />`)
     .replace(/<meta property="og:locale" content=".*?" \/>/, `<meta property="og:locale" content="${locale}" />`)
     .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${title}" />`)
-    .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${description}" />`)
+    .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${fullDescription}" />`)
     .replace(/<meta name="twitter:url" content=".*?" \/>/, `<meta name="twitter:url" content="${url}" />`);
 }
 

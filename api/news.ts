@@ -18,16 +18,36 @@ interface NewsItem {
 
 function cleanHtmlText(raw: string): string {
   if (!raw) return '';
-  return raw
-    .replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
+  let text = raw.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1');
+  
+  // Recursively unescape HTML entities FIRST so all &lt; become <
+  for (let k = 0; k < 3; k++) {
+    text = text
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&apos;/gi, "'")
+      .replace(/&amp;/gi, '&')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+      .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  }
+
+  // Remove scripts & styles
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ');
+  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ');
+
+  // Strip all HTML tags completely
+  text = text.replace(/<[^>]+>/g, ' ');
+
+  // Strip URL fragments and leftover attributes
+  text = text.replace(/https?:\/\/[^\s]+/gi, '');
+  text = text.replace(/\b(a\s+href|href|target=|[a-z0-9_-]+\.html)\b[^\s]*/gi, '');
+  text = text.replace(/target=["'][^"']*["']/gi, '');
+  text = text.replace(/href=["'][^"']*["']/gi, '');
+
+  return text.replace(/\s+/g, ' ').trim();
 }
 
 function generateSlug(title: string, id: string = ''): string {
@@ -137,6 +157,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const id = `vox_${targetCategory.toLowerCase()}_${idx}_${Date.now()}`;
         const slug = generateSlug(cleanTitle, id);
 
+        // Extract real image from item if present
+        let extractedImg = '';
+        const encMatch = itemXml.match(/<enclosure[^>]+url=["']([^"']+)["']/i);
+        const mediaMatch = itemXml.match(/<media:content[^>]+url=["']([^"']+)["']/i) || itemXml.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
+        const imgMatch = itemXml.match(/<img[^>]+src=["']([^"']+)["']/i);
+        
+        if (encMatch && encMatch[1] && !encMatch[1].match(/\.(mp3|m4a|wav)/i)) {
+          extractedImg = encMatch[1].trim();
+        } else if (mediaMatch && mediaMatch[1]) {
+          extractedImg = mediaMatch[1].trim();
+        } else if (imgMatch && imgMatch[1]) {
+          extractedImg = imgMatch[1].trim();
+        }
+
+        if (extractedImg.startsWith('//')) {
+          extractedImg = 'https:' + extractedImg;
+        } else if (extractedImg.startsWith('http://')) {
+          extractedImg = extractedImg.replace(/^http:\/\//i, 'https://');
+        }
+
+        const categoryDefaultImages: Record<string, string[]> = {
+          'Teknoloji': [
+            'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80'
+          ],
+          'Ekonomi': [
+            'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&auto=format&fit=crop&q=80'
+          ],
+          'Dünya': [
+            'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&auto=format&fit=crop&q=80'
+          ],
+          'Spor': [
+            'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=80'
+          ],
+          'Sağlık': [
+            'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80'
+          ],
+          'Gündem': [
+            'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&auto=format&fit=crop&q=80'
+          ]
+        };
+
+        const defaultPool = categoryDefaultImages[targetCategory] || categoryDefaultImages['Gündem'];
+        const finalImage = extractedImg || defaultPool[idx % defaultPool.length];
+
         articles.push({
           id,
           slug,
@@ -145,7 +218,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           content: `${cleanTitle}.\n\n${rawDesc || ''}\n\nDetaylar VOX Akıllı Haber Akışı tarafından anlık olarak derlenmiştir.`,
           category: targetCategory,
           author: source,
-          imageUrl: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop&q=80',
+          imageUrl: finalImage,
           durationSeconds: 150,
           createdAt: pubDateISO,
           sourceType: 'rss',
