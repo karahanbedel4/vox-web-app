@@ -62,6 +62,18 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/api/news/enrich",
+      "destination": "/api/enrich"
+    },
+    {
+      "source": "/api/news/article/:idOrSlug",
+      "destination": "/api/news?idOrSlug=:idOrSlug"
+    },
+    {
+      "source": "/api/news/search",
+      "destination": "/api/news"
+    },
+    {
       "source": "/((?!api/|sitemap\\.xml|robots\\.txt|ads\\.txt|.*\\..*).*)",
       "destination": "/index.html"
     }

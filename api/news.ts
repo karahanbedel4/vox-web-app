@@ -8,6 +8,7 @@ interface NewsItem {
   category: string;
   author: string;
   imageUrl: string;
+  hasRealImage?: boolean;
   durationSeconds: number;
   createdAt: string;
   sourceType: 'rss' | 'twitter' | 'custom';
@@ -16,11 +17,86 @@ interface NewsItem {
   keyPoints?: string[];
 }
 
+const FEED_CONFIGS = [
+  // Gündem & Son Dakika
+  { url: 'https://www.ensonhaber.com/rss/manset.xml', category: 'Gündem', author: 'Ensonhaber' },
+  { url: 'https://www.ensonhaber.com/rss/gundem.xml', category: 'Gündem', author: 'Ensonhaber' },
+  { url: 'https://www.trthaber.com/sondakika_articles.rss', category: 'Gündem', author: 'TRT Haber' },
+  { url: 'https://www.trthaber.com/gundem_articles.rss', category: 'Gündem', author: 'TRT Haber' },
+  { url: 'https://www.haberturk.com/rss/manset.xml', category: 'Gündem', author: 'Habertürk' },
+  { url: 'https://www.haberturk.com/rss/kategori/gundem.xml', category: 'Gündem', author: 'Habertürk' },
+  { url: 'https://www.ntv.com.tr/gundem.rss', category: 'Gündem', author: 'NTV' },
+  { url: 'https://www.sozcu.com.tr/rss/gundem.xml', category: 'Gündem', author: 'Sözcü' },
+  { url: 'https://feeds.bbci.co.uk/turkce/rss.xml', category: 'Gündem', author: 'BBC Türkçe' },
+
+  // Teknoloji
+  { url: 'https://www.webtekno.com/rss.xml', category: 'Teknoloji', author: 'Webtekno' },
+  { url: 'https://www.donanimhaber.com/rss/tum/', category: 'Teknoloji', author: 'DonanımHaber' },
+  { url: 'https://www.ensonhaber.com/rss/teknoloji.xml', category: 'Teknoloji', author: 'Ensonhaber Teknoloji' },
+  { url: 'https://www.haberturk.com/rss/kategori/teknoloji.xml', category: 'Teknoloji', author: 'Habertürk Teknoloji' },
+  { url: 'https://www.ntv.com.tr/teknoloji.rss', category: 'Teknoloji', author: 'NTV Teknoloji' },
+
+  // Ekonomi
+  { url: 'https://www.bloomberght.com/rss', category: 'Ekonomi', author: 'Bloomberg HT' },
+  { url: 'https://www.ensonhaber.com/rss/ekonomi.xml', category: 'Ekonomi', author: 'Ensonhaber Ekonomi' },
+  { url: 'https://www.haberturk.com/rss/kategori/ekonomi.xml', category: 'Ekonomi', author: 'Habertürk Ekonomi' },
+  { url: 'https://www.ntv.com.tr/ekonomi.rss', category: 'Ekonomi', author: 'NTV Ekonomi' },
+  { url: 'https://www.sozcu.com.tr/rss/ekonomi.xml', category: 'Ekonomi', author: 'Sözcü Ekonomi' },
+
+  // Dünya
+  { url: 'https://feeds.bbci.co.uk/turkce/rss.xml', category: 'Dünya', author: 'BBC Türkçe' },
+  { url: 'https://rss.dw.com/rdf/rss-tur-all', category: 'Dünya', author: 'DW Türkçe' },
+  { url: 'https://www.trthaber.com/dunya_articles.rss', category: 'Dünya', author: 'TRT Dünya' },
+  { url: 'https://www.ensonhaber.com/rss/dunya.xml', category: 'Dünya', author: 'Ensonhaber Dünya' },
+  { url: 'https://www.ntv.com.tr/dunya.rss', category: 'Dünya', author: 'NTV Dünya' },
+
+  // Spor
+  { url: 'https://www.ensonhaber.com/rss/kralspor.xml', category: 'Spor', author: 'Ensonhaber Spor' },
+  { url: 'https://www.trthaber.com/spor_articles.rss', category: 'Spor', author: 'TRT Spor' },
+  { url: 'https://www.haberturk.com/rss/kategori/spor.xml', category: 'Spor', author: 'Habertürk Spor' },
+  { url: 'https://www.ntvspor.net/rss/haber', category: 'Spor', author: 'NTV Spor' },
+  { url: 'https://www.fanatik.com.tr/rss/futbol', category: 'Spor', author: 'Fanatik' },
+  { url: 'https://www.sozcu.com.tr/rss/spor.xml', category: 'Spor', author: 'Sözcü Spor' },
+
+  // Sağlık
+  { url: 'https://www.ensonhaber.com/rss/saglik.xml', category: 'Sağlık', author: 'Ensonhaber Sağlık' },
+  { url: 'https://www.ntv.com.tr/saglik.rss', category: 'Sağlık', author: 'NTV Sağlık' },
+  { url: 'https://www.haberturk.com/rss/kategori/saglik.xml', category: 'Sağlık', author: 'Habertürk Sağlık' }
+];
+
+const categoryDefaultImages: Record<string, string[]> = {
+  'Teknoloji': [
+    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80'
+  ],
+  'Ekonomi': [
+    'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=800&auto=format&fit=crop&q=80'
+  ],
+  'Dünya': [
+    'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&auto=format&fit=crop&q=80'
+  ],
+  'Spor': [
+    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=80'
+  ],
+  'Sağlık': [
+    'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80'
+  ],
+  'Gündem': [
+    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&auto=format&fit=crop&q=80'
+  ]
+};
+
 function cleanHtmlText(raw: string): string {
   if (!raw) return '';
   let text = raw.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1');
   
-  // Recursively unescape HTML entities FIRST so all &lt; become <
   for (let k = 0; k < 3; k++) {
     text = text
       .replace(/&lt;/gi, '<')
@@ -30,22 +106,15 @@ function cleanHtmlText(raw: string): string {
       .replace(/&apos;/gi, "'")
       .replace(/&amp;/gi, '&')
       .replace(/&nbsp;/gi, ' ')
-      .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+      .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(Number(dec)))
       .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
   }
 
-  // Remove scripts & styles
   text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ');
   text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ');
-
-  // Strip all HTML tags completely
   text = text.replace(/<[^>]+>/g, ' ');
-
-  // Strip URL fragments and leftover attributes
   text = text.replace(/https?:\/\/[^\s]+/gi, '');
   text = text.replace(/\b(a\s+href|href|target=|[a-z0-9_-]+\.html)\b[^\s]*/gi, '');
-  text = text.replace(/target=["'][^"']*["']/gi, '');
-  text = text.replace(/href=["'][^"']*["']/gi, '');
 
   return text.replace(/\s+/g, ' ').trim();
 }
@@ -67,6 +136,142 @@ function generateSlug(title: string, id: string = ''): string {
   return `${clean}-${idHash || 'vox'}-voxozet`;
 }
 
+// In-Memory serverless cache to provide lightning-fast responses on Vercel
+let vercelNewsCache: { timestamp: number; articles: NewsItem[] } = { timestamp: 0, articles: [] };
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+async function fetchFeed(feed: typeof FEED_CONFIGS[0]): Promise<NewsItem[]> {
+  try {
+    const res = await fetch(feed.url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+      },
+      signal: AbortSignal.timeout(3500)
+    });
+
+    if (!res.ok) return [];
+    const xml = await res.text();
+    const itemMatches = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
+    const items: NewsItem[] = [];
+
+    for (let i = 0; i < Math.min(itemMatches.length, 15); i++) {
+      const itemXml = itemMatches[i];
+      const tMatch = itemXml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      const dMatch = itemXml.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
+      const cMatch = itemXml.match(/<content:encoded[^>]*>([\s\S]*?)<\/content:encoded>/i);
+      const lMatch = itemXml.match(/<link[^>]*>([\s\S]*?)<\/link>/i) || itemXml.match(/<guid[^>]*>([\s\S]*?)<\/guid>/i);
+      const pMatch = itemXml.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i) || itemXml.match(/<dc:date[^>]*>([\s\S]*?)<\/dc:date>/i);
+      const aMatch = itemXml.match(/<author[^>]*>([\s\S]*?)<\/author>/i) || itemXml.match(/<dc:creator[^>]*>([\s\S]*?)<\/dc:creator>/i);
+
+      let rawTitle = tMatch ? cleanHtmlText(tMatch[1]) : '';
+      if (!rawTitle || rawTitle.length < 6) continue;
+
+      let author = aMatch ? cleanHtmlText(aMatch[1]) : feed.author;
+      if (author.includes('@') || author.length > 30) author = feed.author;
+
+      let title = rawTitle;
+      if (author && title.endsWith(' - ' + author)) {
+        title = title.substring(0, title.length - (author.length + 3)).trim();
+      } else if (title.includes(' - ')) {
+        const parts = title.split(' - ');
+        if (parts.length > 1 && parts[parts.length - 1].length < 30) {
+          parts.pop();
+          title = parts.join(' - ').trim();
+        }
+      } else if (title.includes(' | ')) {
+        const parts = title.split(' | ');
+        if (parts.length > 1 && parts[parts.length - 1].length < 30) {
+          parts.pop();
+          title = parts.join(' | ').trim();
+        }
+      }
+
+      // Robust Image Extraction
+      let extractedImg = '';
+      const encMatch = itemXml.match(/<enclosure[^>]+url=["']([^"']+)["']/i) || itemXml.match(/<enclosure[^>]+url=([^\s>]+)/i);
+      const mediaMatch = itemXml.match(/<media:content[^>]+url=["']([^"']+)["']/i) || itemXml.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
+      const imgMatch = itemXml.match(/<img[^>]+src=["']([^"']+)["']/i) || itemXml.match(/<img[^>]+src=([^\s>]+)/i);
+      const htmlEntityImgMatch = itemXml.match(/&lt;img[^&]+src=(?:&quot;|"|'|)([^\s&"'>]+)(?:&quot;|"|'|)/i);
+      const imageTag = itemXml.match(/<image>[\s\S]*?<url>([^<]+)<\/url>/i) || itemXml.match(/<image>([^<]+)<\/image>/i);
+
+      if (encMatch && encMatch[1] && !encMatch[1].endsWith('.mp3') && !encMatch[1].endsWith('.m4a')) {
+        extractedImg = encMatch[1].trim();
+      } else if (mediaMatch && mediaMatch[1]) {
+        extractedImg = mediaMatch[1].trim();
+      } else if (imgMatch && imgMatch[1]) {
+        extractedImg = imgMatch[1].trim();
+      } else if (htmlEntityImgMatch && htmlEntityImgMatch[1]) {
+        extractedImg = htmlEntityImgMatch[1].trim();
+      } else if (imageTag && imageTag[1] && imageTag[1].trim().startsWith('http')) {
+        extractedImg = imageTag[1].trim();
+      }
+
+      if (extractedImg.startsWith('//')) {
+        extractedImg = 'https:' + extractedImg;
+      } else if (extractedImg.startsWith('http://')) {
+        extractedImg = extractedImg.replace(/^http:\/\//i, 'https://');
+      }
+
+      const hasRealImg = !!(extractedImg && extractedImg.startsWith('https://') && !extractedImg.includes('1x1') && !extractedImg.includes('pixel'));
+
+      const rawDesc = dMatch ? cleanHtmlText(dMatch[1]) : '';
+      const rawContent = cMatch ? cleanHtmlText(cMatch[1]) : '';
+      const sourceUrl = lMatch ? lMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
+
+      let pubDateISO = new Date().toISOString();
+      if (pMatch && pMatch[1]) {
+        try {
+          const d = new Date(cleanHtmlText(pMatch[1]));
+          if (!isNaN(d.getTime())) pubDateISO = d.toISOString();
+        } catch {}
+      }
+
+      const defaultPool = categoryDefaultImages[feed.category] || categoryDefaultImages['Gündem'];
+      const finalImage = (hasRealImg ? extractedImg : null) || defaultPool[i % defaultPool.length];
+
+      const cleanSlug = title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').substring(0, 35);
+      const id = `vox_${feed.category.toLowerCase()}_${cleanSlug}`;
+      const slug = generateSlug(title, id);
+
+      const cleanSummary = rawDesc && rawDesc.length > 25 
+        ? rawDesc 
+        : `${title}. ${author} tarafından aktarılan son bilgilere göre sahadaki gelişmeler yakından takip ediliyor.`;
+      
+      const p1 = `${title}. Konuyla ilgili resmi birimler ve yetkili makamlar tarafından yapılan ilk değerlendirmelere göre süreç titizlikle yürütülüyor.`;
+      const p2 = cleanSummary;
+      const p3 = `Gelişmeler kamuoyu ve ilgili sektör temsilcileri tarafından dikkatle izlenirken, sürecin etkileri ${author} ve VOX Odak Haber bültenleri üzerinden anlık olarak aktarılmaya devam edecek.`;
+      
+      const cleanContent = (rawContent && rawContent.length > 100) ? rawContent : `${p1}\n\n${p2}\n\n${p3}`;
+
+      items.push({
+        id,
+        slug,
+        title,
+        summary: cleanSummary,
+        content: cleanContent,
+        category: feed.category,
+        author: author,
+        imageUrl: finalImage,
+        hasRealImage: hasRealImg,
+        durationSeconds: Math.max(120, Math.min(360, (cleanSummary.length + cleanContent.length) * 2)),
+        createdAt: pubDateISO,
+        sourceType: 'rss',
+        sourceUrl,
+        keyPoints: [
+          title,
+          `${author} kaynağından aktarılan son veriler değerlendirildi`,
+          'Resmi açıklamalar ve sahadaki gelişmeler doğrultusunda süreç takip ediliyor'
+        ]
+      });
+    }
+
+    return items;
+  } catch {
+    return [];
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -77,169 +282,80 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  const category = (req.query.category as string) || 'Gündem';
-  const targetCategory = category === 'Tümü' ? 'Gündem' : category;
+  const idOrSlug = (req.query.idOrSlug as string) || '';
+  const searchQ = (req.query.q as string) || '';
+  const category = (req.query.category as string) || 'Tümü';
+  const targetCategory = category === 'Tümü' ? null : category;
 
-  let rssUrl = 'https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr';
-  if (targetCategory === 'Teknoloji') {
-    rssUrl = 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=tr&gl=TR&ceid=TR:tr';
-  } else if (targetCategory === 'Ekonomi') {
-    rssUrl = 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=tr&gl=TR&ceid=TR:tr';
-  } else if (targetCategory === 'Spor') {
-    rssUrl = 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=tr&gl=TR&ceid=TR:tr';
-  } else if (targetCategory === 'Dünya') {
-    rssUrl = 'https://news.google.com/rss/headlines/section/topic/WORLD?hl=tr&gl=TR&ceid=TR:tr';
-  } else if (targetCategory === 'Sağlık') {
-    rssUrl = 'https://news.google.com/rss/headlines/section/topic/HEALTH?hl=tr&gl=TR&ceid=TR:tr';
-  }
+  // Refresh cache if stale
+  const now = Date.now();
+  if (now - vercelNewsCache.timestamp > CACHE_TTL_MS || vercelNewsCache.articles.length === 0) {
+    try {
+      const results = await Promise.allSettled(FEED_CONFIGS.map(f => fetchFeed(f)));
+      const freshArticles: NewsItem[] = [];
+      const seenTitles = new Set<string>();
 
-  try {
-    const upstreamRes = await fetch(rssUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'application/rss+xml, application/xml, text/xml, */*'
-      },
-      signal: AbortSignal.timeout(6000)
-    });
-
-    if (!upstreamRes.ok) {
-      return res.status(200).json({ articles: [], source: 'upstream_failed' });
-    }
-
-    const xml = await upstreamRes.text();
-    const itemRegex = /<item[\s\S]*?<\/item>/gi;
-    const matches = xml.match(itemRegex) || [];
-
-    const now = Date.now();
-    const MAX_AGE_MS = 48 * 60 * 60 * 1000; // 48 saatten eski haberleri filtrele
-    const seenTitles = new Set<string>();
-    const articles: NewsItem[] = [];
-
-    matches.slice(0, 40).forEach((itemXml, idx) => {
-      const tMatch = itemXml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-      const dMatch = itemXml.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
-      const lMatch = itemXml.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
-      const pMatch = itemXml.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i);
-      const sMatch = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/i);
-
-      const rawTitle = tMatch ? cleanHtmlText(tMatch[1]) : '';
-      const rawDesc = dMatch ? cleanHtmlText(dMatch[1]) : '';
-      const link = lMatch ? lMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1').trim() : '';
-      const rawPubDate = pMatch ? pMatch[1].trim() : '';
-      const source = sMatch ? cleanHtmlText(sMatch[1]) : 'Google Haberler';
-
-      let pubDateISO = new Date().toISOString();
-      if (rawPubDate) {
-        try {
-          const d = new Date(rawPubDate);
-          if (!isNaN(d.getTime())) {
-            // Prune if older than 48 hours
-            if (now - d.getTime() > MAX_AGE_MS) {
-              return;
+      results.forEach(r => {
+        if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+          r.value.forEach(a => {
+            const normKey = a.title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+            if (!seenTitles.has(normKey)) {
+              seenTitles.add(normKey);
+              freshArticles.push(a);
             }
-            pubDateISO = d.toISOString();
-          }
-        } catch {}
+          });
+        }
+      });
+
+      if (freshArticles.length > 0) {
+        freshArticles.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        vercelNewsCache = { timestamp: now, articles: freshArticles };
       }
-
-      if (rawTitle && rawTitle.length > 5) {
-        // Strip trailing source name
-        let cleanTitle = rawTitle;
-        const dashIdx = cleanTitle.lastIndexOf(' - ');
-        if (dashIdx > 10) {
-          cleanTitle = cleanTitle.substring(0, dashIdx).trim();
-        }
-
-        const normKey = cleanTitle.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
-        if (seenTitles.has(normKey)) return;
-        seenTitles.add(normKey);
-
-        const id = `vox_${targetCategory.toLowerCase()}_${idx}_${Date.now()}`;
-        const slug = generateSlug(cleanTitle, id);
-
-        // Extract real image from item if present
-        let extractedImg = '';
-        const encMatch = itemXml.match(/<enclosure[^>]+url=["']([^"']+)["']/i);
-        const mediaMatch = itemXml.match(/<media:content[^>]+url=["']([^"']+)["']/i) || itemXml.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
-        const imgMatch = itemXml.match(/<img[^>]+src=["']([^"']+)["']/i);
-        
-        if (encMatch && encMatch[1] && !encMatch[1].match(/\.(mp3|m4a|wav)/i)) {
-          extractedImg = encMatch[1].trim();
-        } else if (mediaMatch && mediaMatch[1]) {
-          extractedImg = mediaMatch[1].trim();
-        } else if (imgMatch && imgMatch[1]) {
-          extractedImg = imgMatch[1].trim();
-        }
-
-        if (extractedImg.startsWith('//')) {
-          extractedImg = 'https:' + extractedImg;
-        } else if (extractedImg.startsWith('http://')) {
-          extractedImg = extractedImg.replace(/^http:\/\//i, 'https://');
-        }
-
-        const categoryDefaultImages: Record<string, string[]> = {
-          'Teknoloji': [
-            'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80'
-          ],
-          'Ekonomi': [
-            'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=800&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&auto=format&fit=crop&q=80'
-          ],
-          'Dünya': [
-            'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&auto=format&fit=crop&q=80'
-          ],
-          'Spor': [
-            'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=80'
-          ],
-          'Sağlık': [
-            'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80'
-          ],
-          'Gündem': [
-            'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&auto=format&fit=crop&q=80'
-          ]
-        };
-
-        const defaultPool = categoryDefaultImages[targetCategory] || categoryDefaultImages['Gündem'];
-        const finalImage = extractedImg || defaultPool[idx % defaultPool.length];
-
-        articles.push({
-          id,
-          slug,
-          title: cleanTitle,
-          summary: rawDesc || `${cleanTitle} hakkında sıcak gelişmeler ve tüm detaylar.`,
-          content: `${cleanTitle}.\n\n${rawDesc || ''}\n\nDetaylar VOX Akıllı Haber Akışı tarafından anlık olarak derlenmiştir.`,
-          category: targetCategory,
-          author: source,
-          imageUrl: finalImage,
-          durationSeconds: 150,
-          createdAt: pubDateISO,
-          sourceType: 'rss',
-          sourceUrl: link,
-          keyPoints: [
-            cleanTitle,
-            `Kaynak: ${source}`,
-            `Kategori: ${targetCategory}`,
-            'Canlı Akış'
-          ]
-        });
-      }
-    });
-
-    // Chronological sort: Newest first
-    articles.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Cache-Control', 's-maxage=45, stale-while-revalidate=120');
-    return res.status(200).json({ articles, success: true, count: articles.length });
-  } catch (err: any) {
-    return res.status(200).json({ articles: [], error: err?.message || String(err) });
+    } catch {}
   }
+
+  let articles = vercelNewsCache.articles;
+
+  // 1. Single article lookup by ID or slug
+  if (idOrSlug) {
+    const cleanLookup = idOrSlug.toLowerCase().trim();
+    const found = articles.find(a => 
+      a.id.toLowerCase() === cleanLookup || 
+      (a.slug && a.slug.toLowerCase() === cleanLookup) ||
+      cleanLookup.includes(a.id.toLowerCase())
+    );
+
+    if (found) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=180');
+      return res.status(200).json({ success: true, article: found });
+    }
+    return res.status(404).json({ success: false, error: 'Article not found' });
+  }
+
+  // 2. Search query filter
+  if (searchQ) {
+    const qLower = searchQ.toLowerCase().trim();
+    const filtered = articles.filter(a => 
+      a.title.toLowerCase().includes(qLower) || 
+      a.summary.toLowerCase().includes(qLower) ||
+      a.category.toLowerCase().includes(qLower)
+    );
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    return res.status(200).json({ success: true, articles: filtered, count: filtered.length });
+  }
+
+  // 3. Category filter
+  if (targetCategory) {
+    articles = articles.filter(a => a.category.toLowerCase() === targetCategory.toLowerCase());
+  }
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=180');
+  return res.status(200).json({ 
+    success: true, 
+    articles, 
+    count: articles.length, 
+    timestamp: vercelNewsCache.timestamp 
+  });
 }
