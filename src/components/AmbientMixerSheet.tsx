@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHapticImpact } from '../lib/haptics';
+import { universalSynthService } from '../lib/universalSynthService';
 
 export interface AmbientChannel {
   id: string;
@@ -135,15 +136,22 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
     return () => window.removeEventListener('message', handleYouTubeMessage);
   }, [onTrackEnded, onNextTrack]);
 
-  // Sync MP3 audio streams & YouTube Iframes
+  // Sync MP3 audio streams, Direct Web Audio Synthesizer, & YouTube Iframes
   useEffect(() => {
-    // 1. Stream Audio Elements sync
+    // 1. Direct Web Audio & Stream Audio Elements sync
     channels.forEach(ch => {
-      if (ch.type === 'stream' && ch.url) {
+      if (ch.type === 'synth') {
+        if (ch.active && ch.volume > 0) {
+          universalSynthService.playSynthSound(ch.id, ch.volume);
+        } else {
+          universalSynthService.stopSynthSound(ch.id);
+        }
+      } else if (ch.type === 'stream' && ch.url) {
         if (!audioRefs.current[ch.id]) {
           const audio = new Audio(ch.url);
           audio.loop = true;
           audio.setAttribute('playsinline', 'true');
+          audio.setAttribute('webkit-playsinline', 'true');
           audio.crossOrigin = 'anonymous';
           audioRefs.current[ch.id] = audio;
         }
@@ -214,7 +222,7 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
     <>
       {/* ACTIVE YOUTUBE PLAYERS (Optimized for iOS Safari, iOS Chrome, WebKit, and Desktop with full audio blessing) */}
       <div 
-        className="fixed bottom-0 right-0 w-[1px] h-[1px] opacity-[0.001] pointer-events-none z-[-1] overflow-hidden"
+        className="fixed bottom-0 right-0 w-[10px] h-[10px] opacity-[0.01] pointer-events-none z-[-1] overflow-hidden"
         style={{
           visibility: 'visible',
           transform: 'translateZ(0)'
@@ -227,31 +235,42 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
               <iframe
                 key={`yt-player-${ch.id}`}
                 id={`yt-player-${ch.id}`}
-                src={`https://www.youtube-nocookie.com/embed/${ch.youtubeId}?enablejsapi=1&autoplay=1&playsinline=1&loop=0&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&rel=0&origin=${typeof window !== 'undefined' ? encodeURIComponent(window.location.origin) : ''}`}
+                src={`https://www.youtube.com/embed/${ch.youtubeId}?enablejsapi=1&autoplay=1&playsinline=1&loop=0&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&rel=0&widgetid=1`}
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 width="320"
                 height="240"
                 tabIndex={-1}
                 title={ch.name}
                 onLoad={() => {
-                  const iframe = document.getElementById(`yt-player-${ch.id}`) as HTMLIFrameElement;
-                  if (iframe?.contentWindow) {
-                    try {
-                      iframe.contentWindow.postMessage(JSON.stringify({
-                        event: 'listening'
-                      }), '*');
-                      iframe.contentWindow.postMessage(JSON.stringify({
-                        event: 'command',
-                        func: 'setVolume',
-                        args: [ch.volume]
-                      }), '*');
-                      iframe.contentWindow.postMessage(JSON.stringify({
-                        event: 'command',
-                        func: 'playVideo',
-                        args: []
-                      }), '*');
-                    } catch (e) {}
-                  }
+                  const sendCommands = () => {
+                    const iframe = document.getElementById(`yt-player-${ch.id}`) as HTMLIFrameElement;
+                    if (iframe?.contentWindow) {
+                      try {
+                        iframe.contentWindow.postMessage(JSON.stringify({
+                          event: 'listening'
+                        }), '*');
+                        iframe.contentWindow.postMessage(JSON.stringify({
+                          event: 'command',
+                          func: 'unMute',
+                          args: []
+                        }), '*');
+                        iframe.contentWindow.postMessage(JSON.stringify({
+                          event: 'command',
+                          func: 'setVolume',
+                          args: [ch.volume]
+                        }), '*');
+                        iframe.contentWindow.postMessage(JSON.stringify({
+                          event: 'command',
+                          func: 'playVideo',
+                          args: []
+                        }), '*');
+                      } catch (e) {}
+                    }
+                  };
+
+                  sendCommands();
+                  setTimeout(sendCommands, 400);
+                  setTimeout(sendCommands, 1200);
                 }}
               />
             );

@@ -30,6 +30,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { appStorage } from './lib/storage';
 import { AmbientChannel, PlaylistInfo } from './components/AmbientMixerSheet';
 import { woodRainSynth } from './lib/audioSynth';
+import { universalSynthService } from './lib/universalSynthService';
 import { ALL_DEFAULT_AMBIENT_CHANNELS, ALL_TRACKS, ALL_SOUND_SHELVES, SoundTrack } from './lib/soundtrackData';
 
 export default function App() {
@@ -203,6 +204,7 @@ export default function App() {
   // Play a single ambient sound channel
   const handleToggleAmbientChannel = (id: string) => {
     woodRainSynth.unlockAudioContext();
+    universalSynthService.unlock();
     setAmbientChannels(prev =>
       prev.map(ch => {
         if (ch.id === id) {
@@ -218,6 +220,7 @@ export default function App() {
   // Volume change
   const handleAmbientVolumeChange = (id: string, vol: number) => {
     woodRainSynth.unlockAudioContext();
+    universalSynthService.unlock();
     setAmbientChannels(prev =>
       prev.map(ch => {
         if (ch.id === id) {
@@ -258,6 +261,7 @@ export default function App() {
   // Play a specific track in playlist mode (only this track is active)
   const playTrackInPlaylist = useCallback((track: SoundTrack) => {
     woodRainSynth.unlockAudioContext();
+    universalSynthService.unlock();
     setAmbientChannels(prev => {
       // Ensure target channel exists
       const exists = prev.some(c => c.id === track.id || c.youtubeId === track.youtubeId);

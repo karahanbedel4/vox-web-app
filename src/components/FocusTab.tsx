@@ -56,6 +56,7 @@ import { fetchNewsByCategory } from '../lib/newsService';
 import { appStorage } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
 import { woodRainSynth } from '../lib/audioSynth';
+import { universalSynthService } from '../lib/universalSynthService';
 import { 
   useFocus, 
   formatFocusTime, 
@@ -1110,6 +1111,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       <button
                         onClick={() => {
                           triggerHapticImpact('medium').catch(() => {});
+                          universalSynthService.unlock();
                           if (onStartPlaylist) {
                             onStartPlaylist(shelf.id);
                           } else {
@@ -1156,6 +1158,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                             key={track.id}
                             onClick={() => {
                               woodRainSynth.unlockAudioContext();
+                              universalSynthService.unlock();
                               triggerHapticImpact('light').catch(() => {});
                               if (onStartPlaylist) {
                                 onStartPlaylist(shelf.id, track.id);
