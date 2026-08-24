@@ -472,154 +472,120 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         </div>
       )}
 
+      {/* MINIMAL HIGH-DENSITY TUR / SÜRE / MOLA CONTROL RIBBON */}
+      <div className={`border rounded-2xl p-2.5 sm:p-3 shadow-sm transition-all ${
+        theme === 'light'
+          ? 'bg-white border-slate-200'
+          : 'bg-[#101612] border-white/10'
+      }`}>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          
+          {/* 1. Hedef Tur Sayısı */}
+          <div className="flex items-center gap-2">
+            <span className={`font-bold flex items-center gap-1 text-[11px] shrink-0 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
+              <Target className="w-3.5 h-3.5 text-[#1ed760]" />
+              <span>Tur:</span>
+            </span>
+            <div className="flex items-center gap-1">
+              {ROUND_OPTIONS.map((r) => (
+                <button
+                  key={r}
+                  onClick={() => handleSelectTargetRounds(r)}
+                  className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                    (targetRounds || 4) === r
+                      ? 'bg-[#1ed760] text-black border-[#1ed760] shadow-sm font-black scale-105'
+                      : theme === 'light'
+                        ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Tur Süresi */}
+          <div className="flex items-center gap-2">
+            <span className={`font-bold flex items-center gap-1 text-[11px] shrink-0 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760]" />
+              <span>Süre:</span>
+            </span>
+            <div className="flex items-center gap-1">
+              {WORK_OPTIONS.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => handleSelectWorkMinutes(m)}
+                  className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                    (workMinutes || 25) === m
+                      ? 'bg-[#1ed760] text-black border-[#1ed760] shadow-sm font-black'
+                      : theme === 'light'
+                        ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {m}m
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. Mola Süresi */}
+          <div className="flex items-center gap-2">
+            <span className={`font-bold flex items-center gap-1 text-[11px] shrink-0 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span>Mola:</span>
+            </span>
+            <div className="flex items-center gap-1">
+              {BREAK_OPTIONS.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => handleSelectBreakMinutes(m)}
+                  className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                    (breakMinutes || 5) === m
+                      ? 'bg-amber-400 text-black border-amber-400 shadow-sm font-black'
+                      : theme === 'light'
+                        ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {m}m
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. İlerleme Göstergesi */}
+          <div className="flex items-center gap-2 pl-2 border-l border-white/10">
+            <div className="flex items-center gap-1">
+              {Array.from({ length: targetRounds || 4 }).map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`w-2.5 h-2.5 rounded-full transition-all flex items-center justify-center text-[7px] font-black ${
+                    idx < (completedSessions || 0)
+                      ? 'bg-[#1ed760] text-black ring-1 ring-[#1ed760]/50'
+                      : idx === (completedSessions || 0) && isRunning
+                        ? 'bg-amber-400 animate-pulse text-black'
+                        : theme === 'light' ? 'bg-slate-200 text-slate-400' : 'bg-white/10 text-gray-500'
+                  }`}
+                >
+                  {idx < (completedSessions || 0) ? '✓' : ''}
+                </span>
+              ))}
+            </div>
+            <span className="font-mono font-bold text-[11px] text-[#1ed760]">
+              %{Math.min(100, Math.round(((completedSessions || 0) / (targetRounds || 4)) * 100))}
+            </span>
+          </div>
+
+        </div>
+      </div>
+
       {/* 2-COLUMN SPLIT GRID LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* LEFT COLUMN: Modern Phone Mockup Display & Ambient Sounds */}
         <div className="lg:col-span-7 space-y-6">
-
-          {/* INTEGRATED TUR (ROUND) & DÖNGÜ CONFIGURATION CARD */}
-          <div className={`border rounded-3xl p-4 sm:p-5 shadow-sm space-y-4 transition-colors ${
-            theme === 'light'
-              ? 'bg-white border-slate-200'
-              : 'bg-[#121814] border-white/10'
-          }`}>
-            {/* 1. SEANS / TUR SAYISI SEÇİMİ (Kullanıcı Talebi: Kaç seans/tur yapacağını seçebilsin) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className={`font-bold flex items-center gap-1.5 ${theme === 'light' ? 'text-slate-800' : 'text-gray-200'}`}>
-                  <Target className="w-3.5 h-3.5 text-[#1ed760]" />
-                  <span>Hedef Seans Sayısı (Kaç Tur):</span>
-                </span>
-                <span className="font-mono font-bold text-[#1ed760]">
-                  {targetRounds || 4} Tur ({(targetRounds || 4) * (workMinutes || 25)} dk Toplam)
-                </span>
-              </div>
-              <div className="grid grid-cols-6 gap-1.5">
-                {ROUND_OPTIONS.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => handleSelectTargetRounds(r)}
-                    className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                      (targetRounds || 4) === r
-                        ? 'bg-[#1ed760] text-black border-[#1ed760] shadow-md shadow-[#1ed760]/20 font-black'
-                        : theme === 'light'
-                          ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                          : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    {r} Tur
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 2. ÇALIŞMA VE DİNLENME SÜRESİ SEÇİCİSİ */}
-            <div className={`pt-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-              theme === 'light' ? 'border-slate-100' : 'border-white/5'
-            }`}>
-              
-              {/* Çalışma Süresi */}
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className={`font-bold flex items-center gap-1.5 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
-                    <span className="w-2 h-2 rounded-full bg-[#1ed760]" />
-                    <span>Tur Süresi</span>
-                  </span>
-                  <span className="font-mono font-bold text-[#1ed760]">{workMinutes || 25} dk</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {WORK_OPTIONS.map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => handleSelectWorkMinutes(m)}
-                      className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                        (workMinutes || 25) === m
-                          ? 'bg-[#1ed760] text-black border-[#1ed760] shadow-md shadow-[#1ed760]/20'
-                          : theme === 'light'
-                            ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                            : 'bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'
-                      }`}
-                    >
-                      {m}m
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Ortadaki Akış Oku */}
-              <div className="hidden sm:flex items-center justify-center pt-5 text-gray-400">
-                <ArrowRight className="w-4 h-4" />
-              </div>
-
-              {/* Dinlenme / Mola Süresi */}
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className={`font-bold flex items-center gap-1.5 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span>Mola Süresi</span>
-                  </span>
-                  <span className="font-mono font-bold text-amber-500 dark:text-amber-400">{breakMinutes || 5} dk</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {BREAK_OPTIONS.map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => handleSelectBreakMinutes(m)}
-                      className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                        (breakMinutes || 5) === m
-                          ? 'bg-amber-400 text-black border-amber-400 shadow-md shadow-amber-400/20 font-black'
-                          : theme === 'light'
-                            ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                            : 'bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'
-                      }`}
-                    >
-                      {m}m
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            {/* 3. SEANS İLERLEME GÖSTERGESİ (Tamamlanan / Hedef) */}
-            <div className={`pt-3 border-t space-y-2 ${theme === 'light' ? 'border-slate-100' : 'border-white/5'}`}>
-              <div className="flex items-center justify-between text-xs font-bold">
-                <div className="flex items-center gap-2">
-                  <span className={theme === 'light' ? 'text-slate-600' : 'text-gray-400'}>İlerleme:</span>
-                  <div className="flex items-center gap-1.5">
-                    {Array.from({ length: targetRounds || 4 }).map((_, idx) => (
-                      <span
-                        key={idx}
-                        className={`w-3 h-3 rounded-full transition-all flex items-center justify-center text-[8px] font-black ${
-                          idx < (completedSessions || 0)
-                            ? 'bg-[#1ed760] text-black ring-2 ring-[#1ed760]/30'
-                            : idx === (completedSessions || 0) && isRunning
-                              ? 'bg-amber-400 animate-pulse text-black ring-2 ring-amber-400/40'
-                              : theme === 'light' ? 'bg-slate-200 text-slate-400' : 'bg-white/10 text-gray-500'
-                        }`}
-                        title={`Tur ${idx + 1} ${idx < (completedSessions || 0) ? '(Tamamlandı)' : ''}`}
-                      >
-                        {idx < (completedSessions || 0) ? '✓' : idx + 1}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <span className="font-mono font-bold text-[#1ed760]">
-                  %{Math.min(100, Math.round(((completedSessions || 0) / (targetRounds || 4)) * 100))}
-                </span>
-              </div>
-
-              {/* Linear Progress bar */}
-              <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'light' ? 'bg-slate-100' : 'bg-white/10'}`}>
-                <div 
-                  className="h-full bg-gradient-to-r from-[#1ed760] to-emerald-400 transition-all duration-500 rounded-full"
-                  style={{ width: `${Math.min(100, ((completedSessions || 0) / (targetRounds || 4)) * 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
 
           {/* POMODORO CONTROLLER (Responsive: iPhone Mockup on Desktop >= md, Clean Native Card on Mobile < md) */}
           <div className="relative mx-auto w-full md:max-w-[400px]">

@@ -212,45 +212,48 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
 
   return (
     <>
-      {/* ACTIVE YOUTUBE PLAYERS (Docked with playsinline for guaranteed iOS & Desktop crystal-clear audio) */}
-      <div className="fixed bottom-0 right-0 z-40 pointer-events-auto">
+      {/* ACTIVE YOUTUBE PLAYERS (Optimized for iOS Safari, iOS Chrome, WebKit, and Desktop with full audio blessing) */}
+      <div 
+        className="fixed bottom-0 right-0 w-[1px] h-[1px] opacity-[0.001] pointer-events-none z-[-1] overflow-hidden"
+        style={{
+          visibility: 'visible',
+          transform: 'translateZ(0)'
+        }}
+        aria-hidden="true"
+      >
         {channels.map(ch => {
           if ((ch.type === 'youtube' || !ch.type) && ch.active && ch.youtubeId) {
             return (
-              <div 
-                key={`yt-holder-${ch.id}`}
-                className="relative overflow-hidden"
-                style={{
-                  width: 1,
-                  height: 1,
-                  opacity: 0.05,
-                  position: 'fixed',
-                  bottom: 2,
-                  right: 2,
-                  pointerEvents: 'none'
+              <iframe
+                key={`yt-player-${ch.id}`}
+                id={`yt-player-${ch.id}`}
+                src={`https://www.youtube-nocookie.com/embed/${ch.youtubeId}?enablejsapi=1&autoplay=1&playsinline=1&loop=0&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&rel=0&origin=${typeof window !== 'undefined' ? encodeURIComponent(window.location.origin) : ''}`}
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                width="320"
+                height="240"
+                tabIndex={-1}
+                title={ch.name}
+                onLoad={() => {
+                  const iframe = document.getElementById(`yt-player-${ch.id}`) as HTMLIFrameElement;
+                  if (iframe?.contentWindow) {
+                    try {
+                      iframe.contentWindow.postMessage(JSON.stringify({
+                        event: 'listening'
+                      }), '*');
+                      iframe.contentWindow.postMessage(JSON.stringify({
+                        event: 'command',
+                        func: 'setVolume',
+                        args: [ch.volume]
+                      }), '*');
+                      iframe.contentWindow.postMessage(JSON.stringify({
+                        event: 'command',
+                        func: 'playVideo',
+                        args: []
+                      }), '*');
+                    } catch (e) {}
+                  }
                 }}
-              >
-                <iframe
-                  id={`yt-player-${ch.id}`}
-                  src={`https://www.youtube-nocookie.com/embed/${ch.youtubeId}?enablejsapi=1&autoplay=1&playsinline=1&loop=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  width="120"
-                  height="120"
-                  title={ch.name}
-                  onLoad={() => {
-                    const iframe = document.getElementById(`yt-player-${ch.id}`) as HTMLIFrameElement;
-                    if (iframe?.contentWindow) {
-                      try {
-                        iframe.contentWindow.postMessage(JSON.stringify({
-                          event: 'command',
-                          func: 'setVolume',
-                          args: [ch.volume]
-                        }), '*');
-                      } catch (e) {}
-                    }
-                  }}
-                />
-              </div>
+              />
             );
           }
           return null;

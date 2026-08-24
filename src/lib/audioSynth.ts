@@ -1,11 +1,11 @@
 /**
  * Ambient Audio Helper - Clean Web Audio API bridge with zero synthetic ringing
+ * Optimized for iOS Safari, WebKit, and Android mobile browsers
  */
 
 export class WoodRainSynthEngine {
   private ctx: AudioContext | null = null;
   private isRunning: boolean = false;
-  private masterGain: GainNode | null = null;
   private isUnlocked: boolean = false;
   private channelAudios: Map<string, HTMLAudioElement> = new Map();
 
@@ -14,17 +14,32 @@ export class WoodRainSynthEngine {
       const unlockAudio = () => {
         this.unlockAudioContext();
       };
-      window.addEventListener('touchstart', unlockAudio, { passive: true });
-      window.addEventListener('touchend', unlockAudio, { passive: true });
-      window.addEventListener('click', unlockAudio, { passive: true });
+      window.addEventListener('touchstart', unlockAudio, { passive: true, once: false });
+      window.addEventListener('touchend', unlockAudio, { passive: true, once: false });
+      window.addEventListener('click', unlockAudio, { passive: true, once: false });
+      window.addEventListener('keydown', unlockAudio, { passive: true, once: false });
     }
   }
 
   public unlockAudioContext() {
+    if (typeof window === 'undefined') return;
     try {
       const ctx = this.initCtx();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
+      if (ctx) {
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+        // iOS Safari Silent Buffer Activation to bless audio session
+        if (!this.isUnlocked) {
+          try {
+            const buffer = ctx.createBuffer(1, 1, 22050);
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(ctx.destination);
+            source.start(0);
+            this.isUnlocked = true;
+          } catch (e) {}
+        }
       }
     } catch (e) {}
   }
@@ -81,8 +96,9 @@ export class WoodRainSynthEngine {
   public setChannelVolume(channelId: string, volume: number) {
     const customAudio = this.channelAudios.get(channelId);
     if (customAudio) {
-      customAudio.volume = Math.max(0, Math.min(1, volume));
+      customAudio.volume = Math.max(0, Math.min(1, volume / 100));
       if (volume > 0 && customAudio.paused) {
+        this.unlockAudioContext();
         customAudio.play().catch(() => {});
       } else if (volume === 0 && !customAudio.paused) {
         customAudio.pause();
@@ -98,10 +114,13 @@ export class WoodRainSynthEngine {
     const audio = new Audio(audioUrl);
     audio.loop = true;
     audio.setAttribute('playsinline', 'true');
+    audio.setAttribute('webkit-playsinline', 'true');
     audio.crossOrigin = 'anonymous';
+    audio.preload = 'auto';
     this.channelAudios.set(channelId, audio);
   }
 }
 
 export const woodRainSynth = new WoodRainSynthEngine();
+
 
