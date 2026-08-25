@@ -2869,6 +2869,137 @@ app.get('/api/news/check-new', (req, res) => {
   }
 });
 
+// Dynamic SEO Sitemap.xml Endpoint (Google News + Standard XML Sitemap)
+app.get(['/sitemap.xml', '/sitemap'], (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=1800, s-maxage=3600');
+
+    const baseUrl = 'https://voxozet.com';
+    const now = new Date().toISOString();
+    const today = now.split('T')[0];
+
+    const staticRoutes = [
+      { path: '', priority: '1.0', changefreq: 'always' },
+      { path: '/gundem', priority: '0.9', changefreq: 'hourly' },
+      { path: '/ekonomi', priority: '0.9', changefreq: 'hourly' },
+      { path: '/teknoloji', priority: '0.9', changefreq: 'hourly' },
+      { path: '/dunya', priority: '0.8', changefreq: 'hourly' },
+      { path: '/spor', priority: '0.8', changefreq: 'hourly' },
+      { path: '/saglik', priority: '0.8', changefreq: 'hourly' },
+      { path: '/odaklan', priority: '0.8', changefreq: 'daily' },
+      { path: '/kitaplik', priority: '0.7', changefreq: 'weekly' }
+    ];
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+`;
+
+    // Static pages
+    for (const r of staticRoutes) {
+      xml += `  <url>
+    <loc>${baseUrl}${r.path}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${r.changefreq}</changefreq>
+    <priority>${r.priority}</priority>
+  </url>
+`;
+    }
+
+    // Dynamic cached articles in memory
+    const articles = serverNewsCache.all.slice(0, 200);
+    for (const article of articles) {
+      if (!article.title) continue;
+
+      const cleanSlug = article.title
+        .toLowerCase()
+        .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 60);
+
+      const pubDate = article.createdAt ? new Date(article.createdAt).toISOString() : now;
+      const articleUrl = `${baseUrl}/haber/${cleanSlug}-voxozet`;
+      const escapedTitle = article.title
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+
+      xml += `  <url>
+    <loc>${articleUrl}</loc>
+    <lastmod>${pubDate.split('T')[0]}</lastmod>
+    <changefreq>never</changefreq>
+    <priority>0.8</priority>
+    <news:news>
+      <news:publication>
+        <news:name>VOX</news:name>
+        <news:language>tr</news:language>
+      </news:publication>
+      <news:publication_date>${pubDate}</news:publication_date>
+      <news:title>${escapedTitle}</news:title>
+    </news:news>`;
+
+      if (article.imageUrl && article.imageUrl.startsWith('http')) {
+        const escapedImg = article.imageUrl.replace(/&/g, '&amp;');
+        xml += `
+    <image:image>
+      <image:loc>${escapedImg}</image:loc>
+      <image:title>${escapedTitle}</image:title>
+    </image:image>`;
+      }
+
+      xml += `
+  </url>
+`;
+    }
+
+    xml += `</urlset>`;
+    return res.send(xml);
+  } catch (e: any) {
+    return res.status(500).send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`);
+  }
+});
+
+// Dynamic Robots.txt Endpoint
+app.get('/robots.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send(`User-agent: *
+Allow: /
+Allow: /gundem
+Allow: /teknoloji
+Allow: /ekonomi
+Allow: /dunya
+Allow: /spor
+Allow: /saglik
+Allow: /haber/
+Allow: /odaklan
+Allow: /kitaplik
+Disallow: /api/
+Disallow: /api/*
+
+User-agent: Googlebot
+Allow: /
+Allow: /haber/
+
+User-agent: Googlebot-News
+Allow: /
+Allow: /haber/
+
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: Google-AdSense-Bot
+Allow: /
+
+Sitemap: https://voxozet.com/sitemap.xml
+`);
+});
+
 // Quota & Cloud Health Status Endpoint
 app.get('/api/quota-status', (req, res) => {
   res.json({

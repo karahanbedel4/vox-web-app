@@ -12,6 +12,14 @@ Allow: /kitaplik
 Disallow: /api/
 Disallow: /api/*
 
+User-agent: Googlebot
+Allow: /
+Allow: /haber/
+
+User-agent: Googlebot-News
+Allow: /
+Allow: /haber/
+
 User-agent: Mediapartners-Google
 Allow: /
 
@@ -19,3 +27,4 @@ User-agent: Google-AdSense-Bot
 Allow: /
 
 Sitemap: https://voxozet.com/sitemap.xml
+
