@@ -285,17 +285,23 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     };
   }, []);
 
-  // NOTIFICATION STATE & COOKIE CONSENT
+  // NOTIFICATION STATE & STORAGE CONSENT
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
   const [hasConsented, setHasConsented] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    const cookieVal = getCookie('vox_push_consent');
-    if (cookieVal === 'granted' || cookieVal === 'dismissed' || cookieVal === 'denied') {
-      return true;
-    }
-    if ('Notification' in window && Notification.permission === 'granted') {
-      return true;
-    }
+    try {
+      const stored = appStorage.getItemSync('vox_push_consent');
+      if (stored === 'granted' || stored === 'dismissed' || stored === 'denied') {
+        return true;
+      }
+      const cookieVal = getCookie('vox_push_consent');
+      if (cookieVal === 'granted' || cookieVal === 'dismissed' || cookieVal === 'denied') {
+        return true;
+      }
+      if ('Notification' in window && Notification.permission === 'granted') {
+        return true;
+      }
+    } catch (e) {}
     return false;
   });
 
@@ -306,12 +312,15 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   // Check initial notification permission
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
-      const perm = Notification.permission;
-      setNotifPermission(perm);
-      if (perm === 'granted') {
-        setCookie('vox_push_consent', 'granted', 365);
-        setHasConsented(true);
-      }
+      try {
+        const perm = Notification.permission;
+        setNotifPermission(perm);
+        if (perm === 'granted') {
+          setCookie('vox_push_consent', 'granted', 365);
+          appStorage.setItemSync('vox_push_consent', 'granted');
+          setHasConsented(true);
+        }
+      } catch (e) {}
     }
   }, []);
 
@@ -337,35 +346,59 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   }, []);
 
   const requestNotificationPermission = async () => {
+    triggerHapticImpact('medium').catch(() => {});
+    
+    // Always dismiss popup immediately on click and store user consent
+    setHasConsented(true);
+    setCookie('vox_push_consent', 'granted', 365);
+    try {
+      appStorage.setItemSync('vox_push_consent', 'granted');
+    } catch (e) {}
+
+    // Check if browser supports Web Push Notifications (Desktop / Android / iOS PWA)
     if (typeof window === 'undefined' || !('Notification' in window)) {
-      alert('Tarayıcınız Web Bildirimlerini desteklemiyor.');
+      showTemporaryStatus('🔔 Sesli seans ve mola uyarıları aktif edildi!');
+      playMindfulnessBell();
       return;
     }
 
     try {
-      const result = await Notification.requestPermission();
-      setNotifPermission(result);
+      let permission: NotificationPermission = 'default';
+      
+      const req = Notification.requestPermission();
+      if (req && typeof (req as any).then === 'function') {
+        permission = await req;
+      } else {
+        // Legacy callback support for older mobile WebKit
+        permission = await new Promise<NotificationPermission>((resolve) => {
+          Notification.requestPermission((p) => resolve(p));
+        });
+      }
 
-      if (result === 'granted') {
-        setCookie('vox_push_consent', 'granted', 365);
-        setHasConsented(true);
+      setNotifPermission(permission);
 
+      if (permission === 'granted') {
         triggerHapticNotification('success').catch(() => {});
+        showTemporaryStatus('🔔 Bildirimler ve sesli uyarılar aktif edildi!');
         sendPomodoroWebNotification(
           'VOX Odaklanma',
           '🔔 Bildirimler aktif! Seans ve mola geçişlerinde anlık bildirim alacaksınız.'
         );
-      } else if (result === 'denied') {
-        setCookie('vox_push_consent', 'denied', 365);
-        setHasConsented(true);
+      } else {
+        showTemporaryStatus('🔔 Seans geçişlerinde sesli uyarılar çalacak.');
       }
     } catch (err) {
-      console.warn('Notification permission error:', err);
+      console.warn('Notification permission handler notice:', err);
+      showTemporaryStatus('🔔 Sesli seans uyarıları devrede.');
     }
   };
 
   const dismissNotificationBanner = () => {
+    triggerHapticImpact('light').catch(() => {});
     setCookie('vox_push_consent', 'dismissed', 30);
+    try {
+      appStorage.setItemSync('vox_push_consent', 'dismissed');
+    } catch (e) {}
     setHasConsented(true);
   };
 
