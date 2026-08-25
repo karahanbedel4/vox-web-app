@@ -12,4 +12,10 @@ Allow: /kitaplik
 Disallow: /api/
 Disallow: /api/*
 
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: Google-AdSense-Bot
+Allow: /
+
 Sitemap: https://voxozet.com/sitemap.xml
