@@ -118,14 +118,20 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   // Cookie Consent State
   const [showCookieBanner, setShowCookieBanner] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    const stored = appStorage.getItemSync('vox_cookie_consent');
-    const cookie = getCookie('vox_cookie_consent');
-    return !(stored === 'accepted' || cookie === 'accepted');
+    try {
+      const stored = appStorage.getItemSync('vox_cookie_consent');
+      const cookie = getCookie('vox_cookie_consent');
+      return !(stored === 'accepted' || cookie === 'accepted');
+    } catch (e) {
+      return false;
+    }
   });
 
   const handleAcceptCookies = () => {
-    appStorage.setItemSync('vox_cookie_consent', 'accepted');
-    setCookie('vox_cookie_consent', 'accepted', 365);
+    try {
+      appStorage.setItemSync('vox_cookie_consent', 'accepted');
+      setCookie('vox_cookie_consent', 'accepted', 365);
+    } catch (e) {}
     setShowCookieBanner(false);
   };
 
