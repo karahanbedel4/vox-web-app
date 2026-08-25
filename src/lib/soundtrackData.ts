@@ -5,9 +5,10 @@ export interface SoundTrack {
   id: string;
   name: string;
   subtitle: string;
-  category: 'series' | 'movies' | 'nature' | 'lofi';
+  category: 'nature' | 'lofi' | 'movies' | 'series';
   categoryTitle: string;
   youtubeId: string;
+  coverImage?: string;
   durationSeconds?: number;
   featured?: boolean;
 }
@@ -16,179 +17,137 @@ export interface SoundShelf {
   id: string;
   title: string;
   subtitle: string;
-  iconName: 'Tv' | 'Film' | 'CloudRain' | 'Music' | 'Sparkles';
+  iconName: 'CloudRain' | 'Music' | 'Film' | 'Tv' | 'Sparkles';
   tracks: SoundTrack[];
 }
 
 export function getShelfIcon(iconName: string): LucideIcon {
   switch (iconName) {
-    case 'Tv':
-      return Tv;
-    case 'Film':
-      return Film;
     case 'CloudRain':
       return CloudRain;
     case 'Music':
       return Music;
+    case 'Film':
+      return Film;
+    case 'Tv':
+      return Tv;
     default:
       return Sparkles;
   }
 }
 
-// 🎬 EFSANE DİZİ MÜZİKLERİ
-export const SERIES_SOUNDTRACKS: SoundTrack[] = [
+// 🌿 1. DOĞA & AMBİYANS (EN ÜSTTE)
+export const NATURE_SOUNDTRACKS: SoundTrack[] = [
   {
-    id: 'yt-friends-theme',
-    name: "I'll Be There For You",
-    subtitle: 'Friends • The Rembrandts',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    youtubeId: 'q-9kPks0IfE',
-    durationSeconds: 195,
+    id: 'yt-nature-rain',
+    name: 'Doğada Yağmur Sesi',
+    subtitle: 'Sakinleştirici Yağmur & Gök Gürültüsü',
+    category: 'nature',
+    categoryTitle: 'Doğa & Ambiyans',
+    youtubeId: 'mPZkdNFkNps',
+    coverImage: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 3600,
     featured: true
   },
   {
-    id: 'yt-himym-theme',
-    name: 'Hey Beautiful',
-    subtitle: 'How I Met Your Mother • The Solids',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    youtubeId: '7pOr30zM5b8',
-    durationSeconds: 160,
+    id: 'yt-forest-birds',
+    name: 'Sakin Orman & Kuş Sesi',
+    subtitle: 'Huzurlu Orman & Kuş Cıvıltıları',
+    category: 'nature',
+    categoryTitle: 'Doğa & Ambiyans',
+    youtubeId: 'xNN7iTA57jM',
+    coverImage: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 3600,
     featured: true
   },
   {
-    id: 'yt-himym-lavie',
-    name: 'La Vie En Rose (Ukulele)',
-    subtitle: 'How I Met Your Mother • Cristin Milioti',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    youtubeId: 'vB6S7iFq2qU',
-    durationSeconds: 140
-  },
-  {
-    id: 'yt-got-main',
-    name: 'Game of Thrones Main Theme',
-    subtitle: 'Game of Thrones • Ramin Djawadi',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    youtubeId: 'TZE9gVF1QbA',
-    durationSeconds: 180,
-    featured: true
-  },
-  {
-    id: 'yt-got-light',
-    name: 'Light of the Seven',
-    subtitle: 'Game of Thrones • Ramin Djawadi',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    youtubeId: 'k1frgt0D0lQ',
-    durationSeconds: 590
-  },
-  {
-    id: 'yt-peaky-blinders',
-    name: 'Red Right Hand',
-    subtitle: 'Peaky Blinders • Nick Cave & The Bad Seeds',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    youtubeId: 'Kgd205y3-gU',
-    durationSeconds: 370
-  },
-  {
-    id: 'yt-stranger-things',
-    name: 'Stranger Things Main Theme',
-    subtitle: 'Stranger Things • Synthwave Focus',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    youtubeId: '-RcPZdihrp4',
-    durationSeconds: 180
-  },
-  {
-    id: 'yt-breaking-bad',
-    name: 'Breaking Bad Main Theme',
-    subtitle: 'Breaking Bad • Dave Porter',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    youtubeId: 'bmtbg5b7wg8',
-    durationSeconds: 150
-  },
-  {
-    id: 'yt-sherlock-theme',
-    name: 'Sherlock Opening Theme',
-    subtitle: 'Sherlock • David Arnold',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    youtubeId: 'xX2JbZ2a3_0',
-    durationSeconds: 170
-  }
-];
-
-// 🍿 EFSANE FİLM MÜZİKLERİ
-export const MOVIE_SOUNDTRACKS: SoundTrack[] = [
-  {
-    id: 'yt-starwars-imperial',
-    name: 'The Imperial March',
-    subtitle: 'Star Wars • John Williams',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    youtubeId: '-bzWSJG93P8',
-    durationSeconds: 180,
-    featured: true
-  },
-  {
-    id: 'yt-starwars-binary',
-    name: 'Binary Sunset & Main Theme',
-    subtitle: 'Star Wars • John Williams',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    youtubeId: 'WB-b_2_fJ-s',
-    durationSeconds: 210
-  },
-  {
-    id: 'yt-hp-hedwig',
-    name: "Hedwig's Theme",
-    subtitle: 'Harry Potter • John Williams',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    youtubeId: 'Htaj3o3JD8E',
-    durationSeconds: 310,
-    featured: true
-  },
-  {
-    id: 'yt-hp-ambient',
-    name: 'Hogwarts Kütüphane & Ambiyans',
-    subtitle: 'Harry Potter • Büyülü Çalışma',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    youtubeId: 'BQrxsyGTztM',
+    id: 'yt-ocean-waves',
+    name: 'Okyanus & Dalga Sesi',
+    subtitle: 'Derin Sahil Dalgaları',
+    category: 'nature',
+    categoryTitle: 'Doğa & Ambiyans',
+    youtubeId: 'bn9F19Hi1Lk',
+    coverImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80',
     durationSeconds: 3600
   },
   {
-    id: 'yt-lotr-shire',
-    name: 'Concerning Hobbits (The Shire)',
-    subtitle: 'Yüzüklerin Efendisi • Howard Shore',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    youtubeId: '_pGaz_qN0cw',
-    durationSeconds: 210,
+    id: 'yt-campfire-night',
+    name: 'Gece & Kamp Ateşi',
+    subtitle: 'Çıtırdayan Sıcak Ateş & Ambiyans',
+    category: 'nature',
+    categoryTitle: 'Doğa & Ambiyans',
+    youtubeId: 'L_LUpnjgPso',
+    coverImage: 'https://images.unsplash.com/photo-1508873696983-2df5293cb32b?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 3600
+  },
+  {
+    id: 'yt-cozy-cafe',
+    name: 'Sakin Kafe Ambiyansı',
+    subtitle: 'Kahve Dükkanı & Hafif Uğultu',
+    category: 'nature',
+    categoryTitle: 'Doğa & Ambiyans',
+    youtubeId: 'gaGrHUekGrc',
+    coverImage: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 3600
+  }
+];
+
+// ☕ 2. LO-FI & DERİN ODAKLANMA (İKİNCİ SIRADA)
+export const LOFI_SOUNDTRACKS: SoundTrack[] = [
+  {
+    id: 'yt-lofi-girl',
+    name: 'Lofi Beats to Focus',
+    subtitle: 'Lofi Girl • Chillhop Beats',
+    category: 'lofi',
+    categoryTitle: 'Lo-Fi Odaklanma',
+    youtubeId: 'jfKfPfyJRdk',
+    coverImage: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 3600,
     featured: true
   },
   {
-    id: 'yt-lotr-soundtrack',
-    name: 'The Fellowship Suite',
-    subtitle: 'Yüzüklerin Efendisi • Howard Shore',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    youtubeId: 'FrWuCPgsp_c',
-    durationSeconds: 340
+    id: 'yt-deep-work',
+    name: 'Derin Çalışma Müziği',
+    subtitle: 'Binaural Focus & Zihin Açıcı Tonlar',
+    category: 'lofi',
+    categoryTitle: 'Lo-Fi Odaklanma',
+    youtubeId: 'WPni755-Krg',
+    coverImage: 'https://images.unsplash.com/photo-1507842229452-772d1c86e246?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 3600,
+    featured: true
   },
   {
+    id: 'yt-lofi-rain',
+    name: 'Lo-Fi & Yağmur',
+    subtitle: 'Gece Yağmuru & Sakin Akorlar',
+    category: 'lofi',
+    categoryTitle: 'Lo-Fi Odaklanma',
+    youtubeId: 'sF80I-TQiW0',
+    coverImage: 'https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 3600
+  },
+  {
+    id: 'yt-lofi-chill',
+    name: 'Lo-Fi Chill Gece',
+    subtitle: 'Huzurlu Ritimler & Gece Çalışması',
+    category: 'lofi',
+    categoryTitle: 'Lo-Fi Odaklanma',
+    youtubeId: '5qap5aO4i9A',
+    coverImage: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 3600
+  }
+];
+
+// 🍿 3. EFSANE FİLM & SİNEMA MÜZİKLERİ (ÜÇÜNCÜ SIRADA)
+export const MOVIE_SOUNDTRACKS: SoundTrack[] = [
+  {
     id: 'yt-interstellar-theme',
-    name: 'Cornfield Chase & Main Theme',
+    name: 'Cornfield Chase',
     subtitle: 'Interstellar • Hans Zimmer',
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
     youtubeId: 'UDVtMYqUAyw',
+    coverImage: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=80',
     durationSeconds: 240,
     featured: true
   },
@@ -199,7 +158,40 @@ export const MOVIE_SOUNDTRACKS: SoundTrack[] = [
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
     youtubeId: 'RxabLA7UQ9k',
-    durationSeconds: 275
+    coverImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 275,
+    featured: true
+  },
+  {
+    id: 'yt-starwars-imperial',
+    name: 'The Imperial March',
+    subtitle: 'Star Wars • John Williams',
+    category: 'movies',
+    categoryTitle: 'Film Müzikleri',
+    youtubeId: '-bzWSJG93P8',
+    coverImage: 'https://images.unsplash.com/photo-1579202673506-ca3ce28943ef?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 180,
+    featured: true
+  },
+  {
+    id: 'yt-lotr-soundtrack',
+    name: 'The Fellowship Suite',
+    subtitle: 'Yüzüklerin Efendisi • Howard Shore',
+    category: 'movies',
+    categoryTitle: 'Film Müzikleri',
+    youtubeId: 'FrWuCPgsp_c',
+    coverImage: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 340
+  },
+  {
+    id: 'yt-hp-ambient',
+    name: 'Hogwarts Kütüphane',
+    subtitle: 'Harry Potter • Büyülü Çalışma',
+    category: 'movies',
+    categoryTitle: 'Film Müzikleri',
+    youtubeId: 'BQrxsyGTztM',
+    coverImage: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 3600
   },
   {
     id: 'yt-pirates-caribbean',
@@ -208,146 +200,63 @@ export const MOVIE_SOUNDTRACKS: SoundTrack[] = [
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
     youtubeId: '27mB8verLK8',
+    coverImage: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=600&auto=format&fit=crop&q=80',
     durationSeconds: 190
-  },
-  {
-    id: 'yt-godfather-theme',
-    name: 'Speak Softly Love (Love Theme)',
-    subtitle: 'Baba (The Godfather) • Nino Rota',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    youtubeId: 'hw4hYVnZkL8',
-    durationSeconds: 160
-  },
-  {
-    id: 'yt-gladiator-freedom',
-    name: 'Now We Are Free',
-    subtitle: 'Gladiator • Hans Zimmer & Lisa Gerrard',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    youtubeId: 'NBE-uBgtINg',
-    durationSeconds: 260
-  },
-  {
-    id: 'yt-pulp-fiction',
-    name: 'Misirlou',
-    subtitle: 'Pulp Fiction • Dick Dale',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    youtubeId: '-y3h9p_c5-M',
-    durationSeconds: 140
   }
 ];
 
-// 🌿 DOĞA & AMBİYANS
-export const NATURE_SOUNDTRACKS: SoundTrack[] = [
+// 🎬 4. EFSANE DİZİ MÜZİKLERİ (DÖRDÜNCÜ SIRADA)
+export const SERIES_SOUNDTRACKS: SoundTrack[] = [
   {
-    id: 'yt-nature-rain',
-    name: 'Doğada Yağmur Sesi',
-    subtitle: 'Doğa & Yağmur',
-    category: 'nature',
-    categoryTitle: 'Doğa & Ambiyans',
-    youtubeId: '3mst47Uu3IU',
-    durationSeconds: 3600
+    id: 'yt-friends-theme',
+    name: "I'll Be There For You",
+    subtitle: 'Friends • The Rembrandts',
+    category: 'series',
+    categoryTitle: 'Dizi Müzikleri',
+    youtubeId: 'q-9kPks0IfE',
+    coverImage: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 195,
+    featured: true
   },
   {
-    id: 'yt-forest-birds',
-    name: 'Sakin Orman & Kuş Sesi',
-    subtitle: 'Orman & Kuşlar',
-    category: 'nature',
-    categoryTitle: 'Doğa & Ambiyans',
-    youtubeId: 'xNN7iTA57jM',
-    durationSeconds: 3600
+    id: 'yt-got-main',
+    name: 'Game of Thrones Main Theme',
+    subtitle: 'Game of Thrones • Ramin Djawadi',
+    category: 'series',
+    categoryTitle: 'Dizi Müzikleri',
+    youtubeId: 'TZE9gVF1QbA',
+    coverImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 180,
+    featured: true
   },
   {
-    id: 'yt-thunder-rain',
-    name: 'Şimşek ve Fırtına Sesi',
-    subtitle: 'Gece Fırtınası',
-    category: 'nature',
-    categoryTitle: 'Doğa & Ambiyans',
-    youtubeId: '9JEL_n6egA8',
-    durationSeconds: 3600
+    id: 'yt-peaky-blinders',
+    name: 'Red Right Hand',
+    subtitle: 'Peaky Blinders • Nick Cave',
+    category: 'series',
+    categoryTitle: 'Dizi Müzikleri',
+    youtubeId: 'Kgd205y3-gU',
+    coverImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 370
   },
   {
-    id: 'yt-ocean-waves',
-    name: 'Okyanus & Dalga Sesi',
-    subtitle: 'Sahil Dalgaları',
-    category: 'nature',
-    categoryTitle: 'Doğa & Ambiyans',
-    youtubeId: 'bn9F19Hi1Lk',
-    durationSeconds: 3600
-  },
-  {
-    id: 'yt-campfire-night',
-    name: 'Gece & Kamp Ateşi Sesi',
-    subtitle: 'Çıtırdayan Ateş',
-    category: 'nature',
-    categoryTitle: 'Doğa & Ambiyans',
-    youtubeId: 'L_LUpnjgPso',
-    durationSeconds: 3600
-  },
-  {
-    id: 'yt-cozy-cafe',
-    name: 'Sakin Kafe Ambiyansı',
-    subtitle: 'Kahve Dükkanı',
-    category: 'nature',
-    categoryTitle: 'Doğa & Ambiyans',
-    youtubeId: 'gaGrHUekGrc',
-    durationSeconds: 3600
+    id: 'yt-stranger-things',
+    name: 'Stranger Things Main Theme',
+    subtitle: 'Stranger Things • Synthwave Focus',
+    category: 'series',
+    categoryTitle: 'Dizi Müzikleri',
+    youtubeId: '-RcPZdihrp4',
+    coverImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 180
   }
 ];
 
-// ☕ LO-FI & CHILL
-export const LOFI_SOUNDTRACKS: SoundTrack[] = [
-  {
-    id: 'yt-lofi-rain',
-    name: 'Lo-Fi & Yağmur',
-    subtitle: 'Chillhop Yağmur',
-    category: 'lofi',
-    categoryTitle: 'Lo-Fi Odaklanma',
-    youtubeId: 'sF80I-TQiW0',
-    durationSeconds: 3600
-  },
-  {
-    id: 'yt-lofi-chill',
-    name: 'Lo-Fi Chill',
-    subtitle: 'Huzurlu Beats',
-    category: 'lofi',
-    categoryTitle: 'Lo-Fi Odaklanma',
-    youtubeId: 'fsPRybb-xXg',
-    durationSeconds: 3600
-  },
-  {
-    id: 'yt-deep-work',
-    name: 'Derin Çalışma Müziği',
-    subtitle: 'Binaural Focus',
-    category: 'lofi',
-    categoryTitle: 'Lo-Fi Odaklanma',
-    youtubeId: 'czMO-L42nnc',
-    durationSeconds: 3600
-  }
-];
-
-// COMBINED ALL SHELVES FOR EASY RENDERING
+// COMBINED ALL SHELVES (Doğa ve Lo-Fi en üstte)
 export const ALL_SOUND_SHELVES: SoundShelf[] = [
-  {
-    id: 'series',
-    title: 'Efsane Dizi Müzikleri',
-    subtitle: 'Friends, HIMYM, Game of Thrones, Peaky Blinders & daha fazlası',
-    iconName: 'Tv',
-    tracks: SERIES_SOUNDTRACKS
-  },
-  {
-    id: 'movies',
-    title: 'Efsane Film & Sinema Müzikleri',
-    subtitle: 'Star Wars, Harry Potter, Yüzüklerin Efendisi, Interstellar, Inception...',
-    iconName: 'Film',
-    tracks: MOVIE_SOUNDTRACKS
-  },
   {
     id: 'nature',
     title: 'Doğa & Atmosfer',
-    subtitle: 'Sakinleştirici doğa sesleri, yağmur ve şimşek tonları',
+    subtitle: 'Sakinleştirici doğa sesleri, yağmur ve orman tonları',
     iconName: 'CloudRain',
     tracks: NATURE_SOUNDTRACKS
   },
@@ -357,15 +266,29 @@ export const ALL_SOUND_SHELVES: SoundShelf[] = [
     subtitle: 'Ritmik chillhop ve konsantrasyon artıran arka plan beats',
     iconName: 'Music',
     tracks: LOFI_SOUNDTRACKS
+  },
+  {
+    id: 'movies',
+    title: 'Efsane Film & Sinema Müzikleri',
+    subtitle: 'Interstellar, Inception, Star Wars, Yüzüklerin Efendisi...',
+    iconName: 'Film',
+    tracks: MOVIE_SOUNDTRACKS
+  },
+  {
+    id: 'series',
+    title: 'Efsane Dizi Müzikleri',
+    subtitle: 'Friends, Game of Thrones, Peaky Blinders & daha fazlası',
+    iconName: 'Tv',
+    tracks: SERIES_SOUNDTRACKS
   }
 ];
 
 // Flat list of all tracks
 export const ALL_TRACKS: SoundTrack[] = [
-  ...SERIES_SOUNDTRACKS,
-  ...MOVIE_SOUNDTRACKS,
   ...NATURE_SOUNDTRACKS,
-  ...LOFI_SOUNDTRACKS
+  ...LOFI_SOUNDTRACKS,
+  ...MOVIE_SOUNDTRACKS,
+  ...SERIES_SOUNDTRACKS
 ];
 
 // Helper to convert SoundTrack to AmbientChannel
@@ -383,3 +306,4 @@ export function convertTrackToAmbientChannel(track: SoundTrack, volume: number =
 
 // Convert all tracks to default AmbientChannels
 export const ALL_DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = ALL_TRACKS.map(t => convertTrackToAmbientChannel(t, 60, false));
+

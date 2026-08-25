@@ -1179,14 +1179,19 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                               
                               {/* Background Artwork */}
                               <img
-                                src={`https://img.youtube.com/vi/${track.youtubeId}/mqdefault.jpg`}
+                                src={track.coverImage || `https://img.youtube.com/vi/${track.youtubeId}/hqdefault.jpg`}
                                 alt={track.name}
                                 className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
                                   isPlaying ? 'opacity-90' : 'opacity-75 group-hover:opacity-90'
                                 }`}
                                 loading="lazy"
                                 onError={(e) => {
-                                  (e.target as HTMLElement).style.display = 'none';
+                                  const imgEl = e.currentTarget;
+                                  if (track.coverImage && imgEl.src !== track.coverImage) {
+                                    imgEl.src = track.coverImage;
+                                  } else {
+                                    imgEl.src = 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80';
+                                  }
                                 }}
                               />
 
