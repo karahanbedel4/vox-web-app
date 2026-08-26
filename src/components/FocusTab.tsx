@@ -764,31 +764,27 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               </div>
 
               {/* Inner Screen Content */}
-              <div className="space-y-4 pt-1 pb-1">
+              <div className="space-y-3 pt-0.5 pb-1">
                 
-                {/* Dynamic Live Date Badge */}
-                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-black/20 dark:bg-white/[0.03] border border-black/5 dark:border-white/5 text-[11px] text-gray-600 dark:text-gray-300">
-                  <div className="flex items-center gap-1.5 font-medium">
-                    <Calendar className="w-3.5 h-3.5 text-[#1ed760]" />
-                    <span className="capitalize">{currentDateStr}</span>
+                {/* 1. Sleek Compact Date & Goal Header (Redundant 2nd clock removed, saves vertical space) */}
+                <div className="px-1 space-y-0.5">
+                  <div className="flex items-center justify-between text-[11px] text-gray-400">
+                    <div className="flex items-center gap-1.5 font-medium">
+                      <Calendar className="w-3 h-3 text-[#1ed760]" />
+                      <span className="capitalize">{currentDateStr}</span>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setIsEditingGoal(true)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-[#1ed760] hover:underline cursor-pointer opacity-75 hover:opacity-100 transition-opacity"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      <span>Düzenle</span>
+                    </button>
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 font-mono">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-[#1ed760]" />
-                      <span>{currentTime}</span>
-                    </span>
-                    {/* Mobile Battery Display */}
-                    <span className="md:hidden flex items-center gap-1">
-                      <Battery className="w-3.5 h-3.5 text-[#1ed760]" />
-                      <span>%{batteryInfo.level}</span>
-                    </span>
-                  </div>
-                </div>
 
-                {/* 1. Permanent Vibrant Green Goal Title with Direct In-Place Edit */}
-                <div className="px-1 space-y-1">
                   {isEditingGoal ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pt-1">
                       <input
                         type="text"
                         value={focusGoal}
@@ -809,16 +805,12 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   ) : (
                     <div 
                       onClick={() => setIsEditingGoal(true)}
-                      className="group flex items-center justify-between gap-2 cursor-pointer py-0.5 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                      className="group cursor-pointer py-0.5 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                       title="Hedefi düzenlemek için tıklayın"
                     >
                       <h2 className="text-2xl sm:text-3xl font-black text-[#1ed760] tracking-tight uppercase leading-tight drop-shadow-sm select-none">
                         {focusGoal}
                       </h2>
-                      <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity text-xs font-semibold text-[#1ed760] shrink-0">
-                        <Pencil className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline text-[10px]">Düzenle</span>
-                      </div>
                     </div>
                   )}
                 </div>
