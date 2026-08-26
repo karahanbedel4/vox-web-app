@@ -84,6 +84,24 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { isRunning: isFocusRunning, timeLeft: focusTimeLeft, sessionType: focusSessionType } = useFocus();
 
+  // "Lights Out" / Zen Focus Minimal Mode (Synchronized with FocusTab)
+  const [isLightsOut, setIsLightsOut] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return appStorage.getItemSync('vox_lights_out_mode') === 'true';
+  });
+
+  useEffect(() => {
+    const handleLightsOutEvent = (e: any) => {
+      if (e && typeof e.detail === 'boolean') {
+        setIsLightsOut(e.detail);
+      }
+    };
+    window.addEventListener('vox_toggle_lights_out', handleLightsOutEvent);
+    return () => {
+      window.removeEventListener('vox_toggle_lights_out', handleLightsOutEvent);
+    };
+  }, []);
+
   const [playbackState, setPlaybackState] = useState<PlaybackState>(ttsService.getState());
   const [volume, setVolume] = useState<number>(100);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -351,7 +369,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       />
 
       {/* LEFT FLOATING OVAL SIDEBAR (Inspired by Bundle Web App Architecture) */}
-      <aside className="hidden md:flex w-64 lg:w-72 flex-shrink-0 flex-col justify-between h-[calc(100vh-1.5rem)] fixed top-3 left-3 z-40 bg-black rounded-[32px] border border-white/10 p-5 shadow-2xl overflow-y-auto scrollbar-none text-white select-none">
+      <aside className={`${isLightsOut ? 'hidden' : 'hidden md:flex'} w-64 lg:w-72 flex-shrink-0 flex-col justify-between h-[calc(100vh-1.5rem)] fixed top-3 left-3 z-40 bg-black rounded-[32px] border border-white/10 p-5 shadow-2xl overflow-y-auto scrollbar-none text-white select-none transition-all duration-300`}>
         <div className="flex flex-col gap-4">
           {/* LOGO & BRANDING */}
           <div className="px-1 pt-1">
@@ -877,7 +895,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       <FocusTopBanner />
 
       {/* MAIN CONTENT AREA */}
-      <main ref={mainContentRef} className={`flex-1 ml-0 md:ml-72 lg:ml-80 pt-14 md:pt-0 pb-36 min-h-screen overflow-y-auto transition-colors duration-300 ${
+      <main ref={mainContentRef} className={`flex-1 ${isLightsOut ? 'ml-0' : 'ml-0 md:ml-72 lg:ml-80'} pt-14 md:pt-0 pb-36 min-h-screen overflow-y-auto transition-all duration-300 ${
         theme === 'light' ? 'bg-[#f4f6f8] text-slate-900' : 'bg-[#0a0d0b] text-gray-200'
       }`}>
         <Outlet />

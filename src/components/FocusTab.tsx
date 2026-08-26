@@ -188,6 +188,81 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskText, setEditingTaskText] = useState<string>('');
   const [isEditingGoal, setIsEditingGoal] = useState<boolean>(false);
+  const [phoneActiveTab, setPhoneActiveTab] = useState<'timer' | 'player'>('timer');
+
+  // "Lights Out" / Zen Focus Minimalist Mode State
+  const [isLightsOut, setIsLightsOut] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return appStorage.getItemSync('vox_lights_out_mode') === 'true';
+  });
+
+  const toggleLightsOut = () => {
+    const nextVal = !isLightsOut;
+    setIsLightsOut(nextVal);
+    try {
+      appStorage.setItemSync('vox_lights_out_mode', String(nextVal));
+    } catch (e) {}
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('vox_toggle_lights_out', { detail: nextVal }));
+    }
+    triggerHapticImpact('medium').catch(() => {});
+    showTemporaryStatus(nextVal ? '🌙 Işıkları Kapat (Zen Modu) Açıldı' : '☀️ Normal Mod Açıldı');
+  };
+
+  // Currently playing active soundtrack from ambient channels
+  const currentPlayingTrack = useMemo(() => {
+    for (const shelf of ALL_SOUND_SHELVES) {
+      for (const track of shelf.tracks) {
+        const ch = ambientChannels.find(c => (c.id === track.id || c.youtubeId === track.youtubeId) && c.active && c.volume > 0);
+        if (ch) {
+          return { track, shelf, volume: ch.volume };
+        }
+      }
+    }
+    return null;
+  }, [ambientChannels]);
+
+  // All flattened tracks for Next/Previous jumping within phone mockup
+  const allFlattenedTracks = useMemo(() => {
+    return ALL_SOUND_SHELVES.flatMap(s => s.tracks);
+  }, []);
+
+  const handleNextInMockup = () => {
+    triggerHapticImpact('light').catch(() => {});
+    if (onNextTrack) {
+      onNextTrack();
+      return;
+    }
+    if (!currentPlayingTrack) {
+      // Start first track
+      if (allFlattenedTracks.length > 0) {
+        onToggleAmbientChannel(allFlattenedTracks[0].id);
+      }
+      return;
+    }
+    const idx = allFlattenedTracks.findIndex(t => t.id === currentPlayingTrack.track.id);
+    const nextIdx = (idx + 1) % allFlattenedTracks.length;
+    onToggleAmbientChannel(allFlattenedTracks[nextIdx].id);
+  };
+
+  const handlePrevInMockup = () => {
+    triggerHapticImpact('light').catch(() => {});
+    if (onPrevTrack) {
+      onPrevTrack();
+      return;
+    }
+    if (!currentPlayingTrack) return;
+    const idx = allFlattenedTracks.findIndex(t => t.id === currentPlayingTrack.track.id);
+    const prevIdx = (idx - 1 + allFlattenedTracks.length) % allFlattenedTracks.length;
+    onToggleAmbientChannel(allFlattenedTracks[prevIdx].id);
+  };
+
+  const scrollToSoundtracksSection = () => {
+    const el = document.getElementById('soundtracks-full-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const handleSelectTargetRounds = (rounds: number) => {
     setTargetRounds(rounds);
@@ -435,6 +510,31 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5">
+          {/* Lights Out / Zen Focus Mode Toggle Button */}
+          <button
+            onClick={toggleLightsOut}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-sm ${
+              isLightsOut
+                ? 'bg-amber-400 text-black border-amber-400 ring-2 ring-amber-400/40'
+                : theme === 'light'
+                  ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                  : 'bg-white/5 border-white/10 text-gray-300 hover:text-white hover:bg-white/10'
+            }`}
+            title="Işıkları Kapat: Haberleri ve yan menüyü gizleyip sadece sayaç, müzik ve hedeflere odaklan"
+          >
+            {isLightsOut ? (
+              <>
+                <Moon className="w-3.5 h-3.5 fill-current" />
+                <span>Işıkları Aç</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5" />
+                <span>Işıkları Kapat (Zen)</span>
+              </>
+            )}
+          </button>
+
           {/* Completed Session Progress Badge */}
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-colors ${
             (completedSessions || 0) >= (targetRounds || 4)
@@ -616,13 +716,13 @@ export const FocusTab: React.FC<FocusTabProps> = ({
       </div>
 
       {/* 2-COLUMN SPLIT GRID LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className={`grid grid-cols-1 ${isLightsOut ? 'lg:grid-cols-1' : 'lg:grid-cols-12'} gap-6 items-start transition-all duration-300`}>
         
-        {/* LEFT COLUMN: Modern Phone Mockup Display & Ambient Sounds */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* LEFT COLUMN: Modern Phone Mockup Display (Centered when Lights Out is active) */}
+        <div className={`${isLightsOut ? 'lg:col-span-12 max-w-2xl mx-auto w-full' : 'lg:col-span-7'} space-y-6 transition-all duration-300`}>
 
           {/* POMODORO CONTROLLER (Responsive: iPhone Mockup on Desktop >= md, Clean Native Card on Mobile < md) */}
-          <div className="relative mx-auto w-full md:max-w-[400px]">
+          <div className="relative mx-auto w-full md:max-w-[420px]">
             
             {/* Ambient Glow Behind Phone / Card */}
             <div className={`absolute -inset-4 rounded-[50px] blur-3xl transition-opacity duration-1000 pointer-events-none opacity-35 ${
@@ -723,8 +823,49 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   )}
                 </div>
 
-                {/* 2. Rotating Motivational & Praising Quotes Card */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/70 via-[#0e1712] to-teal-950/50 border border-emerald-500/30 p-3 sm:p-3.5 shadow-md">
+                {/* In-Mockup Tab Switcher: Pomodoro Timer vs. In-Mockup Music Player */}
+                <div className="flex items-center p-1 bg-black/40 rounded-2xl border border-white/10 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhoneActiveTab('timer');
+                      triggerHapticImpact('light').catch(() => {});
+                    }}
+                    className={`flex-1 py-1.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      phoneActiveTab === 'timer'
+                        ? 'bg-[#1ed760] text-black shadow-md shadow-[#1ed760]/20'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <Target className="w-3.5 h-3.5" />
+                    <span>Pomodoro</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhoneActiveTab('player');
+                      triggerHapticImpact('light').catch(() => {});
+                    }}
+                    className={`flex-1 py-1.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer relative ${
+                      phoneActiveTab === 'player'
+                        ? 'bg-[#1ed760] text-black shadow-md shadow-[#1ed760]/20'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <Headphones className="w-3.5 h-3.5" />
+                    <span>Müzik Çalar</span>
+                    {currentPlayingTrack && (
+                      <span className="w-2 h-2 rounded-full bg-[#1ed760] animate-pulse" />
+                    )}
+                  </button>
+                </div>
+
+                {/* TAB 1: TIMER, QUOTES & TASKS */}
+                {phoneActiveTab === 'timer' ? (
+                  <>
+                    {/* 2. Rotating Motivational & Praising Quotes Card */}
+                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/70 via-[#0e1712] to-teal-950/50 border border-emerald-500/30 p-3 sm:p-3.5 shadow-md">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5 text-[10px] font-extrabold tracking-wider uppercase text-emerald-400">
                       <Sparkles className="w-3.5 h-3.5 text-[#1ed760] animate-pulse" />
@@ -1053,6 +1194,135 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     )}
                   </div>
                 </div>
+              </>
+            ) : (
+              /* TAB 2: IN-MOCKUP MUSIC PLAYER VIEW (Aşağı kaydırmadan doğrudan mock-up içinde parçalar arası geçiş ve oynatıcı) */
+              <div className="space-y-4 pt-1">
+                {currentPlayingTrack ? (
+                  <div className="bg-gradient-to-b from-[#141b16] to-[#0a0d0b] border border-[#1ed760]/30 rounded-3xl p-4 sm:p-5 space-y-4 shadow-2xl">
+                    {/* Artwork Preview */}
+                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 shadow-lg">
+                      <img
+                        src={currentPlayingTrack.track.coverImage || `https://img.youtube.com/vi/${currentPlayingTrack.track.youtubeId}/hqdefault.jpg`}
+                        alt={currentPlayingTrack.track.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#1ed760] text-black">
+                          {currentPlayingTrack.shelf.title}
+                        </span>
+                        <div className="flex items-end gap-0.5 h-3">
+                          <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-1" />
+                          <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-2" />
+                          <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-3" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Title and Subtitle */}
+                    <div className="text-center space-y-1">
+                      <h3 className="text-base font-extrabold text-white truncate">
+                        {currentPlayingTrack.track.name}
+                      </h3>
+                      <p className="text-xs text-gray-400 truncate">
+                        {currentPlayingTrack.track.subtitle}
+                      </p>
+                    </div>
+
+                    {/* Mockup Next / Prev / Play / Pause Controls */}
+                    <div className="flex items-center justify-center gap-4 py-2">
+                      <button
+                        type="button"
+                        onClick={handlePrevInMockup}
+                        className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+                        title="Önceki Parça"
+                      >
+                        <SkipBack className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onToggleAmbientChannel(currentPlayingTrack.track.id)}
+                        className="w-14 h-14 rounded-full bg-[#1ed760] text-black font-extrabold flex items-center justify-center shadow-lg shadow-[#1ed760]/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                        title="Durdur / Oynat"
+                      >
+                        <Pause className="w-6 h-6 fill-current" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleNextInMockup}
+                        className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+                        title="Sonraki Parça"
+                      >
+                        <SkipForward className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* In-Mockup Volume Slider */}
+                    {onVolumeChange && (
+                      <div className="px-2 pt-1 flex items-center gap-2">
+                        <Volume2 className="w-4 h-4 text-[#1ed760] shrink-0" />
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={currentPlayingTrack.volume}
+                          onChange={(e) => onVolumeChange(currentPlayingTrack.track.id, parseFloat(e.target.value))}
+                          className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-[#1ed760] bg-white/20"
+                        />
+                        <span className="text-[10px] font-mono text-[#1ed760] shrink-0 w-8 text-right">
+                          %{currentPlayingTrack.volume}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Quick Jump to Full Library Button */}
+                    <button
+                      type="button"
+                      onClick={scrollToSoundtracksSection}
+                      className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <ListMusic className="w-3.5 h-3.5 text-[#1ed760]" />
+                      <span>Tüm Parçaları Aşağıda Gör & Keşfet</span>
+                    </button>
+                  </div>
+                ) : (
+                  /* No Track Currently Playing */
+                  <div className="bg-black/40 border border-dashed border-white/15 rounded-3xl p-6 text-center space-y-3">
+                    <Headphones className="w-8 h-8 text-gray-400 mx-auto" />
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Henüz Müzik Çalmıyor</h4>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Aşağıdaki listeden veya hemen başlata basarak müzik dinleyebilirsiniz.
+                      </p>
+                    </div>
+                    <div className="pt-2 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (allFlattenedTracks.length > 0) {
+                            onToggleAmbientChannel(allFlattenedTracks[0].id);
+                          }
+                        }}
+                        className="py-2 px-4 rounded-xl bg-[#1ed760] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#1ed760]/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>İlk Müziği Başlat</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={scrollToSoundtracksSection}
+                        className="text-xs text-gray-400 hover:text-white py-1 transition-colors"
+                      >
+                        Tüm kütüphaneye göz at ↓
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
               </div>
 
@@ -1316,7 +1586,8 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         </div>
 
         {/* RIGHT COLUMN: Live News Feed */}
-        <div className="lg:col-span-5 space-y-4">
+        {!isLightsOut && (
+          <div className="lg:col-span-5 space-y-4">
           
           {/* Header Bar */}
           <div className={`flex items-center justify-between border rounded-2xl p-4 shadow-sm transition-colors ${
@@ -1467,6 +1738,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
             })}
           </div>
         </div>
+        )}
 
       </div>
 
