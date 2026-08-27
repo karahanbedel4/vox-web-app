@@ -3000,6 +3000,13 @@ Sitemap: https://voxozet.com/sitemap.xml
 `);
 });
 
+// Dynamic /ads.txt Endpoint for Google AdSense
+app.get('/ads.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send(`google.com, pub-4663082689738592, DIRECT, f08c47fec0942fa0\n`);
+});
+
 // Quota & Cloud Health Status Endpoint
 app.get('/api/quota-status', (req, res) => {
   res.json({

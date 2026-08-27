@@ -164,6 +164,9 @@ interface FocusContextType {
   resetTimer: () => void;
   skipSession: () => void;
   setSessionType: (type: 'work' | 'break') => void;
+  startBreak: (autoStart?: boolean) => void;
+  skipBreakAndStartWork: (autoStart?: boolean) => void;
+  closeSessionSummaryModal: () => void;
 
   // Tasks
   tasks: FocusTask[];
@@ -460,6 +463,33 @@ export const FocusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     triggerHapticImpact('medium').catch(() => {});
   };
 
+  const startBreak = (autoStart: boolean = true) => {
+    setSessionType('break');
+    const nextSecs = breakMinutes * 60;
+    setTimeLeft(nextSecs);
+    endTimeRef.current = autoStart ? Date.now() + nextSecs * 1000 : null;
+    setIsRunning(autoStart);
+    setShowSessionSummaryModal(false);
+    triggerHapticImpact('medium').catch(() => {});
+    showTemporaryStatus(autoStart ? `☕ ${breakMinutes} dk mola başladı` : `☕ Mola modu hazır`);
+  };
+
+  const skipBreakAndStartWork = (autoStart: boolean = true) => {
+    setSessionType('work');
+    const nextSecs = workMinutes * 60;
+    setTimeLeft(nextSecs);
+    endTimeRef.current = autoStart ? Date.now() + nextSecs * 1000 : null;
+    setIsRunning(autoStart);
+    setShowSessionSummaryModal(false);
+    triggerHapticImpact('medium').catch(() => {});
+    showTemporaryStatus(`🎯 Yeni çalışma seansı başladı (${workMinutes} dk)`);
+  };
+
+  const closeSessionSummaryModal = () => {
+    setShowSessionSummaryModal(false);
+    triggerHapticImpact('light').catch(() => {});
+  };
+
   // Persistent Interval Loop (Runs globally across all pages!)
   useEffect(() => {
     if (!isRunning) {
@@ -505,25 +535,30 @@ export const FocusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
           sendPomodoroWebNotification(
             '🏆 Pomodoro Seansı Tamamlandı!',
-            `Tebrikler! ${workMinutes} dakikalık odaklanma bitti. ${summaryText} Şimdi ${breakMinutes} dakikalık mola vakti ☕`
+            `Tebrikler! ${workMinutes} dakikalık odaklanma bitti. ${summaryText} İster mola ver, ister yeni seansla devam et.`
           );
 
+          // Prepare break state in paused mode so user controls their break time
+          setIsRunning(false);
+          endTimeRef.current = null;
           setSessionType('break');
-          showTemporaryStatus(`☕ Mola başladı (${breakMinutes} dk)`);
           const nextSecs = breakMinutes * 60;
-          endTimeRef.current = Date.now() + nextSecs * 1000;
           setTimeLeft(nextSecs);
+          showTemporaryStatus(`🏆 Seans bitti! Mola verebilir veya devam edebilirsin.`);
         } else {
+          // Break finished
+          setIsRunning(false);
+          endTimeRef.current = null;
+          setSessionType('work');
+          const nextSecs = workMinutes * 60;
+          setTimeLeft(nextSecs);
+
           sendPomodoroWebNotification(
             '🔔 Mola Bitti!',
-            `${breakMinutes} dakikalık mola bitti! Yeni ${workMinutes} dakikalık odaklanma seansı başladı 🎯`
+            `${breakMinutes} dakikalık mola bitti! Yeni ${workMinutes} dakikalık odaklanma seansına hazırsın 🎯`
           );
 
-          setSessionType('work');
-          showTemporaryStatus(`🎯 Yeni çalışma başladı (${workMinutes} dk)`);
-          const nextSecs = workMinutes * 60;
-          endTimeRef.current = Date.now() + nextSecs * 1000;
-          setTimeLeft(nextSecs);
+          showTemporaryStatus(`🎯 Mola bitti! Yeni çalışma seansına başlayabilirsin (${workMinutes} dk)`);
         }
       } else {
         setTimeLeft(remainingSecs);
@@ -574,6 +609,9 @@ export const FocusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         resetTimer,
         skipSession,
         setSessionType,
+        startBreak,
+        skipBreakAndStartWork,
+        closeSessionSummaryModal,
         tasks,
         filteredTasks,
         taskFilter,

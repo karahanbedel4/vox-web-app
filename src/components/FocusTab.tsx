@@ -171,6 +171,9 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     resetCompletedSessions,
     toggleTimer,
     resetTimer,
+    startBreak,
+    skipBreakAndStartWork,
+    closeSessionSummaryModal,
     addTask: addContextTask,
     toggleTaskDone,
     removeTask,
@@ -398,6 +401,17 @@ export const FocusTab: React.FC<FocusTabProps> = ({
       } catch (e) {}
     }
   }, []);
+
+  // Close summary modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showSessionSummaryModal) {
+        closeSessionSummaryModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showSessionSummaryModal, closeSessionSummaryModal]);
 
   // Fetch live API news for the right-side feed
   const loadLiveFeed = async () => {
@@ -1769,25 +1783,47 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Pomodoro Session Summary Modal */}
+      {/* Pomodoro Session Summary Modal (Fully Closeable & User Controlled) */}
       <AnimatePresence>
         {showSessionSummaryModal && sessionSummaryData && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+          <div 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeSessionSummaryModal();
+              }
+            }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-opacity"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="session-summary-title"
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-md bg-gradient-to-b from-slate-900 via-[#0d1510] to-black border-2 border-[#1ed760]/50 rounded-3xl p-6 shadow-2xl text-white space-y-5 relative overflow-hidden"
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="w-full max-w-md bg-gradient-to-b from-slate-900 via-[#0d1510] to-black border-2 border-[#1ed760]/50 rounded-3xl p-5 sm:p-6 shadow-2xl text-white space-y-4 relative overflow-hidden"
             >
               {/* Ambient Glow */}
               <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#1ed760]/20 rounded-full blur-3xl pointer-events-none" />
 
+              {/* Close Button Top-Right (X) */}
+              <button
+                type="button"
+                onClick={closeSessionSummaryModal}
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer z-10"
+                title="Pencereyi Kapat (Esc)"
+                aria-label="Kapat"
+              >
+                <X className="w-5 h-5 stroke-[2.5]" />
+              </button>
+
               {/* Modal Header */}
-              <div className="text-center space-y-2">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1ed760] to-emerald-600 text-black flex items-center justify-center mx-auto shadow-lg shadow-[#1ed760]/30">
-                  <Trophy className="w-8 h-8 stroke-[2.2]" />
+              <div className="text-center space-y-1.5 pt-1">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#1ed760] to-emerald-600 text-black flex items-center justify-center mx-auto shadow-lg shadow-[#1ed760]/30">
+                  <Trophy className="w-7 h-7 stroke-[2.2]" />
                 </div>
-                <h3 className="text-2xl font-black tracking-tight text-white uppercase">
+                <h3 id="session-summary-title" className="text-xl sm:text-2xl font-black tracking-tight text-white uppercase">
                   Oturum Tamamlandı!
                 </h3>
                 <p className="text-xs text-emerald-300/90 font-medium">
@@ -1799,11 +1835,11 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Çalışma Süresi</span>
-                  <span className="text-xl font-black text-[#1ed760] font-mono">{sessionSummaryData.durationMins} Dk</span>
+                  <span className="text-lg sm:text-xl font-black text-[#1ed760] font-mono">{sessionSummaryData.durationMins} Dk</span>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Tamamlanan Görev</span>
-                  <span className="text-xl font-black text-amber-400 font-mono">{sessionSummaryData.completedTasks.length} Adet</span>
+                  <span className="text-lg sm:text-xl font-black text-amber-400 font-mono">{sessionSummaryData.completedTasks.length} Adet</span>
                 </div>
               </div>
 
@@ -1819,7 +1855,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   </span>
                 </div>
 
-                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-white/10">
                   {sessionSummaryData.completedTasks.length > 0 ? (
                     sessionSummaryData.completedTasks.map((taskText, idx) => (
                       <div 
@@ -1831,7 +1867,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       </div>
                     ))
                   ) : (
-                    <div className="py-3 px-3 rounded-xl bg-white/5 border border-white/5 text-center text-xs text-gray-400">
+                    <div className="py-2.5 px-3 rounded-xl bg-white/5 border border-white/5 text-center text-xs text-gray-400">
                       Bu seansta derin odak ve zihinsel akış sağladın. Harika bir konsantrasyon!
                     </div>
                   )}
@@ -1839,20 +1875,45 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               </div>
 
               {/* Motivational Praise Box */}
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
                 <p className="text-xs text-emerald-200 font-medium italic">
                   "{sessionSummaryData.motivationalPraise}"
                 </p>
               </div>
 
-              {/* Action Button */}
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  onClick={() => setShowSessionSummaryModal(false)}
-                  className="flex-1 py-3 px-4 rounded-xl bg-[#1ed760] text-black font-black text-xs sm:text-sm hover:brightness-110 transition-all shadow-lg shadow-[#1ed760]/20 active:scale-98 cursor-pointer"
-                >
-                  Molayı Başlat ({breakMinutes} dk) ☕
-                </button>
+              {/* Action Buttons: Take Break vs Skip Break vs Dismiss */}
+              <div className="space-y-2 pt-1">
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  {/* Primary: Start Break */}
+                  <button
+                    type="button"
+                    onClick={() => startBreak(true)}
+                    className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-[#1ed760] text-black font-black text-xs sm:text-sm hover:brightness-110 transition-all shadow-lg shadow-[#1ed760]/20 active:scale-98 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>☕ Molayı Başlat ({breakMinutes} dk)</span>
+                  </button>
+
+                  {/* Secondary: Skip Break & Start Next Session Immediately */}
+                  <button
+                    type="button"
+                    onClick={() => skipBreakAndStartWork(true)}
+                    className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs sm:text-sm transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-1.5"
+                    title="Mola vermeden hemen yeni seansa geç"
+                  >
+                    <span>🚀 Molayı Atla ({workMinutes} dk)</span>
+                  </button>
+                </div>
+
+                {/* Subtle Dismiss / Close Link */}
+                <div className="text-center pt-0.5">
+                  <button
+                    type="button"
+                    onClick={closeSessionSummaryModal}
+                    className="text-[11px] text-gray-400 hover:text-gray-200 underline underline-offset-2 transition-colors cursor-pointer py-1"
+                  >
+                    Şimdilik Kapat & Dinlen
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
