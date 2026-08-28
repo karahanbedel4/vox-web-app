@@ -51,7 +51,7 @@ export const NATURE_SOUNDTRACKS: SoundTrack[] = [
     audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1247/1247-preview.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 180,
+    durationSeconds: 600,
     featured: true
   },
   {
@@ -63,7 +63,7 @@ export const NATURE_SOUNDTRACKS: SoundTrack[] = [
     audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1250/1250-preview.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 180,
+    durationSeconds: 300,
     featured: true
   },
   {
@@ -75,7 +75,7 @@ export const NATURE_SOUNDTRACKS: SoundTrack[] = [
     audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1249/1249-preview.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 180,
+    durationSeconds: 360,
     featured: true
   },
   {
@@ -87,7 +87,7 @@ export const NATURE_SOUNDTRACKS: SoundTrack[] = [
     audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1508873696983-2df5293cb32b?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 180,
+    durationSeconds: 240,
     featured: true
   },
   {
@@ -117,174 +117,198 @@ export const NATURE_SOUNDTRACKS: SoundTrack[] = [
 // ☕ 2. LO-FI & DERİN ODAKLANMA (İKİNCİ SIRADA - DİREKT MP3 SES AKIŞLARI)
 export const LOFI_SOUNDTRACKS: SoundTrack[] = [
   {
-    id: 'stream-lofi-chill',
-    name: 'Chill Coffee Study Beats',
-    subtitle: 'Lo-Fi Odak • Yumuşak Piyano Ritimleri',
+    id: 'stream-clean-soul',
+    name: 'Chill Study Groove',
+    subtitle: 'Lo-Fi Odak • Yumuşak Rhodes & Rahatlatıcı Bas',
     category: 'lofi',
     categoryTitle: 'Lo-Fi Odaklanma',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-chill-bro-494.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Clean%20Soul.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 160,
+    durationSeconds: 340,
     featured: true
   },
   {
-    id: 'stream-deep-work',
+    id: 'stream-deliberate-thought',
     name: 'Derin Konsantrasyon & Flow',
-    subtitle: 'Binaural Ambient • Zihin Açıcı Ritimler',
+    subtitle: 'Binaural Focus • Meditatif Piyano & Ritim',
     category: 'lofi',
     categoryTitle: 'Lo-Fi Odaklanma',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-silent-descent-614.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Deliberate%20Thought.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1507842229452-772d1c86e246?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 180,
+    durationSeconds: 290,
     featured: true
   },
   {
-    id: 'stream-lofi-rain',
-    name: 'Gece Yağmuru & Lo-Fi Gitar',
-    subtitle: 'Sakin Akorlar & Yumuşak Baslar',
+    id: 'stream-gymnopedie',
+    name: 'Gymnopédie No. 1 (Piyano)',
+    subtitle: 'Erik Satie • Zihni Dinlendiren Klasik Melodi',
     category: 'lofi',
     categoryTitle: 'Lo-Fi Odaklanma',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-sleepy-cat-135.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Gymnopedie%20No%201.mp3',
+    type: 'stream',
+    coverImage: 'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 300,
+    featured: true
+  },
+  {
+    id: 'stream-dream-culture',
+    name: 'Dream Culture (Chill Ambient)',
+    subtitle: 'Huzurlu Gece Ritimleri & Yumuşak Dokular',
+    category: 'lofi',
+    categoryTitle: 'Lo-Fi Odaklanma',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dream%20Culture.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 175,
+    durationSeconds: 330,
     featured: true
   },
   {
-    id: 'stream-lofi-midnight',
-    name: 'Midnight Coding Session',
-    subtitle: 'Huzurlu Gece Ritimleri & Synth Dalgası',
+    id: 'stream-deep-haze',
+    name: 'Deep Haze (Gece Kodlama)',
+    subtitle: 'Midnight Coding • Sakin Atmosferik Ritim',
     category: 'lofi',
     categoryTitle: 'Lo-Fi Odaklanma',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-delight-flute-434.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Deep%20Haze.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 155
+    durationSeconds: 200
+  },
+  {
+    id: 'stream-mesmerize',
+    name: 'Mesmerize (Hipnotik Odak)',
+    subtitle: 'Akıcı Çalışma Seansı • Sakin Dalgasal Tonlar',
+    category: 'lofi',
+    categoryTitle: 'Lo-Fi Odaklanma',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mesmerize.mp3',
+    type: 'stream',
+    coverImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 350
   }
 ];
 
 // 🍿 3. EFSANE FİLM & SİNEMA MÜZİKLERİ (ÜÇÜNCÜ SIRADA)
 export const MOVIE_SOUNDTRACKS: SoundTrack[] = [
   {
-    id: 'stream-interstellar-space',
+    id: 'stream-floating-cities',
     name: 'Uzayın Derinlikleri (Interstellar İlhamı)',
     subtitle: 'Hans Zimmer Tarzı • Kozmik Derinlik & Organ',
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-deep-urban-623.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Floating%20Cities.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 195,
+    durationSeconds: 240,
     featured: true
   },
   {
-    id: 'stream-inception-time',
-    name: 'Zamanın Akışı (Inception İlhamı)',
-    subtitle: 'Hans Zimmer Tarzı • Yükselen Yaylılar & Piyano',
+    id: 'stream-sovereign',
+    name: 'Zamanın Hükmü (Inception İlhamı)',
+    subtitle: 'Hans Zimmer Tarzı • Yükselen Yaylılar & Epik Çello',
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-epical-drums-05-681.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sovereign.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 180,
+    durationSeconds: 360,
     featured: true
   },
   {
-    id: 'stream-hp-magic',
+    id: 'stream-darkest-child',
     name: 'Büyülü Kütüphane (Harry Potter İlhamı)',
     subtitle: 'Hogwarts Havası • Çanlar, Yaylılar & Gizem',
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-spirit-of-the-forest-999.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Darkest%20Child.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 185,
+    durationSeconds: 250,
     featured: true
   },
   {
-    id: 'stream-lotr-epic',
+    id: 'stream-celtic-impulse',
     name: 'Orta Dünya Yürüyüşü (LOTR İlhamı)',
     subtitle: 'Howard Shore Tarzı • Epik Flüt & Doğa Destanı',
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-game-level-music-689.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Celtic%20Impulse.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 170
+    durationSeconds: 240
   },
   {
-    id: 'stream-starwars-galaxy',
+    id: 'stream-impact-allegretto',
     name: 'Galaktik Macera (Star Wars İlhamı)',
     subtitle: 'John Williams Tarzı • Güç Uyanıyor Teması',
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-valiant-warrior-625.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Impact%20Allegretto.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1579202673506-ca3ce28943ef?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 180
+    durationSeconds: 290
   },
   {
-    id: 'stream-pirates-adventure',
-    name: 'Karayip Fırtınası (Pirates İlhamı)',
+    id: 'stream-heartbreaking',
+    name: 'Karayip Korsanları & Fırtına',
     subtitle: 'Klaus Badelt Tarzı • Ritmik Orkestra',
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-glory-days-684.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heartbreaking.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 165
+    durationSeconds: 210
   }
 ];
 
 // 🎬 4. EFSANE DİZİ MÜZİKLERİ (DÖRDÜNCÜ SIRADA)
 export const SERIES_SOUNDTRACKS: SoundTrack[] = [
   {
-    id: 'stream-got-throne',
+    id: 'stream-long-road-ahead',
     name: 'Demir Taht İçin (Game of Thrones İlhamı)',
     subtitle: 'Ramin Djawadi Tarzı • Çello & Epik Ritimler',
     category: 'series',
     categoryTitle: 'Dizi Müzikleri',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-serene-view-443.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Long%20Road%20Ahead.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 190,
+    durationSeconds: 230,
     featured: true
   },
   {
-    id: 'stream-stranger-synth',
+    id: 'stream-metaphysik',
     name: '80ler Gizemi (Stranger Things İlhamı)',
     subtitle: 'Retro Synthwave • Analog Klavye & Gerilim',
     category: 'series',
     categoryTitle: 'Dizi Müzikleri',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-retro-arcade-machine-272.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Metaphysik.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 180,
+    durationSeconds: 350,
     featured: true
   },
   {
-    id: 'stream-peaky-dark',
+    id: 'stream-private-eye',
     name: 'Birmingham Sokakları (Peaky Blinders)',
     subtitle: 'Karanlık Blues & Karizmatik Akorlar',
     category: 'series',
     categoryTitle: 'Dizi Müzikleri',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-hip-hop-02-738.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Private%20Eye.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 175
+    durationSeconds: 190,
+    featured: true
   },
   {
-    id: 'stream-friends-cozy',
+    id: 'stream-sunset-glengorm',
     name: 'Central Perk Sıcaklığı (Friends İlhamı)',
     subtitle: 'Akustik Gitar & Nostaljik Dostluk Ritmi',
     category: 'series',
     categoryTitle: 'Dizi Müzikleri',
-    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-sun-and-sky-577.mp3',
+    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sunset%20at%20Glengorm.mp3',
     type: 'stream',
     coverImage: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 160
+    durationSeconds: 220
   }
 ];
 

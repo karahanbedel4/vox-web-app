@@ -216,7 +216,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   const currentPlayingTrack = useMemo(() => {
     for (const shelf of ALL_SOUND_SHELVES) {
       for (const track of shelf.tracks) {
-        const ch = ambientChannels.find(c => (c.id === track.id || c.youtubeId === track.youtubeId) && c.active && c.volume > 0);
+        const ch = ambientChannels.find(c => (c.id === track.id || (Boolean(track.youtubeId) && Boolean(c.youtubeId) && c.youtubeId === track.youtubeId)) && c.active && c.volume > 0);
         if (ch) {
           return { track, shelf, volume: ch.volume };
         }
@@ -1394,7 +1394,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 const ShelfIcon = getShelfIcon(shelf.iconName);
                 const isCurrentActiveShelf = activePlaylistShelfId === shelf.id;
                 const activeTrackInShelf = shelf.tracks.find(t => {
-                  const ch = ambientChannels.find(c => (c.id === t.id || c.youtubeId === t.youtubeId) && c.active && c.volume > 0);
+                  const ch = ambientChannels.find(c => (c.id === t.id || (Boolean(t.youtubeId) && Boolean(c.youtubeId) && c.youtubeId === t.youtubeId)) && c.active && c.volume > 0);
                   return Boolean(ch);
                 });
 
@@ -1457,7 +1457,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     <div className="flex overflow-x-auto snap-x snap-mandatory space-x-3.5 sm:space-x-4 pb-3 pt-1 scrollbar-thin scrollbar-thumb-emerald-500/20">
                       {shelf.tracks.map((track, trackIndex) => {
                         const channelState = ambientChannels.find(
-                          (c) => c.id === track.id || c.youtubeId === track.youtubeId
+                          (c) => c.id === track.id || (Boolean(track.youtubeId) && Boolean(c.youtubeId) && c.youtubeId === track.youtubeId)
                         );
                         const isPlaying = Boolean(channelState && channelState.active && channelState.volume > 0);
                         const volume = channelState ? channelState.volume : 60;

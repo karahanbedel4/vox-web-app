@@ -138,6 +138,16 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
 
   // Sync MP3 audio streams, Direct Web Audio Synthesizer, & YouTube Iframes
   useEffect(() => {
+    // Stop any audio elements that are not active in current channels
+    Object.keys(audioRefs.current).forEach(id => {
+      const ch = channels.find(c => c.id === id);
+      if (!ch || !ch.active || ch.volume === 0) {
+        try {
+          audioRefs.current[id].pause();
+        } catch (e) {}
+      }
+    });
+
     // 1. Direct Web Audio & Stream Audio Elements sync
     channels.forEach(ch => {
       if (ch.type === 'synth') {
@@ -175,7 +185,9 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
         }
         if (ch.active && ch.volume > 0) {
           audio.volume = ch.volume / 100;
-          audio.play().catch(() => {});
+          audio.play().catch((err) => {
+            console.warn('Audio stream play catch:', err);
+          });
         } else {
           audio.pause();
         }
