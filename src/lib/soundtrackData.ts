@@ -1,13 +1,15 @@
-import { CloudRain, Music, Film, Tv, Sparkles, LucideIcon } from 'lucide-react';
+import { CloudRain, Music, Film, Tv, Sparkles, LucideIcon, Radio } from 'lucide-react';
 import { AmbientChannel } from '../components/AmbientMixerSheet';
 
 export interface SoundTrack {
   id: string;
   name: string;
   subtitle: string;
-  category: 'nature' | 'lofi' | 'movies' | 'series';
+  category: 'test' | 'nature' | 'lofi' | 'movies' | 'series';
   categoryTitle: string;
-  youtubeId: string;
+  youtubeId?: string;
+  audioUrl?: string; // Direct HTML5 MP3 stream for iOS WebKit & Safari compatibility
+  type?: 'stream' | 'youtube' | 'synth';
   coverImage?: string;
   durationSeconds?: number;
   featured?: boolean;
@@ -17,7 +19,7 @@ export interface SoundShelf {
   id: string;
   title: string;
   subtitle: string;
-  iconName: 'CloudRain' | 'Music' | 'Film' | 'Tv' | 'Sparkles';
+  iconName: 'CloudRain' | 'Music' | 'Film' | 'Tv' | 'Sparkles' | 'Radio';
   tracks: SoundTrack[];
 }
 
@@ -31,10 +33,76 @@ export function getShelfIcon(iconName: string): LucideIcon {
       return Film;
     case 'Tv':
       return Tv;
+    case 'Radio':
+      return Radio;
     default:
       return Sparkles;
   }
 }
+
+// 🧪 0. IPHONE / SAFARI DİREKT MP3 TEST SESLERİ (EN ÜSTTE)
+export const DIRECT_TEST_SOUNDTRACKS: SoundTrack[] = [
+  {
+    id: 'direct-rain-stream',
+    name: '🌧️ Sakin Yaz Yağmuru (Direkt MP3)',
+    subtitle: '⚡ iPhone Uyumlu • Doğrudan Ses Akışı',
+    category: 'test',
+    categoryTitle: '🧪 Direkt MP3 Testi (iPhone)',
+    audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1247/1247-preview.mp3',
+    type: 'stream',
+    coverImage: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 180,
+    featured: true
+  },
+  {
+    id: 'direct-forest-stream',
+    name: '🌲 Orman ve Kuş Cıvıltıları (Direkt MP3)',
+    subtitle: '⚡ iPhone Uyumlu • Doğrudan Ses Akışı',
+    category: 'test',
+    categoryTitle: '🧪 Direkt MP3 Testi (iPhone)',
+    audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1250/1250-preview.mp3',
+    type: 'stream',
+    coverImage: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 180,
+    featured: true
+  },
+  {
+    id: 'direct-ocean-stream',
+    name: '🌊 Okyanus ve Dalga Sesleri (Direkt MP3)',
+    subtitle: '⚡ iPhone Uyumlu • Doğrudan Ses Akışı',
+    category: 'test',
+    categoryTitle: '🧪 Direkt MP3 Testi (iPhone)',
+    audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1249/1249-preview.mp3',
+    type: 'stream',
+    coverImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 180,
+    featured: true
+  },
+  {
+    id: 'direct-lofi-stream',
+    name: '☕ Chill Lo-Fi Odak Beats (Direkt MP3)',
+    subtitle: '⚡ iPhone Uyumlu • Doğrudan Ses Akışı',
+    category: 'test',
+    categoryTitle: '🧪 Direkt MP3 Testi (iPhone)',
+    audioUrl: 'https://assets.mixkit.co/music/preview/mixkit-chill-bro-494.mp3',
+    type: 'stream',
+    coverImage: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 160,
+    featured: true
+  },
+  {
+    id: 'direct-campfire-stream',
+    name: '🔥 Gece ve Şömine Çatırtısı (Direkt MP3)',
+    subtitle: '⚡ iPhone Uyumlu • Doğrudan Ses Akışı',
+    category: 'test',
+    categoryTitle: '🧪 Direkt MP3 Testi (iPhone)',
+    audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3',
+    type: 'stream',
+    coverImage: 'https://images.unsplash.com/photo-1508873696983-2df5293cb32b?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 180,
+    featured: true
+  }
+];
 
 // 🌿 1. DOĞA & AMBİYANS (EN ÜSTTE)
 export const NATURE_SOUNDTRACKS: SoundTrack[] = [
@@ -251,8 +319,15 @@ export const SERIES_SOUNDTRACKS: SoundTrack[] = [
   }
 ];
 
-// COMBINED ALL SHELVES (Doğa ve Lo-Fi en üstte)
+// COMBINED ALL SHELVES (Direct MP3 Test, Doğa ve Lo-Fi en üstte)
 export const ALL_SOUND_SHELVES: SoundShelf[] = [
+  {
+    id: 'test',
+    title: '🧪 Direkt Ses Testi (iPhone & Safari Uyumlu MP3)',
+    subtitle: 'YouTube kısıtlamalarına takılmayan, iPhone ve Safari için doğrudan ses dosyaları',
+    iconName: 'Sparkles',
+    tracks: DIRECT_TEST_SOUNDTRACKS
+  },
   {
     id: 'nature',
     title: 'Doğa & Atmosfer',
@@ -285,6 +360,7 @@ export const ALL_SOUND_SHELVES: SoundShelf[] = [
 
 // Flat list of all tracks
 export const ALL_TRACKS: SoundTrack[] = [
+  ...DIRECT_TEST_SOUNDTRACKS,
   ...NATURE_SOUNDTRACKS,
   ...LOFI_SOUNDTRACKS,
   ...MOVIE_SOUNDTRACKS,
@@ -293,11 +369,12 @@ export const ALL_TRACKS: SoundTrack[] = [
 
 // Helper to convert SoundTrack to AmbientChannel
 export function convertTrackToAmbientChannel(track: SoundTrack, volume: number = 60, active: boolean = false): AmbientChannel {
+  const channelType: 'stream' | 'youtube' | 'synth' = track.type || (track.audioUrl ? 'stream' : 'youtube');
   return {
     id: track.id,
     name: track.name,
-    type: 'youtube',
-    url: `https://www.youtube.com/watch?v=${track.youtubeId}`,
+    type: channelType,
+    url: track.audioUrl || (track.youtubeId ? `https://www.youtube.com/watch?v=${track.youtubeId}` : undefined),
     youtubeId: track.youtubeId,
     volume,
     active
@@ -306,4 +383,5 @@ export function convertTrackToAmbientChannel(track: SoundTrack, volume: number =
 
 // Convert all tracks to default AmbientChannels
 export const ALL_DEFAULT_AMBIENT_CHANNELS: AmbientChannel[] = ALL_TRACKS.map(t => convertTrackToAmbientChannel(t, 60, false));
+
 

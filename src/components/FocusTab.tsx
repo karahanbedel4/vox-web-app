@@ -1399,7 +1399,29 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 });
 
                 return (
-                  <div key={shelf.id} className="space-y-3">
+                  <div 
+                    key={shelf.id} 
+                    className={`space-y-3 ${
+                      shelf.id === 'test' 
+                        ? (theme === 'light' 
+                            ? 'p-4 rounded-3xl bg-emerald-50/80 border border-emerald-300/80 shadow-sm' 
+                            : 'p-4 rounded-3xl bg-emerald-950/20 border border-emerald-500/30 shadow-sm')
+                        : ''
+                    }`}
+                  >
+                    {/* Test shelf informative helper banner */}
+                    {shelf.id === 'test' && (
+                      <div className="flex items-center justify-between gap-2 px-1 pb-1">
+                        <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-bold"></span>
+                          <span>iPhone & Safari için Doğrudan MP3 Kaynağı (YouTube Harici Test)</span>
+                        </div>
+                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                          Test Rafı
+                        </span>
+                      </div>
+                    )}
+
                     {/* Shelf Header */}
                     <div className="flex items-center justify-between px-0.5">
                       <div className="flex items-center gap-2">
@@ -1507,9 +1529,16 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                               {/* Subtle Aesthetic Vignette Gradient */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
 
-                              {/* Track Index Badge */}
-                              <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[10px] font-bold text-gray-300">
-                                <span>#{trackIndex + 1}</span>
+                              {/* Track Index Badge & Stream Type Badge */}
+                              <div className="absolute top-2 left-2 flex items-center gap-1">
+                                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[10px] font-bold text-gray-300">
+                                  <span>#{trackIndex + 1}</span>
+                                </div>
+                                {track.audioUrl && (
+                                  <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-950/80 backdrop-blur-md border border-emerald-500/40 text-[9px] font-bold text-emerald-300">
+                                    <span>⚡ MP3</span>
+                                  </div>
+                                )}
                               </div>
 
                               {/* Playing Animation Equalizer / Status Badge */}

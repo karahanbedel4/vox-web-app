@@ -47,16 +47,16 @@ export default function App() {
   const [activePlaylistShelfId, setActivePlaylistShelfId] = useState<string>('series');
   const [isContinuousPlaylistMode, setIsContinuousPlaylistMode] = useState<boolean>(true);
 
-  // Initialize and merge ambient channels
+  // Initialize and merge ambient channels (supporting direct stream MP3 and YouTube)
   const [ambientChannels, setAmbientChannels] = useState<AmbientChannel[]>(() => {
     try {
-      const saved = appStorage.getItemSync('vox_ambient_channels_v7');
+      const saved = appStorage.getItemSync('vox_ambient_channels_v8');
       if (saved) {
         const parsed: AmbientChannel[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const existingIds = new Set(parsed.map(c => c.id));
           const newChannels = ALL_DEFAULT_AMBIENT_CHANNELS.filter(c => !existingIds.has(c.id));
-          return [...parsed.map(c => ({ ...c, type: 'youtube' as const })), ...newChannels];
+          return [...parsed, ...newChannels];
         }
       }
     } catch (e) {}
@@ -66,7 +66,7 @@ export default function App() {
   // Keep ambient channels persisted
   useEffect(() => {
     try {
-      appStorage.setItemSync('vox_ambient_channels_v7', JSON.stringify(ambientChannels));
+      appStorage.setItemSync('vox_ambient_channels_v8', JSON.stringify(ambientChannels));
       const activeCh = ambientChannels.find(c => c.active && c.volume > 0);
       if (activeCh) {
         appStorage.setItemSync('vox_last_ambient_id', activeCh.id);
@@ -205,16 +205,37 @@ export default function App() {
   const handleToggleAmbientChannel = (id: string) => {
     woodRainSynth.unlockAudioContext();
     universalSynthService.unlock();
-    setAmbientChannels(prev =>
-      prev.map(ch => {
+    const track = ALL_TRACKS.find(t => t.id === id);
+    const channelType: 'stream' | 'youtube' | 'synth' = track?.type || (track?.audioUrl ? 'stream' : 'youtube');
+    const trackUrl = track?.audioUrl || (track?.youtubeId ? `https://www.youtube.com/watch?v=${track.youtubeId}` : undefined);
+
+    setAmbientChannels(prev => {
+      const exists = prev.some(c => c.id === id);
+      const baseList = exists ? prev : (track ? [...prev, {
+        id: track.id,
+        name: track.name,
+        type: channelType,
+        url: trackUrl,
+        youtubeId: track.youtubeId,
+        volume: 65,
+        active: true
+      }] : prev);
+
+      return baseList.map(ch => {
         if (ch.id === id) {
           const nextActive = !ch.active;
           const nextVol = nextActive ? (ch.volume === 0 ? 60 : ch.volume) : ch.volume;
-          return { ...ch, active: nextActive, volume: nextVol };
+          return { 
+            ...ch, 
+            type: channelType, 
+            url: trackUrl || ch.url, 
+            active: nextActive, 
+            volume: nextVol 
+          };
         }
         return ch;
-      })
-    );
+      });
+    });
   };
 
   // Volume change
@@ -241,14 +262,14 @@ export default function App() {
   // Current track index in active playlist
   const currentTrackIndex = useMemo(() => {
     if (!activeAmbientChannel) return 0;
-    const idx = activePlaylistTracks.findIndex(t => t.id === activeAmbientChannel.id || t.youtubeId === activeAmbientChannel.youtubeId);
+    const idx = activePlaylistTracks.findIndex(t => t.id === activeAmbientChannel.id || (activeAmbientChannel.youtubeId && t.youtubeId === activeAmbientChannel.youtubeId));
     return idx >= 0 ? idx : 0;
   }, [activeAmbientChannel, activePlaylistTracks]);
 
   // Playlist Info metadata for Mini Player & Mixer Sheet
   const playlistInfo: PlaylistInfo | null = useMemo(() => {
     if (!activeAmbientChannel) return null;
-    const currentTrack = ALL_TRACKS.find(t => t.id === activeAmbientChannel.id || t.youtubeId === activeAmbientChannel.youtubeId);
+    const currentTrack = ALL_TRACKS.find(t => t.id === activeAmbientChannel.id || (activeAmbientChannel.youtubeId && t.youtubeId === activeAmbientChannel.youtubeId));
     return {
       title: currentTrack?.categoryTitle || currentShelf.title,
       subtitle: currentTrack?.subtitle || activeAmbientChannel.name,
@@ -262,22 +283,32 @@ export default function App() {
   const playTrackInPlaylist = useCallback((track: SoundTrack) => {
     woodRainSynth.unlockAudioContext();
     universalSynthService.unlock();
+    const channelType: 'stream' | 'youtube' | 'synth' = track.type || (track.audioUrl ? 'stream' : 'youtube');
+    const trackUrl = track.audioUrl || (track.youtubeId ? `https://www.youtube.com/watch?v=${track.youtubeId}` : undefined);
+
     setAmbientChannels(prev => {
       // Ensure target channel exists
-      const exists = prev.some(c => c.id === track.id || c.youtubeId === track.youtubeId);
+      const exists = prev.some(c => c.id === track.id || (track.youtubeId && c.youtubeId === track.youtubeId));
       const baseList = exists ? prev : [...prev, {
         id: track.id,
         name: track.name,
-        type: 'youtube' as const,
-        url: `https://www.youtube.com/watch?v=${track.youtubeId}`,
+        type: channelType,
+        url: trackUrl,
         youtubeId: track.youtubeId,
         volume: 65,
         active: true
       }];
 
       return baseList.map(ch => {
-        if (ch.id === track.id || ch.youtubeId === track.youtubeId) {
-          return { ...ch, active: true, volume: ch.volume > 0 ? ch.volume : 65 };
+        if (ch.id === track.id || (track.youtubeId && ch.youtubeId === track.youtubeId)) {
+          return { 
+            ...ch, 
+            type: channelType,
+            url: trackUrl,
+            youtubeId: track.youtubeId,
+            active: true, 
+            volume: ch.volume > 0 ? ch.volume : 65 
+          };
         }
         return { ...ch, active: false };
       });
