@@ -1399,29 +1399,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 });
 
                 return (
-                  <div 
-                    key={shelf.id} 
-                    className={`space-y-3 ${
-                      shelf.id === 'test' 
-                        ? (theme === 'light' 
-                            ? 'p-4 rounded-3xl bg-emerald-50/80 border border-emerald-300/80 shadow-sm' 
-                            : 'p-4 rounded-3xl bg-emerald-950/20 border border-emerald-500/30 shadow-sm')
-                        : ''
-                    }`}
-                  >
-                    {/* Test shelf informative helper banner */}
-                    {shelf.id === 'test' && (
-                      <div className="flex items-center justify-between gap-2 px-1 pb-1">
-                        <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-bold"></span>
-                          <span>iPhone & Safari için Doğrudan MP3 Kaynağı (YouTube Harici Test)</span>
-                        </div>
-                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
-                          Test Rafı
-                        </span>
-                      </div>
-                    )}
-
+                  <div key={shelf.id} className="space-y-3">
                     {/* Shelf Header */}
                     <div className="flex items-center justify-between px-0.5">
                       <div className="flex items-center gap-2">

@@ -47,10 +47,10 @@ export default function App() {
   const [activePlaylistShelfId, setActivePlaylistShelfId] = useState<string>('series');
   const [isContinuousPlaylistMode, setIsContinuousPlaylistMode] = useState<boolean>(true);
 
-  // Initialize and merge ambient channels (supporting direct stream MP3 and YouTube)
+  // Initialize and merge ambient channels (supporting direct stream MP3 across all categories)
   const [ambientChannels, setAmbientChannels] = useState<AmbientChannel[]>(() => {
     try {
-      const saved = appStorage.getItemSync('vox_ambient_channels_v8');
+      const saved = appStorage.getItemSync('vox_ambient_channels_v9');
       if (saved) {
         const parsed: AmbientChannel[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -66,7 +66,7 @@ export default function App() {
   // Keep ambient channels persisted
   useEffect(() => {
     try {
-      appStorage.setItemSync('vox_ambient_channels_v8', JSON.stringify(ambientChannels));
+      appStorage.setItemSync('vox_ambient_channels_v9', JSON.stringify(ambientChannels));
       const activeCh = ambientChannels.find(c => c.active && c.volume > 0);
       if (activeCh) {
         appStorage.setItemSync('vox_last_ambient_id', activeCh.id);

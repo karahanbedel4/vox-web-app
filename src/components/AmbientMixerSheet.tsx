@@ -149,13 +149,30 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
       } else if (ch.type === 'stream' && ch.url) {
         if (!audioRefs.current[ch.id]) {
           const audio = new Audio(ch.url);
-          audio.loop = true;
+          audio.loop = false; // When ended, advance playlist or loop naturally
           audio.setAttribute('playsinline', 'true');
           audio.setAttribute('webkit-playsinline', 'true');
+          audio.preload = 'auto';
           audio.crossOrigin = 'anonymous';
+
+          audio.onended = () => {
+            if (onTrackEnded) {
+              onTrackEnded();
+            } else if (onNextTrack) {
+              onNextTrack();
+            } else {
+              audio.currentTime = 0;
+              audio.play().catch(() => {});
+            }
+          };
+
           audioRefs.current[ch.id] = audio;
         }
         const audio = audioRefs.current[ch.id];
+        // If URL changed
+        if (audio.src !== ch.url && ch.url) {
+          audio.src = ch.url;
+        }
         if (ch.active && ch.volume > 0) {
           audio.volume = ch.volume / 100;
           audio.play().catch(() => {});
@@ -191,7 +208,7 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
         }
       }
     });
-  }, [channels]);
+  }, [channels, onTrackEnded, onNextTrack]);
 
   // Handle Escape key
   useEffect(() => {
