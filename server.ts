@@ -2836,6 +2836,59 @@ app.post('/api/news/enrich', async (req, res) => {
   }
 });
 
+// Outbound clicks in-memory tracking
+const outboundStats: {
+  byMonth: Record<string, Record<string, number>>;
+  recentClicks: Array<{
+    publisher: string;
+    articleTitle: string;
+    targetUrl: string;
+    timestamp: string;
+  }>;
+} = {
+  byMonth: {},
+  recentClicks: []
+};
+
+app.post('/api/analytics/outbound', (req, res) => {
+  try {
+    const { publisher, articleTitle, targetUrl, timestamp } = req.body || {};
+    const pub = (publisher || 'Bilinmeyen').trim();
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    if (!outboundStats.byMonth[monthKey]) {
+      outboundStats.byMonth[monthKey] = {};
+    }
+    outboundStats.byMonth[monthKey][pub] = (outboundStats.byMonth[monthKey][pub] || 0) + 1;
+
+    outboundStats.recentClicks.unshift({
+      publisher: pub,
+      articleTitle: articleTitle || '',
+      targetUrl: targetUrl || '',
+      timestamp: timestamp || now.toISOString()
+    });
+
+    if (outboundStats.recentClicks.length > 200) {
+      outboundStats.recentClicks = outboundStats.recentClicks.slice(0, 200);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false });
+  }
+});
+
+app.get('/api/analytics/outbound-summary', (req, res) => {
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  res.json({
+    currentMonth,
+    monthlyCounts: outboundStats.byMonth[currentMonth] || {},
+    allMonths: outboundStats.byMonth,
+    recentClicks: outboundStats.recentClicks.slice(0, 50)
+  });
+});
+
 // Lightweight Quick-Check for Live Updates (Returns boolean & count for floating pill)
 app.get('/api/news/check-new', (req, res) => {
   try {

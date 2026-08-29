@@ -1189,5 +1189,127 @@ export async function searchGoogleNews(query: string): Promise<Article[]> {
   );
 }
 
+/**
+ * Builds a standardized, tracked outbound link with UTM parameters
+ * for redirecting users to the original publisher (e.g. Sözcü, NTV, BBC, vb.)
+ * 
+ * Benefits:
+ * 1. Publisher's Google Analytics / Adobe Analytics sees 'voxozet' as the referral source.
+ * 2. Vox can track exact outbound clicks per publisher.
+ * 3. Safely handles existing query parameters and hash fragments without breaking URLs.
+ */
+export function buildOutboundSourceUrl(
+  rawUrl: string | undefined, 
+  article?: Partial<Article> | null,
+  options: {
+    source?: string;
+    medium?: string;
+    campaign?: string;
+  } = {}
+): string {
+  if (!rawUrl || typeof rawUrl !== 'string') return '';
+  const trimmed = rawUrl.trim();
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  const utmSource = options.source || 'voxozet';
+  const utmMedium = options.medium || 'referral';
+  const utmCampaign = options.campaign || 'vox_news_detail';
+  
+  // Create clean content identifier from article slug or title
+  let utmContent = 'news_reader';
+  if (article) {
+    if (article.title) {
+      utmContent = generateArticleSlug(article.title, article.id || '').replace(/-voxozet$/, '');
+    } else if (article.id) {
+      utmContent = article.id;
+    }
+  }
+
+  try {
+    const urlObj = new URL(trimmed);
+
+    // If it's an internal or twitter/youtube URL, adapt medium
+    if (urlObj.hostname.includes('x.com') || urlObj.hostname.includes('twitter.com')) {
+      urlObj.searchParams.set('utm_source', utmSource);
+      urlObj.searchParams.set('utm_medium', 'social_referral');
+      urlObj.searchParams.set('utm_campaign', utmCampaign);
+      if (utmContent) urlObj.searchParams.set('utm_content', utmContent);
+      return urlObj.toString();
+    }
+
+    // Set standard UTM tags on publisher domain
+    urlObj.searchParams.set('utm_source', utmSource);
+    urlObj.searchParams.set('utm_medium', utmMedium);
+    urlObj.searchParams.set('utm_campaign', utmCampaign);
+    if (utmContent) {
+      urlObj.searchParams.set('utm_content', utmContent);
+    }
+
+    return urlObj.toString();
+  } catch (e) {
+    // If URL parsing fails, fallback with simple query string appending
+    const separator = trimmed.includes('?') ? '&' : '?';
+    return `${trimmed}${separator}utm_source=${encodeURIComponent(utmSource)}&utm_medium=${encodeURIComponent(utmMedium)}&utm_campaign=${encodeURIComponent(utmCampaign)}`;
+  }
+}
+
+/**
+ * Tracks outbound link clicks for internal analytics & GA4
+ */
+export function trackOutboundClick(
+  article: Partial<Article> | null | undefined, 
+  targetUrl: string
+): void {
+  try {
+    const publisher = article?.author || 'Bilinmeyen Yayıncı';
+    const articleTitle = article?.title || '';
+    const articleId = article?.id || '';
+
+    // 1. Google Analytics 4 Event (if gtag is configured on window)
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'outbound_referral_click', {
+        event_category: 'outbound_traffic',
+        publisher_name: publisher,
+        article_id: articleId,
+        article_title: articleTitle,
+        target_destination: targetUrl
+      });
+    }
+
+    // 2. Async notification to backend outbound analytics
+    if (typeof fetch !== 'undefined') {
+      fetch('/api/analytics/outbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          publisher,
+          articleId,
+          articleTitle,
+          targetUrl,
+          timestamp: new Date().toISOString()
+        })
+      }).catch(() => {});
+    }
+
+    // 3. Local Storage aggregate tally for offline or quick review
+    try {
+      const statsKey = 'vox_outbound_traffic_stats';
+      const existing = appStorage.getItemSync(statsKey);
+      const stats = existing ? JSON.parse(existing) : {};
+      const currentMonth = new Date().toISOString().substring(0, 7); // '2026-08'
+      
+      if (!stats[currentMonth]) stats[currentMonth] = {};
+      if (!stats[currentMonth][publisher]) stats[currentMonth][publisher] = 0;
+      stats[currentMonth][publisher] += 1;
+      
+      appStorage.setItemSync(statsKey, JSON.stringify(stats));
+    } catch (e) {}
+  } catch (err) {
+    console.warn('Track outbound error:', err);
+  }
+}
+
 
 

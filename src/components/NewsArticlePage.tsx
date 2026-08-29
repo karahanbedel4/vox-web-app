@@ -30,7 +30,9 @@ import {
   generateArticleSlug, 
   fetchNewsByCategory, 
   sanitizeNewsText,
-  enrichArticleWithAI 
+  enrichArticleWithAI,
+  buildOutboundSourceUrl,
+  trackOutboundClick 
 } from '../lib/newsService';
 import { NativeAdCard } from './NativeAdCard';
 import { INITIAL_ARTICLES } from '../data/defaultArticles';
@@ -539,17 +541,22 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
               </p>
             </div>
 
-            {article.sourceUrl && (
-              <a
-                href={article.sourceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 transition-all shrink-0 cursor-pointer"
-              >
-                <span>Orijinal Habere Git</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
+            {article.sourceUrl && (() => {
+              const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
+              return (
+                <a
+                  href={outboundUrl}
+                  target="_blank"
+                  rel="noopener"
+                  onClick={() => trackOutboundClick(article, outboundUrl)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 transition-all shrink-0 cursor-pointer"
+                  title={`${article.author || 'Orijinal kaynak'} sitesinde tam haberi aç`}
+                >
+                  <span>Orijinal Habere Git</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              );
+            })()}
           </div>
 
           {/* Mobile In-Article Ad Container */}
