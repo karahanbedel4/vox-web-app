@@ -8,6 +8,11 @@ import { NewsArticlePage } from './components/NewsArticlePage';
 import { FocusTab } from './components/FocusTab';
 import { LibraryTab } from './components/LibraryTab';
 import { ProfileTab } from './components/ProfileTab';
+import { CookiePolicyPage } from './components/CookiePolicyPage';
+import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
+import { TermsPage } from './components/TermsPage';
+import { LegalPage } from './components/LegalPage';
+import { NotFoundPage } from './components/NotFoundPage';
 
 import { Article, UserProfile } from './types';
 import { useSubscription } from './hooks/useSubscription';
@@ -540,10 +545,21 @@ export default function App() {
                 />
               }
             />
-
-            {/* Fallback Catch-all Route */}
-            <RouterRoute path="*" element={<RouterNavigate to="/" replace />} />
           </RouterRoute>
+
+          {/* Standalone Legal & Policy Pages (Fully Accessible for Google Search & Indexing) */}
+          <RouterRoute path="/cerez-politikasi" element={<CookiePolicyPage />} />
+          <RouterRoute path="/cookies" element={<CookiePolicyPage />} />
+          <RouterRoute path="/gizlilik" element={<PrivacyPolicyPage />} />
+          <RouterRoute path="/privacy" element={<PrivacyPolicyPage />} />
+          <RouterRoute path="/kullanim-kosullari" element={<TermsPage />} />
+          <RouterRoute path="/terms" element={<TermsPage />} />
+          <RouterRoute path="/yasal-uyari" element={<LegalPage />} />
+          <RouterRoute path="/legal" element={<LegalPage />} />
+
+          {/* Dedicated 404 Not Found Route */}
+          <RouterRoute path="/404" element={<NotFoundPage />} />
+          <RouterRoute path="*" element={<NotFoundPage />} />
         </RouterRoutes>
       </Router>
       </FocusProvider>

@@ -65,6 +65,15 @@ Allow: /saglik
 Allow: /haber/
 Allow: /odaklan
 Allow: /kitaplik
+Allow: /cerez-politikasi
+Allow: /cookies
+Allow: /gizlilik
+Allow: /privacy
+Allow: /kullanim-kosullari
+Allow: /terms
+Allow: /yasal-uyari
+Allow: /legal
+Allow: /404
 Disallow: /api/
 Disallow: /api/*
 
@@ -88,6 +97,13 @@ app.get('/sitemap.xml', (req, res) => {
   <url><loc>${baseUrl}/ekonomi</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>
   <url><loc>${baseUrl}/odaklan</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>${baseUrl}/kitaplik</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>${baseUrl}/cerez-politikasi</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>${baseUrl}/gizlilik</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>${baseUrl}/privacy</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>${baseUrl}/kullanim-kosullari</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>${baseUrl}/terms</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>${baseUrl}/yasal-uyari</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>${baseUrl}/legal</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
 `;
 
   serverNewsCache.all.slice(0, 150).forEach(art => {
@@ -107,20 +123,27 @@ app.get('/sitemap.xml', (req, res) => {
   res.send(xml);
 });
 
-// Initialize Gemini API client server-side
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || '',
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build'
-    }
+// Lazy initialization of Gemini API client server-side
+let aiClient: GoogleGenAI | null = null;
+function getGeminiClient(): GoogleGenAI {
+  if (!aiClient) {
+    aiClient = new GoogleGenAI({ 
+      apiKey: process.env.GEMINI_API_KEY || '',
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build'
+        }
+      }
+    });
   }
-});
+  return aiClient;
+}
 
 async function callGeminiWithRetry(params: { model?: string; contents: any; config?: any }, retries = 2, delayMs = 300) {
   const primaryModel = params.model || 'gemini-3.7-flash';
   const models = Array.from(new Set([primaryModel, 'gemini-3.7-flash', 'gemini-2.5-flash', 'gemini-flash-latest']));
   let lastError: any = null;
+  const ai = getGeminiClient();
 
   for (const modelName of models) {
     for (let i = 0; i < retries; i++) {

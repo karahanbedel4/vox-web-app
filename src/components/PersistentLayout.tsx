@@ -540,6 +540,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               <button onClick={() => setInfoModalType('privacy')} className="hover:text-white transition-colors cursor-pointer">Gizlilik Politikası</button>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+              <Link to="/cerez-politikasi" className="hover:text-amber-400 text-gray-300 transition-colors cursor-pointer">Çerez Politikası</Link>
               <button onClick={() => setInfoModalType('impressum')} className="hover:text-white transition-colors cursor-pointer">Künye</button>
               <button onClick={() => setIsLegalDisclaimerOpen(true)} className="hover:text-emerald-400 text-gray-400 transition-colors cursor-pointer font-medium">Yasal Uyarı ve İletişim</button>
             </div>
@@ -773,6 +774,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('privacy'); }} className="hover:text-white cursor-pointer">Gizlilik Politikası</button>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+                    <Link to="/cerez-politikasi" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-amber-400 text-gray-300 cursor-pointer">Çerez Politikası</Link>
                     <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('impressum'); }} className="hover:text-white cursor-pointer">Künye</button>
                     <button onClick={() => { setIsMobileDrawerOpen(false); setIsLegalDisclaimerOpen(true); }} className="hover:text-emerald-400 text-gray-400 cursor-pointer font-medium">Yasal Uyarı ve İletişim</button>
                   </div>
