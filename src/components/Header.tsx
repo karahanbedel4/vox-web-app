@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { UserProfile } from '../types';
 import { Sparkles, Flame } from 'lucide-react';
 import { StreakInfo } from '../lib/streakService';
+import { VoxLogo } from './VoxLogo';
 
 interface HeaderProps {
   user: UserProfile | null;
@@ -54,11 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-1.5 cursor-pointer group active:scale-95 transition-transform"
           title="Ana Sayfaya Git (Haber Akışı)"
         >
-          <span className={`font-display font-black tracking-tighter text-white transition-all duration-300 ${
-            isScrolled ? 'text-xl' : 'text-2xl'
-          }`}>
-            VOX
-          </span>
+          <VoxLogo size={isScrolled ? 'xs' : 'sm'} />
         </Link>
 
         {isPremium && (

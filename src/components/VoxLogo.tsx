@@ -3,9 +3,10 @@ import { useTheme } from '../lib/ThemeContext';
 
 interface VoxLogoProps {
   className?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   showText?: boolean;
   textColor?: 'dark' | 'light' | 'auto';
+  accentColor?: string;
 }
 
 export const VoxLogo: React.FC<VoxLogoProps> = ({
@@ -13,66 +14,94 @@ export const VoxLogo: React.FC<VoxLogoProps> = ({
   size = 'md',
   showText = true,
   textColor = 'auto',
+  accentColor = '#20DE92',
 }) => {
   const { theme } = useTheme();
 
-  // Dimensions for the 2 pause bars symbol (||)
-  const iconDimensions = {
-    sm: { width: 16, height: 20, barW: 5, barH: 18, rx: 2.5, gap: 4 },
-    md: { width: 22, height: 26, barW: 6.5, barH: 22, rx: 3, gap: 5 },
-    lg: { width: 28, height: 32, barW: 8.5, barH: 28, rx: 4, gap: 6 },
-    xl: { width: 36, height: 40, barW: 11, barH: 36, rx: 5, gap: 7 },
-  }[size];
-
-  const textSize = {
-    sm: 'text-xl tracking-tight',
-    md: 'text-2xl tracking-tighter',
-    lg: 'text-3xl tracking-tighter',
-    xl: 'text-4xl tracking-tighter',
+  // Dimensions for full logo vs icon only
+  const dimensions = {
+    xs: { width: showText ? 90 : 16, height: showText ? 32 : 18 },
+    sm: { width: showText ? 115 : 20, height: showText ? 40 : 22 },
+    md: { width: showText ? 135 : 24, height: showText ? 48 : 28 },
+    lg: { width: showText ? 170 : 32, height: showText ? 60 : 36 },
+    xl: { width: showText ? 220 : 42, height: showText ? 78 : 46 },
   }[size];
 
   const isDarkText = textColor === 'dark' || (textColor === 'auto' && theme === 'light');
-  const textClass = isDarkText ? 'text-slate-950' : 'text-white';
+  const voxFill = isDarkText ? '#090A0F' : '#FFFFFF';
+  const greenFill = accentColor || '#20DE92';
 
-  return (
-    <div className={`inline-flex items-center gap-2 select-none ${className}`}>
-      {/* The 2 Vertical Emerald Bars Symbol (Pause / Equalizer Icon) */}
+  if (!showText) {
+    // Dual Pill Minimal Icon Only (||)
+    return (
       <svg
-        width={iconDimensions.width}
-        height={iconDimensions.height}
-        viewBox={`0 0 ${iconDimensions.width} ${iconDimensions.height}`}
+        width={dimensions.width}
+        height={dimensions.height}
+        viewBox="0 0 110 150"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="shrink-0"
+        className={`select-none shrink-0 ${className}`}
+        aria-label="VOX Logo"
       >
-        {/* Left Bar (Deep Emerald) */}
-        <rect
-          x="0"
-          y={(iconDimensions.height - iconDimensions.barH) / 2}
-          width={iconDimensions.barW}
-          height={iconDimensions.barH}
-          rx={iconDimensions.rx}
-          fill="#10b981"
-        />
-        {/* Right Bar (Deep Emerald) */}
-        <rect
-          x={iconDimensions.barW + iconDimensions.gap}
-          y={(iconDimensions.height - iconDimensions.barH) / 2}
-          width={iconDimensions.barW}
-          height={iconDimensions.barH}
-          rx={iconDimensions.rx}
-          fill="#059669"
-        />
+        <rect x="0" y="5" width="44" height="140" rx="22" fill={greenFill} />
+        <rect x="66" y="5" width="44" height="140" rx="22" fill={greenFill} />
       </svg>
+    );
+  }
 
-      {/* Text: "VOX" */}
-      {showText && (
-        <span className={`font-black font-sans uppercase ${textClass} ${textSize} leading-none transition-colors duration-200`}>
+  // Full Signature Logo: [ ||  VOX  ] with [ —————— OZET ] underneath
+  return (
+    <div className={`inline-flex items-center select-none ${className}`}>
+      <svg
+        width={dimensions.width}
+        height={dimensions.height}
+        viewBox="0 0 460 160"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-auto h-auto max-h-full shrink-0"
+        aria-label="VOX ÖZET Logo"
+      >
+        {/* Left Signature Dual Pillars (||) */}
+        <rect x="10" y="12" width="40" height="126" rx="20" fill={greenFill} />
+        <rect x="68" y="12" width="40" height="126" rx="20" fill={greenFill} />
+
+        {/* Main Brand Wordmark: VOX */}
+        <text
+          x="142"
+          y="120"
+          fill={voxFill}
+          fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+          fontWeight="900"
+          fontSize="132"
+          letterSpacing="-4"
+        >
           VOX
-        </span>
-      )}
+        </text>
+
+        {/* Baseline Underline spanning below V and O */}
+        <line
+          x1="152"
+          y1="148"
+          x2="330"
+          y2="148"
+          stroke={greenFill}
+          strokeWidth="4.5"
+          strokeLinecap="round"
+        />
+
+        {/* Subtitle Wordmark: OZET in Classical Serif */}
+        <text
+          x="338"
+          y="157"
+          fill={greenFill}
+          fontFamily="Georgia, 'Times New Roman', 'Playfair Display', serif"
+          fontWeight="900"
+          fontSize="36"
+          letterSpacing="0.5"
+        >
+          OZET
+        </text>
+      </svg>
     </div>
   );
 };
-
-

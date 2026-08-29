@@ -1,8 +1,9 @@
 import React from 'react';
-import { X, Shield, FileText, Info, Mail, Award, CheckCircle2 } from 'lucide-react';
+import { X, Shield, FileText, Info, Mail, Award, CheckCircle2, Scale, ShieldAlert, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { VoxLogo } from './VoxLogo';
 
-export type InfoModalType = 'about' | 'privacy' | 'terms' | 'contact' | 'ads' | 'impressum' | null;
+export type InfoModalType = 'about' | 'privacy' | 'terms' | 'contact' | 'ads' | 'impressum' | 'legal' | null;
 
 interface InfoModalProps {
   type: InfoModalType;
@@ -18,6 +19,9 @@ export const InfoModal: React.FC<InfoModalProps> = ({ type, onClose }) => {
       icon: <Info className="w-5 h-5 text-[#1ed760]" />,
       body: (
         <div className="space-y-4 text-xs leading-relaxed text-gray-300">
+          <div className="p-4 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center">
+            <VoxLogo size="lg" textColor="light" />
+          </div>
           <p className="text-sm font-semibold text-white">
             VOX — Yapay Zeka Destekli Yeni Nesil Odak ve Haber Platformu
           </p>
@@ -149,6 +153,42 @@ export const InfoModal: React.FC<InfoModalProps> = ({ type, onClose }) => {
           <div className="space-y-1">
             <span className="text-[10px] text-gray-500 font-mono block">ALTYAPI & BARINDIRMA</span>
             <p className="text-gray-300">Vercel Inc. & Google Cloud Platform</p>
+          </div>
+        </div>
+      ),
+    },
+    legal: {
+      title: 'Yasal Uyarı & Uyar-Kaldır (5651 Sayılı Kanun)',
+      icon: <Scale className="w-5 h-5 text-[#1ed760]" />,
+      body: (
+        <div className="space-y-4 text-xs leading-relaxed text-gray-300">
+          <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-between">
+            <VoxLogo size="sm" textColor="light" />
+            <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              5651 & FSEK Bildirimi
+            </span>
+          </div>
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2.5">
+            <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+              <ShieldAlert className="w-4 h-4 shrink-0" />
+              <span>Yasal Uyarı Metni</span>
+            </div>
+            <p className="text-gray-200 leading-relaxed text-xs sm:text-sm text-justify sm:text-left font-normal">
+              VOX, halka açık haber kaynaklarından elde edilen içerikleri otomatik olarak derleyen ve yapay zeka aracılığıyla özetleyen bir aracı platformdur. Platformumuzda yer alan haberlerin orijinal içerikleri, doğruluğu ve hukuki sorumluluğu tamamen ilgili yayıncı kuruluşlara aittir. VOX, sağlanan metinler üzerinde herhangi bir editoryal denetim veya yönlendirme yapmaz. Telif hakları, kişilik hakları ihlali veya diğer geçerli hukuki gerekçelerle uygulamamızdan veya web sitemizden kaldırılmasını talep ettiğiniz içerikler için, ilgili haberin URL'si veya ekran görüntüsü ile birlikte <strong className="text-emerald-400 font-bold">voxozet@gmail.com</strong> adresine e-posta gönderebilirsiniz. 5651 sayılı kanun kapsamında "Uyar ve Kaldır" prensibini benimseyen platformumuz, yasal taleplerinizi değerlendirerek gerekli teknik aksiyonları en kısa sürede alacaktır.
+            </p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="font-bold text-white text-xs">voxozet@gmail.com</span>
+            </div>
+            <a
+              href="mailto:voxozet@gmail.com?subject=VOX%20İçerik%20Kaldırma%20Talebi%20(5651%20Sayılı%20Kanun)"
+              className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
+            >
+              <span>E-posta Gönder</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
         </div>
       ),

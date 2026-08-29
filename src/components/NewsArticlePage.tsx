@@ -35,6 +35,7 @@ import {
   trackOutboundClick 
 } from '../lib/newsService';
 import { NativeAdCard } from './NativeAdCard';
+import { VoxLogo } from './VoxLogo';
 import { INITIAL_ARTICLES } from '../data/defaultArticles';
 
 interface NewsArticlePageProps {
@@ -528,17 +529,22 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             )}
           </div>
 
-          {/* Attribution & Original Source Link */}
+          {/* Attribution & Original Source Link with VOX Branding */}
           <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
             theme === 'light'
               ? 'bg-white border-slate-200 text-slate-700'
               : 'bg-[#121814] border-white/10 text-gray-300'
           }`}>
-            <div className="space-y-0.5">
-              <span className="text-xs font-bold text-gray-400">Yayıncı & Kaynak</span>
-              <p className="text-xs font-semibold">
-                Bu haber <strong className="text-emerald-400 font-bold">{article.author || 'Orijinal Kaynak'}</strong> tarafından yayınlanmış olup VOX Akıllı Akış motoru ile anlık derlenmiştir.
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                <VoxLogo size="xs" showText={false} />
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400">Yayıncı & Doğrulama</span>
+                <p className="text-xs font-semibold">
+                  Bu haber <strong className="text-emerald-400 font-bold">{article.author || 'Orijinal Kaynak'}</strong> tarafından yayınlanmış olup VOX Akıllı Akış motoru ile anlık derlenmiştir.
+                </p>
+              </div>
             </div>
 
             {article.sourceUrl && (() => {

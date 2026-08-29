@@ -66,6 +66,7 @@ import {
   playMindfulnessBell
 } from '../lib/FocusContext';
 import { ALL_SOUND_SHELVES, SoundTrack, getShelfIcon } from '../lib/soundtrackData';
+import { VoxLogo } from './VoxLogo';
 
 interface FocusTabProps {
   articles: Article[];
@@ -515,12 +516,17 @@ export const FocusTab: React.FC<FocusTabProps> = ({
       <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b ${
         theme === 'light' ? 'border-slate-200' : 'border-white/10'
       }`}>
-        <div>
-          <h1 className={`font-display text-xl md:text-2xl font-black tracking-tight ${
-            theme === 'light' ? 'text-slate-900' : 'text-white'
-          }`}>
-            Odaklanma Alanı
-          </h1>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex p-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <VoxLogo size="xs" showText={false} />
+          </div>
+          <div>
+            <h1 className={`font-display text-xl md:text-2xl font-black tracking-tight ${
+              theme === 'light' ? 'text-slate-900' : 'text-white'
+            }`}>
+              Odaklanma Alanı
+            </h1>
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5">

@@ -9,6 +9,7 @@ import {
   Cloud,
   CheckCircle2
 } from 'lucide-react';
+import { VoxLogo } from './VoxLogo';
 
 interface AppStorePaywallModalProps {
   isOpen: boolean;
@@ -63,6 +64,10 @@ export const AppStorePaywallModal: React.FC<AppStorePaywallModalProps> = ({
             
             {/* Header Area */}
             <div className="text-center space-y-3">
+              <div className="flex justify-center pb-1">
+                <VoxLogo size="md" textColor="light" />
+              </div>
+
               {/* Premium Badge */}
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500 text-white text-[11px] font-black uppercase tracking-widest shadow-[0_0_18px_rgba(249,115,22,0.45)] border border-white/20">
                 <Sparkles className="w-3 h-3 fill-current animate-pulse" />

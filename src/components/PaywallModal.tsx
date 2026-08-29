@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Check, Zap, ShieldCheck, RefreshCw, X, Volume2, FileText, Bell, Award, CheckCircle2, AlertCircle, Infinity as InfinityIcon, UserCheck } from 'lucide-react';
 import { isCapacitorNative } from '../lib/revenuecat';
+import { VoxLogo } from './VoxLogo';
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -101,17 +102,20 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
           className="relative w-full max-w-md bg-surface-container/95 border border-primary/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(78,222,163,0.15)] flex flex-col max-h-[92vh] text-on-surface"
         >
           {/* Header Banner */}
-          <div className="relative p-6 bg-gradient-to-b from-primary/20 via-surface-container to-surface-container text-center border-b border-white/10 space-y-2">
+          <div className="relative p-6 bg-gradient-to-b from-primary/20 via-surface-container to-surface-container text-center border-b border-white/10 space-y-3">
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface p-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface p-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-[11px] font-bold text-primary uppercase tracking-widest shadow-[0_0_15px_rgba(78,222,163,0.3)]">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>VOX - BULTEN OZETLEYICI PRO</span>
+            <div className="flex flex-col items-center gap-2">
+              <VoxLogo size="md" textColor="light" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-[10px] font-black text-primary uppercase tracking-widest shadow-[0_0_15px_rgba(78,222,163,0.3)]">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>BÜLTEN & HABER PRO</span>
+              </div>
             </div>
 
             <h2 className="font-display text-2xl font-black tracking-tight text-white leading-tight">

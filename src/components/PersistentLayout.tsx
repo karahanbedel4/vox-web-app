@@ -39,6 +39,7 @@ import { getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE }
 import { woodRainSynth } from '../lib/audioSynth';
 import { useTheme } from '../lib/ThemeContext';
 import { InfoModal, InfoModalType } from './InfoModal';
+import { LegalDisclaimerModal } from './LegalDisclaimerModal';
 import { VoxLogo } from './VoxLogo';
 import { XLogoIcon } from './XLogoIcon';
 import { appStorage, getCookie, setCookie } from '../lib/storage';
@@ -107,6 +108,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [topNotificationText, setTopNotificationText] = useState<string | null>(null);
   const [infoModalType, setInfoModalType] = useState<InfoModalType>(null);
+  const [isLegalDisclaimerOpen, setIsLegalDisclaimerOpen] = useState<boolean>(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
   const modalScrollRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLElement>(null);
@@ -537,8 +539,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               <button onClick={() => setInfoModalType('terms')} className="hover:text-white transition-colors cursor-pointer">Kullanım Koşulları</button>
               <button onClick={() => setInfoModalType('privacy')} className="hover:text-white transition-colors cursor-pointer">Gizlilik Politikası</button>
             </div>
-            <div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
               <button onClick={() => setInfoModalType('impressum')} className="hover:text-white transition-colors cursor-pointer">Künye</button>
+              <button onClick={() => setIsLegalDisclaimerOpen(true)} className="hover:text-emerald-400 text-gray-400 transition-colors cursor-pointer font-medium">Yasal Uyarı ve İletişim</button>
             </div>
           </div>
 
@@ -769,8 +772,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('terms'); }} className="hover:text-white cursor-pointer">Kullanım Koşulları</button>
                     <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('privacy'); }} className="hover:text-white cursor-pointer">Gizlilik Politikası</button>
                   </div>
-                  <div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
                     <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('impressum'); }} className="hover:text-white cursor-pointer">Künye</button>
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setIsLegalDisclaimerOpen(true); }} className="hover:text-emerald-400 text-gray-400 cursor-pointer font-medium">Yasal Uyarı ve İletişim</button>
                   </div>
                 </div>
 
@@ -905,6 +909,12 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       <InfoModal
         type={infoModalType}
         onClose={() => setInfoModalType(null)}
+      />
+
+      {/* LEGAL DISCLAIMER & UYAR-KALDIR MODAL (5651 Sayılı Kanun) */}
+      <LegalDisclaimerModal
+        isOpen={isLegalDisclaimerOpen}
+        onClose={() => setIsLegalDisclaimerOpen(false)}
       />
 
       {/* MOBILE FLOATING MINI-PLAYER (Only shown when playing TTS News Article) */}
