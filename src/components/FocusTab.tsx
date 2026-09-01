@@ -1342,266 +1342,6 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               <div className="hidden md:block w-32 h-1 bg-white/20 rounded-full mx-auto mt-3" />
             </div>
           </div>
-
-          {/* SPOTIFY / APPLE MUSIC STYLE HORIZONTAL ALBUM SHELVES WITH PLAYLIST CONTINUOUS AUTO-ADVANCE */}
-          <section className="space-y-6 pt-2">
-            <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${
-              theme === 'light' ? 'border-slate-200' : 'border-white/10'
-            }`}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-[#1ed760]/20 border border-[#1ed760]/30 flex items-center justify-center text-[#1ed760] shadow-sm">
-                  <Headphones className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className={`font-display text-base md:text-lg font-bold ${
-                    theme === 'light' ? 'text-slate-900' : 'text-white'
-                  }`}>
-                    Odaklanma Müzikleri & Efsane Soundtracks
-                  </h2>
-                  <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                    Dizi, film müzikleri ve doğa sesleri • Biri bitince diğeri otomatik başlar
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                {onToggleContinuousPlaylistMode && (
-                  <button
-                    onClick={() => {
-                      triggerHapticImpact('light').catch(() => {});
-                      onToggleContinuousPlaylistMode();
-                    }}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
-                      isContinuousPlaylistMode
-                        ? 'bg-[#1ed760]/20 text-[#1ed760] border-[#1ed760]/40 shadow-sm'
-                        : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
-                    }`}
-                    title="Playlist Otomatik Geçiş Modu: Bir parça bitince sonrakine otomatik geçer"
-                  >
-                    <Repeat className="w-3.5 h-3.5" />
-                    <span>{isContinuousPlaylistMode ? 'Sıralı Çalma: Açık' : 'Sıralı Çalma: Kapalı'}</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={onOpenAmbientMixer}
-                  className="px-3 py-1.5 rounded-xl bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30 text-xs font-bold hover:bg-[#1ed760]/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
-                >
-                  <Sliders className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Gelişmiş Mikser</span>
-                  <span className="sm:hidden">Mikser</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Horizontal Sound Shelves */}
-            <div className="space-y-7">
-              {ALL_SOUND_SHELVES.map((shelf) => {
-                const ShelfIcon = getShelfIcon(shelf.iconName);
-                const isCurrentActiveShelf = activePlaylistShelfId === shelf.id;
-                const activeTrackInShelf = shelf.tracks.find(t => {
-                  const ch = ambientChannels.find(c => (c.id === t.id || (Boolean(t.youtubeId) && Boolean(c.youtubeId) && c.youtubeId === t.youtubeId)) && c.active && c.volume > 0);
-                  return Boolean(ch);
-                });
-
-                return (
-                  <div key={shelf.id} className="space-y-3">
-                    {/* Shelf Header */}
-                    <div className="flex items-center justify-between px-0.5">
-                      <div className="flex items-center gap-2">
-                        <ShelfIcon className="w-4 h-4 text-[#1ed760]" />
-                        <h3 className={`text-sm md:text-base font-bold tracking-tight ${
-                          theme === 'light' ? 'text-slate-900' : 'text-white'
-                        }`}>
-                          {shelf.title}
-                        </h3>
-                        <span className={`text-[11px] hidden sm:inline ${
-                          theme === 'light' ? 'text-slate-400' : 'text-gray-500'
-                        }`}>
-                          • {shelf.subtitle}
-                        </span>
-                      </div>
-
-                      {/* Play All Playlist Button for this shelf */}
-                      <button
-                        onClick={() => {
-                          triggerHapticImpact('medium').catch(() => {});
-                          universalSynthService.unlock();
-                          if (onStartPlaylist) {
-                            onStartPlaylist(shelf.id);
-                          } else {
-                            woodRainSynth.unlockAudioContext();
-                            onToggleAmbientChannel(shelf.tracks[0].id);
-                          }
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm ${
-                          activeTrackInShelf
-                            ? 'bg-[#1ed760] text-black hover:bg-[#1ed760]/90 shadow-[#1ed760]/30'
-                            : 'bg-white/10 hover:bg-[#1ed760]/20 hover:text-[#1ed760] text-gray-200 border border-white/10 hover:border-[#1ed760]/30'
-                        }`}
-                        title={`${shelf.title} listesini baştan sona kesintisiz çal`}
-                      >
-                        {activeTrackInShelf ? (
-                          <>
-                            <div className="flex items-end gap-0.5 h-3">
-                              <div className="w-0.5 bg-black rounded-full animate-eq-1" />
-                              <div className="w-0.5 bg-black rounded-full animate-eq-2" />
-                              <div className="w-0.5 bg-black rounded-full animate-eq-3" />
-                            </div>
-                            <span>Oynatılıyor ({shelf.tracks.length})</span>
-                          </>
-                        ) : (
-                          <>
-                            <ListMusic className="w-3.5 h-3.5" />
-                            <span>Tümünü Çal ({shelf.tracks.length})</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Horizontal Scrollable Album Cards Shelf */}
-                    <div className="flex overflow-x-auto snap-x snap-mandatory space-x-3.5 sm:space-x-4 pb-3 pt-1 scrollbar-thin scrollbar-thumb-emerald-500/20">
-                      {shelf.tracks.map((track, trackIndex) => {
-                        const channelState = ambientChannels.find(
-                          (c) => c.id === track.id || (Boolean(track.youtubeId) && Boolean(c.youtubeId) && c.youtubeId === track.youtubeId)
-                        );
-                        const isPlaying = Boolean(channelState && channelState.active && channelState.volume > 0);
-                        const volume = channelState ? channelState.volume : 60;
-
-                        return (
-                          <div
-                            key={track.id}
-                            onClick={() => {
-                              woodRainSynth.unlockAudioContext();
-                              universalSynthService.unlock();
-                              triggerHapticImpact('light').catch(() => {});
-                              if (onStartPlaylist) {
-                                onStartPlaylist(shelf.id, track.id);
-                              } else {
-                                onToggleAmbientChannel(track.id);
-                              }
-                            }}
-                            className="group relative shrink-0 w-36 sm:w-40 md:w-44 snap-start flex flex-col cursor-pointer transition-all duration-300"
-                          >
-                            {/* Square Cover Artwork Container */}
-                            <div className={`relative aspect-square w-full rounded-2xl overflow-hidden shadow-md bg-neutral-900 border transition-all duration-300 ${
-                              isPlaying
-                                ? 'border-[#1ed760] ring-2 ring-[#1ed760] shadow-xl shadow-[#1ed760]/30 scale-[1.02]'
-                                : theme === 'light'
-                                  ? 'border-slate-200 hover:border-[#1ed760]/50 hover:shadow-lg group-hover:scale-[1.02]'
-                                  : 'border-white/10 hover:border-[#1ed760]/50 hover:shadow-lg group-hover:scale-[1.02]'
-                            }`}>
-                              
-                              {/* Background Artwork */}
-                              <img
-                                src={track.coverImage || `https://img.youtube.com/vi/${track.youtubeId}/hqdefault.jpg`}
-                                alt={track.name}
-                                className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-                                  isPlaying ? 'opacity-90' : 'opacity-75 group-hover:opacity-90'
-                                }`}
-                                loading="lazy"
-                                onError={(e) => {
-                                  const imgEl = e.currentTarget;
-                                  if (track.coverImage && imgEl.src !== track.coverImage) {
-                                    imgEl.src = track.coverImage;
-                                  } else {
-                                    imgEl.src = 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80';
-                                  }
-                                }}
-                              />
-
-                              {/* Subtle Aesthetic Vignette Gradient */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
-
-                              {/* Track Index Badge & Stream Type Badge */}
-                              <div className="absolute top-2 left-2 flex items-center gap-1">
-                                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[10px] font-bold text-gray-300">
-                                  <span>#{trackIndex + 1}</span>
-                                </div>
-                                {track.audioUrl && (
-                                  <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-950/80 backdrop-blur-md border border-emerald-500/40 text-[9px] font-bold text-emerald-300">
-                                    <span>⚡ MP3</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Playing Animation Equalizer / Status Badge */}
-                              {isPlaying && (
-                                <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#1ed760] text-black text-[10px] font-black shadow-lg">
-                                  <div className="flex items-end gap-0.5 h-3">
-                                    <div className="w-0.5 bg-black rounded-full animate-eq-1" />
-                                    <div className="w-0.5 bg-black rounded-full animate-eq-2" />
-                                    <div className="w-0.5 bg-black rounded-full animate-eq-3" />
-                                    <div className="w-0.5 bg-black rounded-full animate-eq-4" />
-                                  </div>
-                                  <span>Çalıyor</span>
-                                </div>
-                              )}
-
-                              {/* Big Play / Pause Action Button (Always Visible or On Hover) */}
-                              <div className={`absolute bottom-2.5 right-2.5 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-xl ${
-                                isPlaying
-                                  ? 'bg-[#1ed760] text-black scale-100 opacity-100 shadow-[#1ed760]/40'
-                                  : 'bg-black/75 backdrop-blur-md text-white border border-white/20 opacity-90 group-hover:opacity-100 group-hover:scale-110 group-hover:bg-[#1ed760] group-hover:text-black group-hover:border-[#1ed760]'
-                              }`}>
-                                {isPlaying ? (
-                                  <Pause className="w-4 h-4 fill-current" />
-                                ) : (
-                                  <Play className="w-4 h-4 fill-current ml-0.5" />
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Track Info (Spotify-Style Typography) */}
-                            <div className="mt-2 space-y-0.5 px-0.5">
-                              <h4 className={`text-xs font-bold truncate leading-tight transition-colors ${
-                                isPlaying
-                                  ? 'text-[#1ed760]'
-                                  : theme === 'light'
-                                    ? 'text-slate-900 group-hover:text-[#1ed760]'
-                                    : 'text-white group-hover:text-[#1ed760]'
-                              }`}>
-                                {track.name}
-                              </h4>
-                              <p className={`text-[11px] truncate ${
-                                theme === 'light' ? 'text-slate-500' : 'text-gray-400'
-                              }`}>
-                                {track.subtitle}
-                              </p>
-
-                              {/* Mini volume indicator when playing */}
-                              {isPlaying && onVolumeChange && (
-                                <div 
-                                  className="pt-1 flex items-center gap-1.5"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Volume2 className="w-3 h-3 text-[#1ed760] shrink-0" />
-                                  <input
-                                    type="range"
-                                    min={0}
-                                    max={100}
-                                    value={volume}
-                                    onChange={(e) => {
-                                      e.stopPropagation();
-                                      onVolumeChange(track.id, parseFloat(e.target.value));
-                                    }}
-                                    className="w-full h-1 rounded-lg appearance-none cursor-pointer accent-[#1ed760] bg-white/20"
-                                  />
-                                  <span className="text-[9px] font-mono text-[#1ed760] shrink-0">
-                                    %{volume}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
         </div>
 
         {/* RIGHT COLUMN: Live News Feed */}
@@ -1760,6 +1500,275 @@ export const FocusTab: React.FC<FocusTabProps> = ({
         )}
 
       </div>
+
+      {/* SPOTIFY / APPLE MUSIC STYLE HORIZONTAL ALBUM SHELVES - FULL WIDTH EXTENSION */}
+      <section className="w-full space-y-6 pt-6 border-t border-white/10 transition-all duration-300">
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${
+          theme === 'light' ? 'border-slate-200' : 'border-white/10'
+        }`}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-[#1ed760]/20 border border-[#1ed760]/30 flex items-center justify-center text-[#1ed760] shadow-sm">
+              <Headphones className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className={`font-display text-base md:text-lg font-bold ${
+                theme === 'light' ? 'text-slate-900' : 'text-white'
+              }`}>
+                Odaklanma Müzikleri & Efsane Soundtracks
+              </h2>
+              <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                Dizi, film müzikleri ve doğa sesleri • Biri bitince diğeri otomatik başlar
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            {onToggleContinuousPlaylistMode && (
+              <button
+                onClick={() => {
+                  triggerHapticImpact('light').catch(() => {});
+                  onToggleContinuousPlaylistMode();
+                }}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                  isContinuousPlaylistMode
+                    ? 'bg-[#1ed760]/20 text-[#1ed760] border-[#1ed760]/40 shadow-sm'
+                    : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
+                }`}
+                title="Playlist Otomatik Geçiş Modu: Bir parça bitince sonrakine otomatik geçer"
+              >
+                <Repeat className="w-3.5 h-3.5" />
+                <span>{isContinuousPlaylistMode ? 'Sıralı Çalma: Açık' : 'Sıralı Çalma: Kapalı'}</span>
+              </button>
+            )}
+
+            <button
+              onClick={onOpenAmbientMixer}
+              className="px-3 py-1.5 rounded-xl bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30 text-xs font-bold hover:bg-[#1ed760]/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Gelişmiş Mikser</span>
+              <span className="sm:hidden">Mikser</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Horizontal Sound Shelves */}
+        <div className="space-y-7">
+          {ALL_SOUND_SHELVES.map((shelf) => {
+            const ShelfIcon = getShelfIcon(shelf.iconName);
+            const isCurrentActiveShelf = activePlaylistShelfId === shelf.id;
+            const activeTrackInShelf = shelf.tracks.find(t => {
+              const ch = ambientChannels.find(c => (c.id === t.id || (Boolean(t.youtubeId) && Boolean(c.youtubeId) && c.youtubeId === t.youtubeId)) && c.active && c.volume > 0);
+              return Boolean(ch);
+            });
+
+            return (
+              <div key={shelf.id} className="space-y-3">
+                {/* Shelf Header */}
+                <div className="flex items-center justify-between px-0.5">
+                  <div className="flex items-center gap-2">
+                    <ShelfIcon className="w-4 h-4 text-[#1ed760]" />
+                    <h3 className={`text-sm md:text-base font-bold tracking-tight ${
+                      theme === 'light' ? 'text-slate-900' : 'text-white'
+                    }`}>
+                      {shelf.title}
+                    </h3>
+                    <span className={`text-[11px] hidden sm:inline ${
+                      theme === 'light' ? 'text-slate-400' : 'text-gray-500'
+                    }`}>
+                      • {shelf.subtitle}
+                    </span>
+                  </div>
+
+                  {/* Play All Playlist Button for this shelf */}
+                  <button
+                    onClick={() => {
+                      triggerHapticImpact('medium').catch(() => {});
+                      universalSynthService.unlock();
+                      if (activeTrackInShelf) {
+                        onToggleAmbientChannel(activeTrackInShelf.id);
+                      } else if (onStartPlaylist) {
+                        onStartPlaylist(shelf.id);
+                      } else {
+                        woodRainSynth.unlockAudioContext();
+                        onToggleAmbientChannel(shelf.tracks[0].id);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm ${
+                      activeTrackInShelf
+                        ? 'bg-[#1ed760] text-black hover:bg-[#1ed760]/90 shadow-[#1ed760]/30'
+                        : 'bg-white/10 hover:bg-[#1ed760]/20 hover:text-[#1ed760] text-gray-200 border border-white/10 hover:border-[#1ed760]/30'
+                    }`}
+                    title={`${shelf.title} listesini çal veya durdur`}
+                  >
+                    {activeTrackInShelf ? (
+                      <>
+                        <div className="flex items-end gap-0.5 h-3">
+                          <div className="w-0.5 bg-black rounded-full animate-eq-1" />
+                          <div className="w-0.5 bg-black rounded-full animate-eq-2" />
+                          <div className="w-0.5 bg-black rounded-full animate-eq-3" />
+                        </div>
+                        <span>Oynatılıyor ({shelf.tracks.length})</span>
+                      </>
+                    ) : (
+                      <>
+                        <ListMusic className="w-3.5 h-3.5" />
+                        <span>Tümünü Çal ({shelf.tracks.length})</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Horizontal Scrollable Album Cards Shelf - Spanning Full Width */}
+                <div className="flex overflow-x-auto snap-x snap-mandatory space-x-3.5 sm:space-x-4 pb-3 pt-1 scrollbar-thin scrollbar-thumb-emerald-500/20">
+                  {shelf.tracks.map((track, trackIndex) => {
+                    const channelState = ambientChannels.find(
+                      (c) => c.id === track.id || (Boolean(track.youtubeId) && Boolean(c.youtubeId) && c.youtubeId === track.youtubeId)
+                    );
+                    const isPlaying = Boolean(channelState && channelState.active && channelState.volume > 0);
+                    const volume = channelState ? channelState.volume : 60;
+
+                    const handleToggleTrack = (e?: React.MouseEvent) => {
+                      if (e) e.stopPropagation();
+                      woodRainSynth.unlockAudioContext();
+                      universalSynthService.unlock();
+                      triggerHapticImpact('light').catch(() => {});
+                      if (isPlaying) {
+                        onToggleAmbientChannel(track.id);
+                      } else {
+                        if (onStartPlaylist) {
+                          onStartPlaylist(shelf.id, track.id);
+                        } else {
+                          onToggleAmbientChannel(track.id);
+                        }
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={track.id}
+                        onClick={handleToggleTrack}
+                        className="group relative shrink-0 w-36 sm:w-40 md:w-44 lg:w-48 snap-start flex flex-col cursor-pointer transition-all duration-300"
+                      >
+                        {/* Square Cover Artwork Container */}
+                        <div className={`relative aspect-square w-full rounded-2xl overflow-hidden shadow-md bg-neutral-900 border transition-all duration-300 ${
+                          isPlaying
+                            ? 'border-[#1ed760] ring-2 ring-[#1ed760] shadow-xl shadow-[#1ed760]/30 scale-[1.02]'
+                            : theme === 'light'
+                              ? 'border-slate-200 hover:border-[#1ed760]/50 hover:shadow-lg group-hover:scale-[1.02]'
+                              : 'border-white/10 hover:border-[#1ed760]/50 hover:shadow-lg group-hover:scale-[1.02]'
+                        }`}>
+                          
+                          {/* Background Artwork */}
+                          <img
+                            src={track.coverImage || (track.youtubeId ? `https://img.youtube.com/vi/${track.youtubeId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80')}
+                            alt={track.name}
+                            className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                              isPlaying ? 'opacity-90' : 'opacity-75 group-hover:opacity-90'
+                            }`}
+                            loading="lazy"
+                            onError={(e) => {
+                              const imgEl = e.currentTarget;
+                              if (track.coverImage && imgEl.src !== track.coverImage) {
+                                imgEl.src = track.coverImage;
+                              } else {
+                                imgEl.src = 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80';
+                              }
+                            }}
+                          />
+
+                          {/* Subtle Aesthetic Vignette Gradient */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
+
+                          {/* Track Index Badge */}
+                          <div className="absolute top-2 left-2 flex items-center gap-1">
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[10px] font-bold text-gray-300">
+                              <span>#{trackIndex + 1}</span>
+                            </div>
+                          </div>
+
+                          {/* Playing Animation Equalizer / Status Badge */}
+                          {isPlaying && (
+                            <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#1ed760] text-black text-[10px] font-black shadow-lg">
+                              <div className="flex items-end gap-0.5 h-3">
+                                <div className="w-0.5 bg-black rounded-full animate-eq-1" />
+                                <div className="w-0.5 bg-black rounded-full animate-eq-2" />
+                                <div className="w-0.5 bg-black rounded-full animate-eq-3" />
+                                <div className="w-0.5 bg-black rounded-full animate-eq-4" />
+                              </div>
+                              <span>Çalıyor</span>
+                            </div>
+                          )}
+
+                          {/* Big Play / Pause Action Button (Always Accessible & Click-Responsive) */}
+                          <button
+                            type="button"
+                            onClick={handleToggleTrack}
+                            className={`absolute bottom-2.5 right-2.5 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-xl cursor-pointer ${
+                              isPlaying
+                                ? 'bg-[#1ed760] text-black scale-100 opacity-100 shadow-[#1ed760]/40'
+                                : 'bg-black/75 backdrop-blur-md text-white border border-white/20 opacity-90 group-hover:opacity-100 group-hover:scale-110 group-hover:bg-[#1ed760] group-hover:text-black group-hover:border-[#1ed760]'
+                            }`}
+                            title={isPlaying ? 'Durdur' : 'Çal'}
+                          >
+                            {isPlaying ? (
+                              <Pause className="w-4 h-4 fill-current" />
+                            ) : (
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Track Info (Spotify-Style Typography) */}
+                        <div className="mt-2 space-y-0.5 px-0.5">
+                          <h4 className={`text-xs sm:text-sm font-bold truncate leading-tight transition-colors ${
+                            isPlaying
+                              ? 'text-[#1ed760]'
+                              : theme === 'light'
+                                ? 'text-slate-900 group-hover:text-[#1ed760]'
+                                : 'text-white group-hover:text-[#1ed760]'
+                          }`}>
+                            {track.name}
+                          </h4>
+                          <p className={`text-[11px] truncate ${
+                            theme === 'light' ? 'text-slate-500' : 'text-gray-400'
+                          }`}>
+                            {track.subtitle}
+                          </p>
+
+                          {/* Mini volume indicator when playing */}
+                          {isPlaying && onVolumeChange && (
+                            <div 
+                              className="pt-1 flex items-center gap-1.5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Volume2 className="w-3 h-3 text-[#1ed760] shrink-0" />
+                              <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                value={volume}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  onVolumeChange(track.id, parseFloat(e.target.value));
+                                }}
+                                className="w-full h-1 rounded-lg appearance-none cursor-pointer accent-[#1ed760] bg-white/20"
+                              />
+                              <span className="text-[9px] font-mono text-[#1ed760] shrink-0">
+                                %{volume}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Task Complete Celebration In-App Toast */}
       <AnimatePresence>

@@ -312,6 +312,20 @@ export default function App() {
     const trackUrl = track.audioUrl || (track.youtubeId ? `https://www.youtube.com/watch?v=${track.youtubeId}` : undefined);
 
     setAmbientChannels(prev => {
+      // Check if this track is currently active & playing -> Pause it!
+      const currentActiveMatch = prev.find(
+        c => (c.id === track.id || (Boolean(track.youtubeId) && Boolean(c.youtubeId) && c.youtubeId === track.youtubeId)) && c.active && c.volume > 0
+      );
+
+      if (currentActiveMatch) {
+        return prev.map(ch => {
+          if (ch.id === currentActiveMatch.id) {
+            return { ...ch, active: false };
+          }
+          return ch;
+        });
+      }
+
       // Ensure target channel exists
       const exists = prev.some(c => c.id === track.id || (Boolean(track.youtubeId) && Boolean(c.youtubeId) && c.youtubeId === track.youtubeId));
       const baseList = exists ? prev : [...prev, {

@@ -114,201 +114,226 @@ export const NATURE_SOUNDTRACKS: SoundTrack[] = [
   }
 ];
 
-// ☕ 2. LO-FI & DERİN ODAKLANMA (İKİNCİ SIRADA - DİREKT MP3 SES AKIŞLARI)
+// ☕ 2. LO-FI & DERİN ODAKLANMA (İKİNCİ SIRADA - YOUTUBE HQ LO-FI BEATS)
 export const LOFI_SOUNDTRACKS: SoundTrack[] = [
   {
-    id: 'stream-clean-soul',
-    name: 'Chill Study Groove',
-    subtitle: 'Lo-Fi Odak • Yumuşak Rhodes & Rahatlatıcı Bas',
+    id: 'yt-lofi-girl',
+    name: 'Lofi Girl - Chill Beats',
+    subtitle: 'Lo-Fi Odak • Yumuşak Rhodes & Dinlendirici Beats',
     category: 'lofi',
     categoryTitle: 'Lo-Fi Odaklanma',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Clean%20Soul.mp3',
-    type: 'stream',
+    youtubeId: 'jfKfPfyJRdk',
+    type: 'youtube',
     coverImage: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80',
     durationSeconds: 340,
     featured: true
   },
   {
-    id: 'stream-deliberate-thought',
-    name: 'Derin Konsantrasyon & Flow',
-    subtitle: 'Binaural Focus • Meditatif Piyano & Ritim',
+    id: 'yt-lofi-study-session',
+    name: '1 A.M Study Session',
+    subtitle: 'Binaural Focus • Meditatif Piyano & Chillhop',
     category: 'lofi',
     categoryTitle: 'Lo-Fi Odaklanma',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Deliberate%20Thought.mp3',
-    type: 'stream',
+    youtubeId: 'lTRiuFIWV54',
+    type: 'youtube',
     coverImage: 'https://images.unsplash.com/photo-1507842229452-772d1c86e246?w=600&auto=format&fit=crop&q=80',
     durationSeconds: 290,
     featured: true
   },
   {
-    id: 'stream-gymnopedie',
-    name: 'Gymnopédie No. 1 (Piyano)',
-    subtitle: 'Erik Satie • Zihni Dinlendiren Klasik Melodi',
+    id: 'yt-lofi-tokyo-night',
+    name: 'Tokyo Night Vibes',
+    subtitle: 'Gece Kodlama & Yağmurlu Neon Melodileri',
     category: 'lofi',
     categoryTitle: 'Lo-Fi Odaklanma',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Gymnopedie%20No%201.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=600&auto=format&fit=crop&q=80',
+    youtubeId: 'TURbeWK2wwg',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 320,
+    featured: true
+  },
+  {
+    id: 'yt-lofi-coffee-shop',
+    name: 'Cozy Coffee Shop Beats',
+    subtitle: 'Sıcak Kahve & Akustik Lo-Fi Harmonileri',
+    category: 'lofi',
+    categoryTitle: 'Lo-Fi Odaklanma',
+    youtubeId: '-5KAN9_CzSA',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80',
     durationSeconds: 300,
     featured: true
   },
   {
-    id: 'stream-dream-culture',
-    name: 'Dream Culture (Chill Ambient)',
-    subtitle: 'Huzurlu Gece Ritimleri & Yumuşak Dokular',
+    id: 'yt-lofi-peaceful-piano',
+    name: 'Peaceful Piano Focus',
+    subtitle: 'Derin Konsantrasyon • Akıcı Piyano Melodileri',
     category: 'lofi',
     categoryTitle: 'Lo-Fi Odaklanma',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dream%20Culture.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 330,
+    youtubeId: '4xDzrJKXOOY',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 310,
     featured: true
   },
   {
-    id: 'stream-deep-haze',
-    name: 'Deep Haze (Gece Kodlama)',
-    subtitle: 'Midnight Coding • Sakin Atmosferik Ritim',
+    id: 'yt-lofi-synthwave',
+    name: 'Synthwave Chill Coding',
+    subtitle: 'Midnight Coding • Retrowave & Sakin Elektronik',
     category: 'lofi',
     categoryTitle: 'Lo-Fi Odaklanma',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Deep%20Haze.mp3',
-    type: 'stream',
+    youtubeId: 'f02mOEt11OQ',
+    type: 'youtube',
     coverImage: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 200
-  },
-  {
-    id: 'stream-mesmerize',
-    name: 'Mesmerize (Hipnotik Odak)',
-    subtitle: 'Akıcı Çalışma Seansı • Sakin Dalgasal Tonlar',
-    category: 'lofi',
-    categoryTitle: 'Lo-Fi Odaklanma',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mesmerize.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 350
+    durationSeconds: 280
   }
 ];
 
-// 🍿 3. EFSANE FİLM & SİNEMA MÜZİKLERİ (ÜÇÜNCÜ SIRADA)
+// 🎬 3. EFSANE FİLM & SİNEMA MÜZİKLERİ (YOUTUBE SOUNDTRACKS)
 export const MOVIE_SOUNDTRACKS: SoundTrack[] = [
   {
-    id: 'stream-floating-cities',
-    name: 'Uzayın Derinlikleri (Interstellar İlhamı)',
-    subtitle: 'Hans Zimmer Tarzı • Kozmik Derinlik & Organ',
+    id: 'yt-movie-interstellar',
+    name: 'Interstellar - First Step & Cornfield Chase',
+    subtitle: 'Hans Zimmer • Kozmik Derinlik & Yüksek Odaklanma',
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Floating%20Cities.mp3',
-    type: 'stream',
+    youtubeId: 'UDVtMYqUAyw',
+    type: 'youtube',
     coverImage: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 240,
+    durationSeconds: 320,
     featured: true
   },
   {
-    id: 'stream-sovereign',
-    name: 'Zamanın Hükmü (Inception İlhamı)',
-    subtitle: 'Hans Zimmer Tarzı • Yükselen Yaylılar & Epik Çello',
+    id: 'yt-movie-inception',
+    name: 'Inception - Time (Hans Zimmer)',
+    subtitle: 'Hans Zimmer • Rüya Katmanları & Derin Düşünce',
     category: 'movies',
     categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sovereign.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80',
+    youtubeId: 'RxabLA7UQ9k',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 275,
+    featured: true
+  },
+  {
+    id: 'yt-movie-harrypotter',
+    name: 'Harry Potter - Hedwig\'s Theme',
+    subtitle: 'John Williams • Büyülü Hogwarts Ambiyansı',
+    category: 'movies',
+    categoryTitle: 'Film Müzikleri',
+    youtubeId: 'Htaj3o3JD8I',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 310,
+    featured: true
+  },
+  {
+    id: 'yt-movie-lotr',
+    name: 'Lord of the Rings - Concerning Hobbits',
+    subtitle: 'Howard Shore • Shire Huzuru & Akustik Flüt',
+    category: 'movies',
+    categoryTitle: 'Film Müzikleri',
+    youtubeId: '_pGaz_qN0cw',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 290,
+    featured: true
+  },
+  {
+    id: 'yt-movie-starwars',
+    name: 'Star Wars - The Force Theme / Binary Sunset',
+    subtitle: 'John Williams • Epik Uzay Atmosferi & İlham',
+    category: 'movies',
+    categoryTitle: 'Film Müzikleri',
+    youtubeId: 'hc_L_o9nKpk',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 260
+  },
+  {
+    id: 'yt-movie-pirates',
+    name: 'Pirates of the Caribbean - He\'s a Pirate',
+    subtitle: 'Klaus Badelt & Hans Zimmer • Yüksek Enerji',
+    category: 'movies',
+    categoryTitle: 'Film Müzikleri',
+    youtubeId: '27mB8verLK8',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 185
+  }
+];
+
+// 📺 4. EFSANE DİZİ MÜZİKLERİ (YOUTUBE SOUNDTRACKS)
+export const SERIES_SOUNDTRACKS: SoundTrack[] = [
+  {
+    id: 'yt-series-got',
+    name: 'Game of Thrones - Main Title',
+    subtitle: 'Ramin Djawadi • Viyolonsel & Epik Westeros Teması',
+    category: 'series',
+    categoryTitle: 'Dizi Müzikleri',
+    youtubeId: 's7L2PVdrb_8',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 110,
+    featured: true
+  },
+  {
+    id: 'yt-series-stranger',
+    name: 'Stranger Things - Main Theme',
+    subtitle: 'Survive • 80\'ler Retro Analog Synth & Gizem',
+    category: 'series',
+    categoryTitle: 'Dizi Müzikleri',
+    youtubeId: '-RcPZdihrp4',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 95,
+    featured: true
+  },
+  {
+    id: 'yt-series-peaky',
+    name: 'Peaky Blinders - Red Right Hand',
+    subtitle: 'Nick Cave • Karizmatik Bas & Birmingham Atmosferi',
+    category: 'series',
+    categoryTitle: 'Dizi Müzikleri',
+    youtubeId: 'RrxePKps87k',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&auto=format&fit=crop&q=80',
     durationSeconds: 360,
     featured: true
   },
   {
-    id: 'stream-darkest-child',
-    name: 'Büyülü Kütüphane (Harry Potter İlhamı)',
-    subtitle: 'Hogwarts Havası • Çanlar, Yaylılar & Gizem',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Darkest%20Child.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 250,
-    featured: true
-  },
-  {
-    id: 'stream-celtic-impulse',
-    name: 'Orta Dünya Yürüyüşü (LOTR İlhamı)',
-    subtitle: 'Howard Shore Tarzı • Epik Flüt & Doğa Destanı',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Celtic%20Impulse.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 240
-  },
-  {
-    id: 'stream-impact-allegretto',
-    name: 'Galaktik Macera (Star Wars İlhamı)',
-    subtitle: 'John Williams Tarzı • Güç Uyanıyor Teması',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Impact%20Allegretto.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1579202673506-ca3ce28943ef?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 290
-  },
-  {
-    id: 'stream-heartbreaking',
-    name: 'Karayip Korsanları & Fırtına',
-    subtitle: 'Klaus Badelt Tarzı • Ritmik Orkestra',
-    category: 'movies',
-    categoryTitle: 'Film Müzikleri',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heartbreaking.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 210
-  }
-];
-
-// 🎬 4. EFSANE DİZİ MÜZİKLERİ (DÖRDÜNCÜ SIRADA)
-export const SERIES_SOUNDTRACKS: SoundTrack[] = [
-  {
-    id: 'stream-long-road-ahead',
-    name: 'Demir Taht İçin (Game of Thrones İlhamı)',
-    subtitle: 'Ramin Djawadi Tarzı • Çello & Epik Ritimler',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Long%20Road%20Ahead.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 230,
-    featured: true
-  },
-  {
-    id: 'stream-metaphysik',
-    name: '80ler Gizemi (Stranger Things İlhamı)',
-    subtitle: 'Retro Synthwave • Analog Klavye & Gerilim',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Metaphysik.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 350,
-    featured: true
-  },
-  {
-    id: 'stream-private-eye',
-    name: 'Birmingham Sokakları (Peaky Blinders)',
-    subtitle: 'Karanlık Blues & Karizmatik Akorlar',
-    category: 'series',
-    categoryTitle: 'Dizi Müzikleri',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Private%20Eye.mp3',
-    type: 'stream',
-    coverImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 190,
-    featured: true
-  },
-  {
-    id: 'stream-sunset-glengorm',
-    name: 'Central Perk Sıcaklığı (Friends İlhamı)',
+    id: 'yt-series-friends',
+    name: 'Friends - Central Perk Chill',
     subtitle: 'Akustik Gitar & Nostaljik Dostluk Ritmi',
     category: 'series',
     categoryTitle: 'Dizi Müzikleri',
-    audioUrl: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sunset%20at%20Glengorm.mp3',
-    type: 'stream',
+    youtubeId: 'q-9kPks0IfE',
+    type: 'youtube',
     coverImage: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=600&auto=format&fit=crop&q=80',
-    durationSeconds: 220
+    durationSeconds: 220,
+    featured: true
+  },
+  {
+    id: 'yt-series-breaking',
+    name: 'Breaking Bad - Main Title Theme',
+    subtitle: 'Dave Porter • Çöl Rüzgarı & Dobro Gitar',
+    category: 'series',
+    categoryTitle: 'Dizi Müzikleri',
+    youtubeId: 'bMTJdYv_w6k',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 80
+  },
+  {
+    id: 'yt-series-sherlock',
+    name: 'Sherlock - Opening Theme & Discombobulate',
+    subtitle: 'David Arnold & Michael Price • Baker Street Zekası',
+    category: 'series',
+    categoryTitle: 'Dizi Müzikleri',
+    youtubeId: '7Z33x4yWnYo',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 150
   }
 ];
 
