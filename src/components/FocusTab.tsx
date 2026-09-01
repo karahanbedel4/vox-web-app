@@ -193,6 +193,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   const [editingTaskText, setEditingTaskText] = useState<string>('');
   const [isEditingGoal, setIsEditingGoal] = useState<boolean>(false);
   const [phoneActiveTab, setPhoneActiveTab] = useState<'timer' | 'player'>('timer');
+  const [isMotivationVisible, setIsMotivationVisible] = useState<boolean>(false);
 
   // "Lights Out" / Zen Focus Minimalist Mode State
   const [isLightsOut, setIsLightsOut] = useState<boolean>(() => {
@@ -508,20 +509,20 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   }, [liveNews, articles]);
 
   return (
-    <div className={`p-3 sm:p-5 md:p-8 max-w-7xl mx-auto space-y-6 transition-colors duration-200 ${
+    <div className={`p-2.5 sm:p-4 md:p-5 max-w-7xl mx-auto space-y-2.5 md:space-y-3.5 transition-colors duration-200 ${
       theme === 'light' ? 'text-slate-800' : 'text-gray-200'
     }`}>
       
       {/* Clean & Compact Top Header (Contrast-safe across light & dark themes) */}
-      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b ${
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 sm:pb-2.5 border-b ${
         theme === 'light' ? 'border-slate-200' : 'border-white/10'
       }`}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div className="hidden sm:flex p-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <VoxLogo size="xs" showText={false} />
           </div>
           <div>
-            <h1 className={`font-display text-xl md:text-2xl font-black tracking-tight ${
+            <h1 className={`font-display text-lg sm:text-xl md:text-2xl font-black tracking-tight ${
               theme === 'light' ? 'text-slate-900' : 'text-white'
             }`}>
               Odaklanma Alanı
@@ -529,11 +530,11 @@ export const FocusTab: React.FC<FocusTabProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           {/* Lights Out / Zen Focus Mode Toggle Button */}
           <button
             onClick={toggleLightsOut}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-sm ${
+            className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-sm ${
               isLightsOut
                 ? 'bg-amber-400 text-black border-amber-400 ring-2 ring-amber-400/40'
                 : theme === 'light'
@@ -556,7 +557,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
           </button>
 
           {/* Completed Session Progress Badge */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-colors ${
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs font-bold shadow-sm transition-colors ${
             (completedSessions || 0) >= (targetRounds || 4)
               ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
               : theme === 'light'
@@ -570,15 +571,15 @@ export const FocusTab: React.FC<FocusTabProps> = ({
             )}
             <span>
               {(completedSessions || 0) >= (targetRounds || 4) 
-                ? `Hedef Tamamlandı! (${completedSessions || 0}/${targetRounds || 4} Tur)` 
-                : `${completedSessions || 0} / ${targetRounds || 4} Tur Tamamlandı`}
+                ? `Hedef Tamam! (${completedSessions || 0}/${targetRounds || 4})` 
+                : `${completedSessions || 0}/${targetRounds || 4} Tur`}
             </span>
           </div>
 
           {completedSessions > 0 && (
             <button
               onClick={handleResetSessions}
-              className={`p-2 rounded-xl text-xs transition-colors border shadow-sm ${
+              className={`p-1.5 rounded-xl text-xs transition-colors border shadow-sm ${
                 theme === 'light'
                   ? 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                   : 'bg-[#161c23] border border-white/10 text-gray-400 hover:text-white hover:bg-white/5'
@@ -593,7 +594,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
       {/* WEB PUSH NOTIFICATION PROMPT CARD */}
       {!hasConsented && notifPermission !== 'granted' && (
-        <div className={`border rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm relative group ${
+        <div className={`border rounded-2xl p-2.5 sm:p-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-sm relative group ${
           theme === 'light'
             ? 'bg-emerald-50/70 border-emerald-200 text-slate-800'
             : 'bg-[#161c23] border-[#10b981]/30 text-white'
@@ -606,19 +607,19 @@ export const FocusTab: React.FC<FocusTabProps> = ({
             <X className="w-3.5 h-3.5" />
           </button>
 
-          <div className="flex items-center gap-3 pr-6 sm:pr-0">
-            <div className="w-9 h-9 rounded-xl bg-[#10b981]/15 border border-[#10b981]/30 flex items-center justify-center shrink-0 text-[#10b981]">
+          <div className="flex items-center gap-2.5 pr-6 sm:pr-0">
+            <div className="w-8 h-8 rounded-xl bg-[#10b981]/15 border border-[#10b981]/30 flex items-center justify-center shrink-0 text-[#10b981]">
               <Bell className="w-4 h-4 text-[#10b981]" />
             </div>
             <div className="text-left">
               <h3 className={`text-xs font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Mola bildirimlerini açın</h3>
-              <p className={`text-[11px] ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>Çalışma veya mola tamamlandığında anlık bildirim alın.</p>
+              <p className={`text-[10px] ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>Çalışma veya mola tamamlandığında anlık bildirim alın.</p>
             </div>
           </div>
 
           <button
             onClick={requestNotificationPermission}
-            className="py-2 px-3.5 bg-[#10b981] text-black font-extrabold text-xs rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            className="py-1.5 px-3 bg-[#10b981] text-black font-extrabold text-xs rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Bell className="w-3.5 h-3.5 fill-current" />
             <span>Bildirimleri Aç</span>
@@ -627,25 +628,25 @@ export const FocusTab: React.FC<FocusTabProps> = ({
       )}
 
       {/* MINIMAL HIGH-DENSITY TUR / SÜRE / MOLA CONTROL RIBBON */}
-      <div className={`border rounded-2xl p-2.5 sm:p-3 shadow-sm transition-all ${
+      <div className={`border rounded-2xl p-2 sm:p-2.5 shadow-sm transition-all ${
         theme === 'light'
           ? 'bg-white border-slate-200'
           : 'bg-[#101612] border-white/10'
       }`}>
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
           
           {/* 1. Hedef Tur Sayısı */}
-          <div className="flex items-center gap-2">
-            <span className={`font-bold flex items-center gap-1 text-[11px] shrink-0 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
+          <div className="flex items-center gap-1.5">
+            <span className={`font-bold flex items-center gap-1 text-[10px] sm:text-[11px] shrink-0 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
               <Target className="w-3.5 h-3.5 text-[#1ed760]" />
               <span>Tur:</span>
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               {ROUND_OPTIONS.map((r) => (
                 <button
                   key={r}
                   onClick={() => handleSelectTargetRounds(r)}
-                  className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                  className={`px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[10px] sm:text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                     (targetRounds || 4) === r
                       ? 'bg-[#1ed760] text-black border-[#1ed760] shadow-sm font-black scale-105'
                       : theme === 'light'
@@ -660,17 +661,17 @@ export const FocusTab: React.FC<FocusTabProps> = ({
           </div>
 
           {/* 2. Tur Süresi */}
-          <div className="flex items-center gap-2">
-            <span className={`font-bold flex items-center gap-1 text-[11px] shrink-0 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
+          <div className="flex items-center gap-1.5">
+            <span className={`font-bold flex items-center gap-1 text-[10px] sm:text-[11px] shrink-0 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
               <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760]" />
               <span>Süre:</span>
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               {WORK_OPTIONS.map((m) => (
                 <button
                   key={m}
                   onClick={() => handleSelectWorkMinutes(m)}
-                  className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                  className={`px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[10px] sm:text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                     (workMinutes || 25) === m
                       ? 'bg-[#1ed760] text-black border-[#1ed760] shadow-sm font-black'
                       : theme === 'light'
@@ -685,17 +686,17 @@ export const FocusTab: React.FC<FocusTabProps> = ({
           </div>
 
           {/* 3. Mola Süresi */}
-          <div className="flex items-center gap-2">
-            <span className={`font-bold flex items-center gap-1 text-[11px] shrink-0 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
+          <div className="flex items-center gap-1.5">
+            <span className={`font-bold flex items-center gap-1 text-[10px] sm:text-[11px] shrink-0 ${theme === 'light' ? 'text-slate-700' : 'text-gray-300'}`}>
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
               <span>Mola:</span>
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               {BREAK_OPTIONS.map((m) => (
                 <button
                   key={m}
                   onClick={() => handleSelectBreakMinutes(m)}
-                  className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                  className={`px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[10px] sm:text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                     (breakMinutes || 5) === m
                       ? 'bg-amber-400 text-black border-amber-400 shadow-sm font-black'
                       : theme === 'light'
@@ -710,7 +711,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
           </div>
 
           {/* 4. İlerleme Göstergesi */}
-          <div className="flex items-center gap-2 pl-2 border-l border-white/10">
+          <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
             <div className="flex items-center gap-1">
               {Array.from({ length: targetRounds || 4 }).map((_, idx) => (
                 <span
@@ -727,7 +728,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 </span>
               ))}
             </div>
-            <span className="font-mono font-bold text-[11px] text-[#1ed760]">
+            <span className="font-mono font-bold text-[10px] sm:text-[11px] text-[#1ed760]">
               %{Math.min(100, Math.round(((completedSessions || 0) / (targetRounds || 4)) * 100))}
             </span>
           </div>
@@ -736,90 +737,103 @@ export const FocusTab: React.FC<FocusTabProps> = ({
       </div>
 
       {/* 2-COLUMN SPLIT GRID LAYOUT */}
-      <div className={`grid grid-cols-1 ${isLightsOut ? 'lg:grid-cols-1' : 'lg:grid-cols-12'} gap-6 items-start transition-all duration-300`}>
+      <div className={`grid grid-cols-1 ${isLightsOut ? 'lg:grid-cols-1' : 'lg:grid-cols-12'} gap-4 md:gap-5 items-start transition-all duration-300`}>
         
         {/* LEFT COLUMN: Modern Phone Mockup Display (Centered when Lights Out is active) */}
-        <div className={`${isLightsOut ? 'lg:col-span-12 max-w-2xl mx-auto w-full' : 'lg:col-span-7'} space-y-6 transition-all duration-300`}>
+        <div className={`${isLightsOut ? 'lg:col-span-12 max-w-2xl mx-auto w-full' : 'lg:col-span-7'} space-y-4 transition-all duration-300`}>
 
           {/* POMODORO CONTROLLER (Responsive: iPhone Mockup on Desktop >= md, Clean Native Card on Mobile < md) */}
-          <div className="relative mx-auto w-full md:max-w-[420px]">
+          <div className="relative mx-auto w-full md:max-w-[390px] xl:max-w-[410px]">
             
             {/* Ambient Glow Behind Phone / Card */}
-            <div className={`absolute -inset-4 rounded-[50px] blur-3xl transition-opacity duration-1000 pointer-events-none opacity-35 ${
+            <div className={`absolute -inset-3 rounded-[40px] blur-2xl transition-opacity duration-1000 pointer-events-none opacity-30 ${
               sessionType === 'work' ? 'bg-gradient-to-b from-[#1ed760]/20 via-emerald-950/20 to-black' : 'bg-gradient-to-b from-amber-500/20 via-orange-950/20 to-black'
             }`} />
 
-            {/* Chassis: Desktop uses iPhone frame with border-[6px], Mobile uses clean native card */}
+            {/* Chassis: Desktop uses iPhone frame with border-[5px], Mobile uses clean native card */}
             <div className={`relative transition-all overflow-hidden ${
               theme === 'light'
-                ? 'bg-white border border-slate-200 shadow-xl rounded-3xl p-4 sm:p-5 md:border-[6px] md:border-slate-800 md:rounded-[48px] md:bg-[#0a0d0b] md:p-4 md:shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_35px_rgba(30,215,96,0.12)]'
-                : 'bg-[#121814] border border-white/10 shadow-2xl rounded-3xl p-4 sm:p-5 md:border-[6px] md:border-[#1d2620] md:rounded-[48px] md:bg-[#0a0d0b] md:p-4 md:shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_35px_rgba(30,215,96,0.12)]'
+                ? 'bg-white border border-slate-200 shadow-xl rounded-3xl p-3 sm:p-4 md:border-[5px] md:border-slate-800 md:rounded-[38px] md:bg-[#0a0d0b] md:p-3.5 md:shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_30px_rgba(30,215,96,0.1)]'
+                : 'bg-[#121814] border border-white/10 shadow-2xl rounded-3xl p-3 sm:p-4 md:border-[5px] md:border-[#1d2620] md:rounded-[38px] md:bg-[#0a0d0b] md:p-3.5 md:shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_30px_rgba(30,215,96,0.1)]'
             }`}>
               
               {/* Desktop Top Status Bar (Hidden on Mobile) */}
-              <div className="hidden md:flex items-center justify-between px-3 pt-1 pb-3 text-gray-400">
+              <div className="hidden md:flex items-center justify-between px-2 pt-0.5 pb-1.5 text-gray-400">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold tracking-tight text-white">
+                  <span className="text-[11px] font-bold tracking-tight text-white">
                     {currentTime}
                   </span>
                 </div>
                 
                 {/* Dynamic Island Pill */}
-                <div className="w-20 h-4 bg-black rounded-full border border-white/10 flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 rounded-full bg-neutral-900 border border-white/10 mr-1" />
+                <div className="w-16 h-3.5 bg-black rounded-full border border-white/10 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-neutral-900 border border-white/10 mr-1" />
                 </div>
 
                 {/* Status Bar Right: Signal + Device Battery Level & Charging Status */}
                 <div className="flex items-center gap-1.5 text-gray-300">
-                  <Signal className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-[10px] font-mono font-bold text-gray-300">
+                  <Signal className="w-3 h-3 text-gray-400" />
+                  <span className="text-[9px] font-mono font-bold text-gray-300">
                     %{batteryInfo.level}
                   </span>
                   {batteryInfo.charging ? (
-                    <BatteryCharging className="w-4 h-4 text-[#1ed760] animate-pulse" title="Şarj Ediliyor" />
+                    <BatteryCharging className="w-3.5 h-3.5 text-[#1ed760] animate-pulse" title="Şarj Ediliyor" />
                   ) : (
-                    <Battery className="w-4 h-4 text-[#1ed760]" title={`Pil Seviyesi: %${batteryInfo.level}`} />
+                    <Battery className="w-3.5 h-3.5 text-[#1ed760]" title={`Pil Seviyesi: %${batteryInfo.level}`} />
                   )}
                 </div>
               </div>
 
               {/* Inner Screen Content */}
-              <div className="space-y-3 pt-0.5 pb-1">
+              <div className="space-y-2 pt-0.5 pb-0.5">
                 
-                {/* 1. Sleek Compact Date & Goal Header (Redundant 2nd clock removed, saves vertical space) */}
+                {/* 1. Sleek Compact Date & Goal Header */}
                 <div className="px-1 space-y-0.5">
-                  <div className="flex items-center justify-between text-[11px] text-gray-400">
+                  <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-gray-400">
                     <div className="flex items-center gap-1.5 font-medium">
                       <Calendar className="w-3 h-3 text-[#1ed760]" />
                       <span className="capitalize">{currentDateStr}</span>
                     </div>
-                    <button 
-                      type="button"
-                      onClick={() => setIsEditingGoal(true)}
-                      className="flex items-center gap-1 text-[10px] font-bold text-[#1ed760] hover:underline cursor-pointer opacity-75 hover:opacity-100 transition-opacity"
-                    >
-                      <Pencil className="w-3 h-3" />
-                      <span>Düzenle</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {!isRunning && !isMotivationVisible && (
+                        <button
+                          type="button"
+                          onClick={() => setIsMotivationVisible(true)}
+                          className="flex items-center gap-1 text-[10px] font-bold text-amber-400 hover:text-amber-300 cursor-pointer transition-colors"
+                          title="Motivasyon Sözünü Aç"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>İlham</span>
+                        </button>
+                      )}
+                      <button 
+                        type="button"
+                        onClick={() => setIsEditingGoal(true)}
+                        className="flex items-center gap-1 text-[10px] font-bold text-[#1ed760] hover:underline cursor-pointer opacity-75 hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>Düzenle</span>
+                      </button>
+                    </div>
                   </div>
 
                   {isEditingGoal ? (
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-1.5 pt-0.5">
                       <input
                         type="text"
                         value={focusGoal}
                         onChange={(e) => setFocusGoal(e.target.value)}
                         placeholder="Odaklanma hedefi..."
-                        className="w-full bg-black/10 dark:bg-white/10 border-2 border-[#1ed760] rounded-xl px-3 py-1.5 text-xl sm:text-2xl font-black text-[#1ed760] uppercase outline-none shadow-sm"
+                        className="w-full bg-black/10 dark:bg-white/10 border-2 border-[#1ed760] rounded-xl px-2.5 py-1 text-lg sm:text-xl font-black text-[#1ed760] uppercase outline-none shadow-sm"
                         autoFocus
                         onBlur={() => setIsEditingGoal(false)}
                         onKeyDown={(e) => e.key === 'Enter' && setIsEditingGoal(false)}
                       />
                       <button
                         onClick={() => setIsEditingGoal(false)}
-                        className="p-2 bg-[#1ed760] text-black font-bold rounded-xl text-xs hover:brightness-110 transition-transform active:scale-95"
+                        className="p-1.5 bg-[#1ed760] text-black font-bold rounded-xl text-xs hover:brightness-110 transition-transform active:scale-95"
                       >
-                        <Check className="w-4 h-4" />
+                        <Check className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
@@ -828,7 +842,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       className="group cursor-pointer py-0.5 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                       title="Hedefi düzenlemek için tıklayın"
                     >
-                      <h2 className="text-2xl sm:text-3xl font-black text-[#1ed760] tracking-tight uppercase leading-tight drop-shadow-sm select-none">
+                      <h2 className="text-xl sm:text-2xl font-black text-[#1ed760] tracking-tight uppercase leading-tight drop-shadow-sm select-none truncate">
                         {focusGoal}
                       </h2>
                     </div>
@@ -836,16 +850,16 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 </div>
 
                 {/* In-Mockup Tab Switcher: Pomodoro Timer vs. In-Mockup Music Player */}
-                <div className="flex items-center p-1 bg-black/40 rounded-2xl border border-white/10 text-xs">
+                <div className="flex items-center p-0.5 bg-black/40 rounded-xl border border-white/10 text-xs">
                   <button
                     type="button"
                     onClick={() => {
                       setPhoneActiveTab('timer');
                       triggerHapticImpact('light').catch(() => {});
                     }}
-                    className={`flex-1 py-1.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    className={`flex-1 py-1 px-2.5 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer text-xs ${
                       phoneActiveTab === 'timer'
-                        ? 'bg-[#1ed760] text-black shadow-md shadow-[#1ed760]/20'
+                        ? 'bg-[#1ed760] text-black shadow-sm'
                         : 'text-gray-400 hover:text-white'
                     }`}
                   >
@@ -859,16 +873,16 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       setPhoneActiveTab('player');
                       triggerHapticImpact('light').catch(() => {});
                     }}
-                    className={`flex-1 py-1.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer relative ${
+                    className={`flex-1 py-1 px-2.5 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer relative text-xs ${
                       phoneActiveTab === 'player'
-                        ? 'bg-[#1ed760] text-black shadow-md shadow-[#1ed760]/20'
+                        ? 'bg-[#1ed760] text-black shadow-sm'
                         : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     <Headphones className="w-3.5 h-3.5" />
                     <span>Müzik Çalar</span>
                     {currentPlayingTrack && (
-                      <span className="w-2 h-2 rounded-full bg-[#1ed760] animate-pulse" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse" />
                     )}
                   </button>
                 </div>
@@ -876,508 +890,531 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                 {/* TAB 1: TIMER, QUOTES & TASKS */}
                 {phoneActiveTab === 'timer' ? (
                   <>
-                    {/* 2. Rotating Motivational & Praising Quotes Card */}
-                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/70 via-[#0e1712] to-teal-950/50 border border-emerald-500/30 p-3 sm:p-3.5 shadow-md">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-1.5 text-[10px] font-extrabold tracking-wider uppercase text-emerald-400">
-                      <Sparkles className="w-3.5 h-3.5 text-[#1ed760] animate-pulse" />
-                      <span>{MOTIVATIONAL_FOCUS_QUOTES[quoteIndex].category}</span>
-                    </div>
+                    {/* 2. Rotating Motivational & Praising Quotes Card (Appears automatically during active focus session or when toggled) */}
+                    <AnimatePresence>
+                      {(isRunning || isMotivationVisible) && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0, scale: 0.96 }}
+                          animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                          exit={{ opacity: 0, height: 0, scale: 0.96 }}
+                          transition={{ duration: 0.25 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-950/80 via-[#0e1712] to-teal-950/60 border border-emerald-500/35 p-2.5 shadow-md">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-extrabold tracking-wider uppercase text-emerald-400">
+                                <Sparkles className="w-3 h-3 text-[#1ed760] animate-pulse" />
+                                <span>{MOTIVATIONAL_FOCUS_QUOTES[quoteIndex].category}</span>
+                              </div>
 
-                    <button
-                      onClick={handleNextQuote}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10px] font-semibold transition-all active:scale-95 cursor-pointer border border-emerald-500/20"
-                      title="Sonraki Motivasyon Sözü"
-                    >
-                      <RefreshCw className="w-2.5 h-2.5" />
-                      <span>Yenile</span>
-                    </button>
-                  </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={handleNextQuote}
+                                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[9px] font-semibold transition-all active:scale-95 cursor-pointer border border-emerald-500/20"
+                                  title="Sonraki Motivasyon Sözü"
+                                >
+                                  <RefreshCw className="w-2.5 h-2.5" />
+                                  <span>Yenile</span>
+                                </button>
+                                {!isRunning && (
+                                  <button
+                                    onClick={() => setIsMotivationVisible(false)}
+                                    className="p-0.5 text-gray-400 hover:text-white rounded-full transition-colors cursor-pointer"
+                                    title="Gizle"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
 
-                  <div className="mt-1.5 min-h-[38px] flex items-center">
-                    <AnimatePresence mode="wait">
-                      <motion.p
-                        key={quoteIndex}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.25 }}
-                        className="text-xs sm:text-[13px] font-medium text-white leading-relaxed italic drop-shadow-sm"
-                      >
-                        "{MOTIVATIONAL_FOCUS_QUOTES[quoteIndex].text}"
-                      </motion.p>
-                    </AnimatePresence>
-                  </div>
-                </div>
-
-                {/* 3. Enhanced Interactive Tasks / To-Do List */}
-                <div className="bg-slate-900/60 md:bg-[#0e1410] border border-slate-800/80 md:border-white/5 rounded-2xl p-3.5 space-y-3">
-                  
-                  {/* Task Header & Progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-gray-200">
-                      <div className="flex items-center gap-1.5">
-                        <ListTodo className="w-4 h-4 text-[#1ed760]" />
-                        <span>GÖREVLER ({tasks.filter(t => t.done).length}/{tasks.length})</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {tasks.some(t => t.done) && (
-                          <button
-                            onClick={clearCompletedTasks}
-                            className="text-[10px] text-gray-400 hover:text-red-400 font-medium transition-colors flex items-center gap-0.5 cursor-pointer"
-                            title="Bitenleri Temizle"
-                          >
-                            <Trash2 className="w-2.5 h-2.5" />
-                            <span>Temizle</span>
-                          </button>
-                        )}
-                        <span className="font-mono text-[11px] font-black text-[#1ed760]">
-                          %{tasks.length > 0 ? Math.round((tasks.filter(t => t.done).length / tasks.length) * 100) : 0}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="w-full h-1.5 rounded-full overflow-hidden bg-white/10">
-                      <div 
-                        className="h-full bg-gradient-to-r from-[#1ed760] to-teal-400 transition-all duration-300 rounded-full"
-                        style={{ width: `${tasks.length > 0 ? (tasks.filter(t => t.done).length / tasks.length) * 100 : 0}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Filter Pills */}
-                  {tasks.length > 0 && (
-                    <div className="flex items-center gap-1 pt-0.5">
-                      <button
-                        onClick={() => setTaskFilter('all')}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                          taskFilter === 'all'
-                            ? 'bg-[#1ed760] text-black shadow-sm'
-                            : 'bg-white/10 text-gray-300 hover:text-white'
-                        }`}
-                      >
-                        Tümü ({tasks.length})
-                      </button>
-                      <button
-                        onClick={() => setTaskFilter('pending')}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                          taskFilter === 'pending'
-                            ? 'bg-amber-400 text-black shadow-sm'
-                            : 'bg-white/10 text-gray-300 hover:text-white'
-                        }`}
-                      >
-                        Bekleyen ({tasks.filter(t => !t.done).length})
-                      </button>
-                      <button
-                        onClick={() => setTaskFilter('completed')}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                          taskFilter === 'completed'
-                            ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'bg-white/10 text-gray-300 hover:text-white'
-                        }`}
-                      >
-                        Biten ({tasks.filter(t => t.done).length})
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Task List Items */}
-                  <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
-                    {filteredTasks.map((task) => (
-                      <div 
-                        key={task.id}
-                        className={`flex items-center justify-between gap-2 text-xs py-1.5 px-2.5 rounded-xl border transition-all group ${
-                          task.done
-                            ? 'bg-emerald-500/10 border-emerald-500/25'
-                            : 'bg-white/[0.05] border-white/10 hover:border-[#1ed760]/40'
-                        }`}
-                      >
-                        {editingTaskId === task.id ? (
-                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                            <input
-                              type="text"
-                              value={editingTaskText}
-                              onChange={(e) => setEditingTaskText(e.target.value)}
-                              onBlur={() => saveEditingTask(task.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveEditingTask(task.id);
-                                if (e.key === 'Escape') setEditingTaskId(null);
-                              }}
-                              autoFocus
-                              className="flex-1 bg-black/70 border border-[#1ed760] rounded-lg px-2 py-1 text-xs text-white outline-none"
-                            />
-                            <button
-                              onMouseDown={() => saveEditingTask(task.id)}
-                              className="px-2 py-1 bg-[#1ed760] text-black font-bold text-[10px] rounded-lg hover:brightness-110"
-                            >
-                              Kaydet
-                            </button>
+                            <div className="mt-1 min-h-[30px] flex items-center">
+                              <AnimatePresence mode="wait">
+                                <motion.p
+                                  key={quoteIndex}
+                                  initial={{ opacity: 0, y: 3 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -3 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="text-[11px] sm:text-xs font-medium text-white leading-relaxed italic drop-shadow-sm"
+                                >
+                                  "{MOTIVATIONAL_FOCUS_QUOTES[quoteIndex].text}"
+                                </motion.p>
+                              </AnimatePresence>
+                            </div>
                           </div>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => toggleTaskDone(task.id)}
-                              className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-all cursor-pointer active:scale-90 ${
-                                task.done 
-                                   ? 'bg-[#1ed760] border-[#1ed760] text-black shadow-sm' 
-                                  : 'border-white/30 hover:border-[#1ed760] bg-transparent'
-                              }`}
-                              title={task.done ? 'Tamamlandı (Geri al)' : 'Görevi Tamamla (Push Bildirimi At)'}
-                            >
-                              {task.done && <Check className="w-3 h-3 text-black stroke-[3]" />}
-                            </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
-                            <div 
-                              onClick={() => startEditingTask(task)}
-                              className="flex-1 min-w-0 cursor-text py-0.5 px-1 rounded hover:bg-white/5 transition-colors"
-                              title="Görevi düzenlemek için tıklayın"
-                            >
-                              <span className={`block truncate ${task.done ? 'line-through text-gray-400 font-normal' : 'text-gray-100 font-medium hover:text-[#1ed760]'}`}>
-                                {task.text}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* 3. Enhanced Interactive Tasks / To-Do List */}
+                    <div className="bg-slate-900/60 md:bg-[#0e1410] border border-slate-800/80 md:border-white/5 rounded-2xl p-2.5 sm:p-3 space-y-2">
+                      
+                      {/* Task Header & Progress */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs font-bold text-gray-200">
+                          <div className="flex items-center gap-1.5">
+                            <ListTodo className="w-3.5 h-3.5 text-[#1ed760]" />
+                            <span className="text-[11px]">GÖREVLER ({tasks.filter(t => t.done).length}/{tasks.length})</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            {tasks.some(t => t.done) && (
                               <button
-                                type="button"
-                                onClick={() => startEditingTask(task)}
-                                className="p-1 text-gray-400 hover:text-[#1ed760] transition-colors cursor-pointer"
-                                title="Düzenle"
+                                onClick={clearCompletedTasks}
+                                className="text-[10px] text-gray-400 hover:text-red-400 font-medium transition-colors flex items-center gap-0.5 cursor-pointer"
+                                title="Bitenleri Temizle"
                               >
-                                <Pencil className="w-3 h-3" />
+                                <Trash2 className="w-2.5 h-2.5" />
+                                <span>Temizle</span>
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => removeTask(task.id)}
-                                className="p-1 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
-                                title="Sil"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
+                            )}
+                            <span className="font-mono text-[10px] font-black text-[#1ed760]">
+                              %{tasks.length > 0 ? Math.round((tasks.filter(t => t.done).length / tasks.length) * 100) : 0}
+                            </span>
+                          </div>
+                        </div>
 
-                    {filteredTasks.length === 0 && (
-                      <div 
-                        onClick={() => setIsAddingTask(true)}
-                        className="text-xs text-gray-400 hover:text-gray-200 py-3 px-2 border border-dashed border-white/15 rounded-xl text-center cursor-pointer transition-colors"
-                      >
-                        {taskFilter === 'pending' ? '🎉 Bekleyen görev yok!' : taskFilter === 'completed' ? 'Henüz tamamlanan görev yok.' : '+ İlk hedefini veya görevini yazmak için tıkla...'}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Add Task Input Row */}
-                  {isAddingTask ? (
-                    <div className="flex items-center gap-1.5 pt-1">
-                      <input
-                        type="text"
-                        value={newTaskText}
-                        onChange={(e) => setNewTaskText(e.target.value)}
-                        placeholder="Görev yazın (Enter)..."
-                        className="flex-1 bg-black/60 border border-[#1ed760] rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-gray-400 outline-none shadow-sm"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') addTask();
-                          if (e.key === 'Escape') setIsAddingTask(false);
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={addTask}
-                        className="py-1.5 px-3 bg-[#1ed760] text-black rounded-xl text-xs font-bold hover:brightness-110 transition-all shrink-0 cursor-pointer shadow-sm"
-                      >
-                        Ekle
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAddingTask(false);
-                          setNewTaskText('');
-                        }}
-                        className="p-1.5 text-gray-400 hover:text-white rounded-xl transition-colors cursor-pointer"
-                        title="İptal"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingTask(true)}
-                      className="w-full text-left text-xs text-gray-400 hover:text-white py-1 px-2 rounded-xl transition-colors flex items-center gap-1.5 hover:bg-white/5 cursor-pointer"
-                    >
-                      <span className="text-[#1ed760] font-bold text-sm">+</span>
-                      <span>Yeni görev veya not ekle...</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* FLOATING HUD CONTROLLER CARD */}
-                <div className={`relative bg-gradient-to-b from-[#141b16] to-[#0a0d0b] border-2 rounded-3xl p-4 sm:p-5 space-y-4 shadow-2xl transition-all ${
-                  sessionType === 'work' 
-                    ? 'border-[#1ed760]/30 shadow-[0_0_35px_rgba(30,215,96,0.12)]' 
-                    : 'border-amber-400/30 shadow-[0_0_35px_rgba(251,191,36,0.12)]'
-                }`}>
-                  
-                  {/* Top Bar inside Card */}
-                  <div className="flex items-center justify-between text-xs">
-                    <button
-                      onClick={resetTimer}
-                      className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-                      title="Zamanlayıcıyı Başa Al"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </button>
-
-                    {/* Active State Pill */}
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 border border-white/5">
-                      <span className={`w-2 h-2 rounded-full animate-pulse ${sessionType === 'work' ? 'bg-[#1ed760]' : 'bg-amber-400'}`} />
-                      <span className="text-[11px] font-bold text-gray-300">
-                        {sessionType === 'work' ? `Çalışma (${workMinutes}m)` : `Dinlenme (${breakMinutes}m)`}
-                      </span>
-                    </div>
-
-                    {/* Round Indicator */}
-                    <div className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono font-bold text-emerald-400" title="Geçerli Seans / Hedef">
-                      {Math.min(targetRounds, completedSessions + 1)}/{targetRounds} Tur
-                    </div>
-                  </div>
-
-                  {/* Main Timer Display */}
-                  <div className="text-center space-y-1 py-1">
-                    <div className="font-mono text-4xl sm:text-5xl font-black text-white tracking-wider drop-shadow-md">
-                      {formatTime(timeLeft)}
-                    </div>
-                    
-                    {/* Progress Bar */}
-                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-1000 ${sessionType === 'work' ? 'bg-[#1ed760]' : 'bg-amber-400'}`}
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Tactile Big Action Button */}
-                  <div className="flex flex-col items-center justify-center pt-1 space-y-3">
-                    <div className="relative">
-                      {/* Pulsing Aura when Running */}
-                      <div className={`absolute -inset-2 rounded-full blur-md transition-opacity ${
-                        isRunning 
-                          ? 'bg-orange-500/40 animate-ping opacity-50'
-                          : 'opacity-0'
-                      }`} />
-
-                      <button
-                        onClick={toggleTimer}
-                        className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-xl active:scale-95 cursor-pointer ${
-                          isRunning
-                            ? 'bg-red-500/20 border-2 border-red-500 text-red-400 hover:bg-red-500/30'
-                            : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-extrabold shadow-[0_0_20px_rgba(249,115,22,0.35)] hover:shadow-[0_0_28px_rgba(249,115,22,0.55)] hover:scale-105'
-                        }`}
-                        title={isRunning ? 'Zamanlayıcıyı Duraklat' : 'Zamanlayıcıyı Başlat'}
-                      >
-                        {isRunning ? (
-                          <Pause className="w-8 h-8 fill-current text-white" />
-                        ) : (
-                          <Play className="w-8 h-8 fill-current ml-1 text-white" />
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Animated Audio Equalizer Bars */}
-                    <div className="flex items-center gap-1 h-4">
-                      <span className={`w-1 bg-[#1ed760] rounded-full transition-all duration-300 ${isRunning ? 'h-4 animate-pulse' : 'h-1.5 opacity-40'}`} />
-                      <span className={`w-1 bg-[#1ed760] rounded-full transition-all duration-500 ${isRunning ? 'h-3 animate-pulse' : 'h-1.5 opacity-40'}`} />
-                      <span className={`w-1 bg-[#1ed760] rounded-full transition-all duration-200 ${isRunning ? 'h-4 animate-pulse' : 'h-1.5 opacity-40'}`} />
-                    </div>
-
-                    {statusMessage && (
-                      <span className="text-[11px] font-bold text-[#1ed760] bg-[#1ed760]/10 px-3 py-1 rounded-full border border-[#1ed760]/30">
-                        {statusMessage}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* TAB 2: IN-MOCKUP MUSIC PLAYER VIEW (Aşağı kaydırmadan doğrudan mock-up içinde parçalar arası geçiş ve oynatıcı) */
-              <div className="space-y-4 pt-1">
-                {currentPlayingTrack ? (
-                  <div className="bg-gradient-to-b from-[#141b16] to-[#0a0d0b] border border-[#1ed760]/30 rounded-3xl p-4 sm:p-5 space-y-4 shadow-2xl">
-                    {/* Artwork Preview */}
-                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 shadow-lg">
-                      <img
-                        src={currentPlayingTrack.track.coverImage || `https://img.youtube.com/vi/${currentPlayingTrack.track.youtubeId}/hqdefault.jpg`}
-                        alt={currentPlayingTrack.track.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#1ed760] text-black">
-                          {currentPlayingTrack.shelf.title}
-                        </span>
-                        <div className="flex items-end gap-0.5 h-3">
-                          <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-1" />
-                          <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-2" />
-                          <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-3" />
+                        {/* Progress Bar */}
+                        <div className="w-full h-1 rounded-full overflow-hidden bg-white/10">
+                          <div 
+                            className="h-full bg-gradient-to-r from-[#1ed760] to-teal-400 transition-all duration-300 rounded-full"
+                            style={{ width: `${tasks.length > 0 ? (tasks.filter(t => t.done).length / tasks.length) * 100 : 0}%` }}
+                          />
                         </div>
                       </div>
+
+                      {/* Filter Pills */}
+                      {tasks.length > 0 && (
+                        <div className="flex items-center gap-1 pt-0.5">
+                          <button
+                            onClick={() => setTaskFilter('all')}
+                            className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer ${
+                              taskFilter === 'all'
+                                ? 'bg-[#1ed760] text-black shadow-sm'
+                                : 'bg-white/10 text-gray-300 hover:text-white'
+                            }`}
+                          >
+                            Tümü ({tasks.length})
+                          </button>
+                          <button
+                            onClick={() => setTaskFilter('pending')}
+                            className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer ${
+                              taskFilter === 'pending'
+                                ? 'bg-amber-400 text-black shadow-sm'
+                                : 'bg-white/10 text-gray-300 hover:text-white'
+                            }`}
+                          >
+                            Bekleyen ({tasks.filter(t => !t.done).length})
+                          </button>
+                          <button
+                            onClick={() => setTaskFilter('completed')}
+                            className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer ${
+                              taskFilter === 'completed'
+                                ? 'bg-emerald-600 text-white shadow-sm'
+                                : 'bg-white/10 text-gray-300 hover:text-white'
+                            }`}
+                          >
+                            Biten ({tasks.filter(t => t.done).length})
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Task List Items (Compact height to preserve screen space on high zoom) */}
+                      <div className="space-y-1 max-h-36 sm:max-h-40 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                        {filteredTasks.map((task) => (
+                          <div 
+                            key={task.id}
+                            className={`flex items-center justify-between gap-2 text-xs py-1 px-2 rounded-lg border transition-all group ${
+                              task.done
+                                ? 'bg-emerald-500/10 border-emerald-500/25'
+                                : 'bg-white/[0.04] border-white/10 hover:border-[#1ed760]/40'
+                            }`}
+                          >
+                            {editingTaskId === task.id ? (
+                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                <input
+                                  type="text"
+                                  value={editingTaskText}
+                                  onChange={(e) => setEditingTaskText(e.target.value)}
+                                  onBlur={() => saveEditingTask(task.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') saveEditingTask(task.id);
+                                    if (e.key === 'Escape') setEditingTaskId(null);
+                                  }}
+                                  autoFocus
+                                  className="flex-1 bg-black/70 border border-[#1ed760] rounded-lg px-2 py-0.5 text-xs text-white outline-none"
+                                />
+                                <button
+                                  onMouseDown={() => saveEditingTask(task.id)}
+                                  className="px-2 py-0.5 bg-[#1ed760] text-black font-bold text-[10px] rounded-lg hover:brightness-110"
+                                >
+                                  Kaydet
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleTaskDone(task.id)}
+                                  className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-all cursor-pointer active:scale-90 ${
+                                    task.done 
+                                       ? 'bg-[#1ed760] border-[#1ed760] text-black shadow-sm' 
+                                      : 'border-white/30 hover:border-[#1ed760] bg-transparent'
+                                  }`}
+                                  title={task.done ? 'Tamamlandı (Geri al)' : 'Görevi Tamamla (Push Bildirimi At)'}
+                                >
+                                  {task.done && <Check className="w-2.5 h-2.5 text-black stroke-[3]" />}
+                                </button>
+
+                                <div 
+                                  onClick={() => startEditingTask(task)}
+                                  className="flex-1 min-w-0 cursor-text py-0.5 px-1 rounded hover:bg-white/5 transition-colors"
+                                  title="Görevi düzenlemek için tıklayın"
+                                >
+                                  <span className={`block truncate text-xs ${task.done ? 'line-through text-gray-400 font-normal' : 'text-gray-100 font-medium hover:text-[#1ed760]'}`}>
+                                    {task.text}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    type="button"
+                                    onClick={() => startEditingTask(task)}
+                                    className="p-0.5 text-gray-400 hover:text-[#1ed760] transition-colors cursor-pointer"
+                                    title="Düzenle"
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeTask(task.id)}
+                                    className="p-0.5 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
+                                    title="Sil"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+
+                        {filteredTasks.length === 0 && (
+                          <div 
+                            onClick={() => setIsAddingTask(true)}
+                            className="text-[11px] text-gray-400 hover:text-gray-200 py-2.5 px-2 border border-dashed border-white/15 rounded-xl text-center cursor-pointer transition-colors"
+                          >
+                            {taskFilter === 'pending' ? '🎉 Bekleyen görev yok!' : taskFilter === 'completed' ? 'Henüz tamamlanan görev yok.' : '+ İlk hedefini veya görevini yazmak için tıkla...'}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Add Task Input Row */}
+                      {isAddingTask ? (
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <input
+                            type="text"
+                            value={newTaskText}
+                            onChange={(e) => setNewTaskText(e.target.value)}
+                            placeholder="Görev yazın (Enter)..."
+                            className="flex-1 bg-black/60 border border-[#1ed760] rounded-xl px-2.5 py-1 text-xs text-white placeholder:text-gray-400 outline-none shadow-sm"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') addTask();
+                              if (e.key === 'Escape') setIsAddingTask(false);
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={addTask}
+                            className="py-1 px-2.5 bg-[#1ed760] text-black rounded-xl text-xs font-bold hover:brightness-110 transition-all shrink-0 cursor-pointer shadow-sm"
+                          >
+                            Ekle
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAddingTask(false);
+                              setNewTaskText('');
+                            }}
+                            className="p-1 text-gray-400 hover:text-white rounded-xl transition-colors cursor-pointer"
+                            title="İptal"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingTask(true)}
+                          className="w-full text-left text-xs text-gray-400 hover:text-white py-0.5 px-1.5 rounded-lg transition-colors flex items-center gap-1 hover:bg-white/5 cursor-pointer"
+                        >
+                          <span className="text-[#1ed760] font-bold text-sm">+</span>
+                          <span>Yeni görev veya not ekle...</span>
+                        </button>
+                      )}
                     </div>
 
-                    {/* Title and Subtitle */}
-                    <div className="text-center space-y-1">
-                      <h3 className="text-base font-extrabold text-white truncate">
-                        {currentPlayingTrack.track.name}
-                      </h3>
-                      <p className="text-xs text-gray-400 truncate">
-                        {currentPlayingTrack.track.subtitle}
-                      </p>
+                    {/* FLOATING HUD CONTROLLER CARD */}
+                    <div className={`relative bg-gradient-to-b from-[#141b16] to-[#0a0d0b] border-2 rounded-2xl p-3 sm:p-3.5 space-y-2.5 shadow-xl transition-all ${
+                      sessionType === 'work' 
+                        ? 'border-[#1ed760]/30 shadow-[0_0_30px_rgba(30,215,96,0.1)]' 
+                        : 'border-amber-400/30 shadow-[0_0_30px_rgba(251,191,36,0.1)]'
+                    }`}>
+                      
+                      {/* Top Bar inside Card */}
+                      <div className="flex items-center justify-between text-xs">
+                        <button
+                          onClick={resetTimer}
+                          className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                          title="Zamanlayıcıyı Başa Al"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </button>
+
+                        {/* Active State Pill */}
+                        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/40 border border-white/5">
+                          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${sessionType === 'work' ? 'bg-[#1ed760]' : 'bg-amber-400'}`} />
+                          <span className="text-[10px] sm:text-[11px] font-bold text-gray-300">
+                            {sessionType === 'work' ? `Çalışma (${workMinutes}m)` : `Dinlenme (${breakMinutes}m)`}
+                          </span>
+                        </div>
+
+                        {/* Round Indicator */}
+                        <div className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[9px] sm:text-[10px] font-mono font-bold text-emerald-400" title="Geçerli Seans / Hedef">
+                          {Math.min(targetRounds, completedSessions + 1)}/{targetRounds} Tur
+                        </div>
+                      </div>
+
+                      {/* Main Timer Display */}
+                      <div className="text-center space-y-1 py-0.5">
+                        <div className="font-mono text-3xl sm:text-4xl font-black text-white tracking-wider drop-shadow-md">
+                          {formatTime(timeLeft)}
+                        </div>
+                        
+                        {/* Progress Bar */}
+                        <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-1000 ${sessionType === 'work' ? 'bg-[#1ed760]' : 'bg-amber-400'}`}
+                            style={{ width: `${progressPercent}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Tactile Big Action Button */}
+                      <div className="flex flex-col items-center justify-center pt-0.5 space-y-2">
+                        <div className="relative">
+                          {/* Pulsing Aura when Running */}
+                          <div className={`absolute -inset-2 rounded-full blur-md transition-opacity ${
+                            isRunning 
+                              ? 'bg-orange-500/40 animate-ping opacity-50'
+                              : 'opacity-0'
+                          }`} />
+
+                          <button
+                            onClick={toggleTimer}
+                            className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
+                              isRunning
+                                ? 'bg-red-500/20 border-2 border-red-500 text-red-400 hover:bg-red-500/30'
+                                : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-extrabold shadow-[0_0_18px_rgba(249,115,22,0.35)] hover:shadow-[0_0_24px_rgba(249,115,22,0.55)] hover:scale-105'
+                            }`}
+                            title={isRunning ? 'Zamanlayıcıyı Duraklat' : 'Zamanlayıcıyı Başlat'}
+                          >
+                            {isRunning ? (
+                              <Pause className="w-6 h-6 fill-current text-white" />
+                            ) : (
+                              <Play className="w-6 h-6 fill-current ml-0.5 text-white" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Animated Audio Equalizer Bars */}
+                        <div className="flex items-center gap-1 h-3">
+                          <span className={`w-1 bg-[#1ed760] rounded-full transition-all duration-300 ${isRunning ? 'h-3 animate-pulse' : 'h-1 opacity-40'}`} />
+                          <span className={`w-1 bg-[#1ed760] rounded-full transition-all duration-500 ${isRunning ? 'h-2.5 animate-pulse' : 'h-1 opacity-40'}`} />
+                          <span className={`w-1 bg-[#1ed760] rounded-full transition-all duration-200 ${isRunning ? 'h-3 animate-pulse' : 'h-1 opacity-40'}`} />
+                        </div>
+
+                        {statusMessage && (
+                          <span className="text-[10px] font-bold text-[#1ed760] bg-[#1ed760]/10 px-2.5 py-0.5 rounded-full border border-[#1ed760]/30">
+                            {statusMessage}
+                          </span>
+                        )}
+                      </div>
                     </div>
+                  </>
+                ) : (
+                  /* TAB 2: IN-MOCKUP MUSIC PLAYER VIEW (Aşağı kaydırmadan doğrudan mock-up içinde parçalar arası geçiş ve oynatıcı) */
+                  <div className="space-y-3 pt-0.5">
+                    {currentPlayingTrack ? (
+                      <div className="bg-gradient-to-b from-[#141b16] to-[#0a0d0b] border border-[#1ed760]/30 rounded-2xl p-3 sm:p-3.5 space-y-3 shadow-xl">
+                        {/* Artwork Preview */}
+                        <div className="relative aspect-video max-h-32 w-full rounded-xl overflow-hidden border border-white/10 shadow-md">
+                          <img
+                            src={currentPlayingTrack.track.coverImage || `https://img.youtube.com/vi/${currentPlayingTrack.track.youtubeId}/hqdefault.jpg`}
+                            alt={currentPlayingTrack.track.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                          <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between">
+                            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-[#1ed760] text-black">
+                              {currentPlayingTrack.shelf.title}
+                            </span>
+                            <div className="flex items-end gap-0.5 h-2.5">
+                              <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-1" />
+                              <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-2" />
+                              <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-3" />
+                            </div>
+                          </div>
+                        </div>
 
-                    {/* Mockup Next / Prev / Play / Pause Controls */}
-                    <div className="flex items-center justify-center gap-4 py-2">
-                      <button
-                        type="button"
-                        onClick={handlePrevInMockup}
-                        className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer"
-                        title="Önceki Parça"
-                      >
-                        <SkipBack className="w-4 h-4" />
-                      </button>
+                        {/* Title and Subtitle */}
+                        <div className="text-center space-y-0.5">
+                          <h3 className="text-sm font-extrabold text-white truncate">
+                            {currentPlayingTrack.track.name}
+                          </h3>
+                          <p className="text-[11px] text-gray-400 truncate">
+                            {currentPlayingTrack.track.subtitle}
+                          </p>
+                        </div>
 
-                      <button
-                        type="button"
-                        onClick={() => onToggleAmbientChannel(currentPlayingTrack.track.id)}
-                        className="w-14 h-14 rounded-full bg-[#1ed760] text-black font-extrabold flex items-center justify-center shadow-lg shadow-[#1ed760]/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                        title="Durdur / Oynat"
-                      >
-                        <Pause className="w-6 h-6 fill-current" />
-                      </button>
+                        {/* Mockup Next / Prev / Play / Pause Controls */}
+                        <div className="flex items-center justify-center gap-3 py-1">
+                          <button
+                            type="button"
+                            onClick={handlePrevInMockup}
+                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+                            title="Önceki Parça"
+                          >
+                            <SkipBack className="w-3.5 h-3.5" />
+                          </button>
 
-                      <button
-                        type="button"
-                        onClick={handleNextInMockup}
-                        className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer"
-                        title="Sonraki Parça"
-                      >
-                        <SkipForward className="w-4 h-4" />
-                      </button>
-                    </div>
+                          <button
+                            type="button"
+                            onClick={() => onToggleAmbientChannel(currentPlayingTrack.track.id)}
+                            className="w-11 h-11 rounded-full bg-[#1ed760] text-black font-extrabold flex items-center justify-center shadow-md shadow-[#1ed760]/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                            title="Durdur / Oynat"
+                          >
+                            <Pause className="w-5 h-5 fill-current" />
+                          </button>
 
-                    {/* In-Mockup Volume Slider */}
-                    {onVolumeChange && (
-                      <div className="px-2 pt-1 flex items-center gap-2">
-                        <Volume2 className="w-4 h-4 text-[#1ed760] shrink-0" />
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={currentPlayingTrack.volume}
-                          onChange={(e) => onVolumeChange(currentPlayingTrack.track.id, parseFloat(e.target.value))}
-                          className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-[#1ed760] bg-white/20"
-                        />
-                        <span className="text-[10px] font-mono text-[#1ed760] shrink-0 w-8 text-right">
-                          %{currentPlayingTrack.volume}
-                        </span>
+                          <button
+                            type="button"
+                            onClick={handleNextInMockup}
+                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+                            title="Sonraki Parça"
+                          >
+                            <SkipForward className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* In-Mockup Volume Slider */}
+                        {onVolumeChange && (
+                          <div className="px-1 pt-0.5 flex items-center gap-2">
+                            <Volume2 className="w-3.5 h-3.5 text-[#1ed760] shrink-0" />
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={currentPlayingTrack.volume}
+                              onChange={(e) => onVolumeChange(currentPlayingTrack.track.id, parseFloat(e.target.value))}
+                              className="w-full h-1 rounded-lg appearance-none cursor-pointer accent-[#1ed760] bg-white/20"
+                            />
+                            <span className="text-[9px] font-mono text-[#1ed760] shrink-0 w-7 text-right">
+                              %{currentPlayingTrack.volume}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Quick Jump to Full Library Button */}
+                        <button
+                          type="button"
+                          onClick={scrollToSoundtracksSection}
+                          className="w-full py-1.5 px-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-bold text-gray-300 hover:text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <ListMusic className="w-3 h-3 text-[#1ed760]" />
+                          <span>Tüm Parçaları Aşağıda Gör & Keşfet</span>
+                        </button>
+                      </div>
+                    ) : (
+                      /* No Track Currently Playing */
+                      <div className="bg-black/40 border border-dashed border-white/15 rounded-2xl p-4 text-center space-y-2.5">
+                        <Headphones className="w-7 h-7 text-gray-400 mx-auto" />
+                        <div>
+                          <h4 className="text-xs font-bold text-white">Henüz Müzik Çalmıyor</h4>
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            Aşağıdaki listeden veya hemen başlata basarak müzik dinleyebilirsiniz.
+                          </p>
+                        </div>
+                        <div className="pt-1 flex flex-col gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (allFlattenedTracks.length > 0) {
+                                onToggleAmbientChannel(allFlattenedTracks[0].id);
+                              }
+                            }}
+                            className="py-1.5 px-3 rounded-xl bg-[#1ed760] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#1ed760]/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                            <span>İlk Müziği Başlat</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={scrollToSoundtracksSection}
+                            className="text-[11px] text-gray-400 hover:text-white py-0.5 transition-colors"
+                          >
+                            Tüm kütüphaneye göz at ↓
+                          </button>
+                        </div>
                       </div>
                     )}
-
-                    {/* Quick Jump to Full Library Button */}
-                    <button
-                      type="button"
-                      onClick={scrollToSoundtracksSection}
-                      className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <ListMusic className="w-3.5 h-3.5 text-[#1ed760]" />
-                      <span>Tüm Parçaları Aşağıda Gör & Keşfet</span>
-                    </button>
-                  </div>
-                ) : (
-                  /* No Track Currently Playing */
-                  <div className="bg-black/40 border border-dashed border-white/15 rounded-3xl p-6 text-center space-y-3">
-                    <Headphones className="w-8 h-8 text-gray-400 mx-auto" />
-                    <div>
-                      <h4 className="text-sm font-bold text-white">Henüz Müzik Çalmıyor</h4>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Aşağıdaki listeden veya hemen başlata basarak müzik dinleyebilirsiniz.
-                      </p>
-                    </div>
-                    <div className="pt-2 flex flex-col gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (allFlattenedTracks.length > 0) {
-                            onToggleAmbientChannel(allFlattenedTracks[0].id);
-                          }
-                        }}
-                        className="py-2 px-4 rounded-xl bg-[#1ed760] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#1ed760]/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>İlk Müziği Başlat</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={scrollToSoundtracksSection}
-                        className="text-xs text-gray-400 hover:text-white py-1 transition-colors"
-                      >
-                        Tüm kütüphaneye göz at ↓
-                      </button>
-                    </div>
                   </div>
                 )}
-              </div>
-            )}
 
               </div>
 
               {/* Desktop Home Bar */}
-              <div className="hidden md:block w-32 h-1 bg-white/20 rounded-full mx-auto mt-3" />
+              <div className="hidden md:block w-24 h-1 bg-white/20 rounded-full mx-auto mt-2" />
             </div>
           </div>
         </div>
 
         {/* RIGHT COLUMN: Live News Feed */}
         {!isLightsOut && (
-          <div className="lg:col-span-5 space-y-4">
+          <div className="lg:col-span-5 space-y-3">
           
           {/* Header Bar */}
-          <div className={`flex items-center justify-between border rounded-2xl p-4 shadow-sm transition-colors ${
+          <div className={`flex items-center justify-between border rounded-2xl p-2.5 sm:p-3 shadow-sm transition-colors ${
             theme === 'light' ? 'bg-white border-slate-200' : 'bg-[#121814] border-white/10'
           }`}>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#1ed760] animate-ping" />
-              <Newspaper className="w-5 h-5 text-[#1ed760]" />
-              <h2 className={`font-display text-base font-bold tracking-tight ${
+              <div className="w-2 h-2 rounded-full bg-[#1ed760] animate-ping" />
+              <Newspaper className="w-4 h-4 text-[#1ed760]" />
+              <h2 className={`font-display text-sm sm:text-base font-bold tracking-tight ${
                 theme === 'light' ? 'text-slate-900' : 'text-white'
               }`}>
                 Haber Akışı
               </h2>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <button
                 onClick={loadLiveFeed}
                 disabled={isLoadingLiveFeed}
-                className={`py-1.5 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 border cursor-pointer ${
+                className={`py-1 px-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 border cursor-pointer ${
                   theme === 'light'
                     ? 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                     : 'bg-white/5 hover:bg-[#1ed760]/15 text-gray-300 hover:text-[#1ed760] border-white/10'
                 }`}
                 title="Haberleri Yenile"
               >
-                <RefreshCw className={`w-3.5 h-3.5 text-[#1ed760] ${isLoadingLiveFeed ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3 h-3 text-[#1ed760] ${isLoadingLiveFeed ? 'animate-spin' : ''}`} />
                 <span>Yenile</span>
               </button>
 
-              <span className={`text-[11px] font-mono px-2.5 py-1.5 rounded-xl border ${
+              <span className={`text-[10px] font-mono px-2 py-1 rounded-xl border ${
                 theme === 'light' ? 'bg-slate-50 text-slate-600 border-slate-200' : 'bg-white/5 text-gray-400 border-white/5'
               }`}>
                 {displayArticles.length} makale
@@ -1385,8 +1422,8 @@ export const FocusTab: React.FC<FocusTabProps> = ({
             </div>
           </div>
 
-          {/* Vertical News Cards Stream */}
-          <div className="space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-[#1ed760]/30">
+          {/* Vertical News Cards Stream (Sleek height tailored for standard and high zoom screens) */}
+          <div className="space-y-2.5 max-h-[calc(100vh-190px)] lg:max-h-[580px] xl:max-h-[640px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-[#1ed760]/30">
             {displayArticles.map((article) => {
               const isSaved = bookmarkedIds.includes(article.id);
               const readDurationMin = Math.max(1, Math.floor((article.durationSeconds || 180) / 60));
@@ -1394,7 +1431,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               return (
                 <div
                   key={article.id}
-                  className={`border rounded-2xl p-3.5 flex gap-3.5 transition-all shadow-sm group ${
+                  className={`border rounded-2xl p-2.5 sm:p-3 flex gap-2.5 sm:gap-3 transition-all shadow-sm group ${
                     theme === 'light'
                       ? 'bg-white border-slate-200 hover:border-[#1ed760]/50 hover:bg-slate-50/80'
                       : 'bg-[#121814] border-white/5 hover:bg-[#161f19] hover:border-[#1ed760]/30'
@@ -1403,7 +1440,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                   {/* Left: News Thumbnail */}
                   <div 
                     onClick={() => onSelectArticle(article)}
-                    className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-white/5 cursor-pointer"
+                    className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-white/5 cursor-pointer"
                   >
                     <img
                       src={article.imageUrl || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&auto=format&fit=crop&q=80'}
@@ -1414,7 +1451,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       }}
                     />
                     
-                    <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[10px] font-mono font-bold text-emerald-400">
+                    <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[9px] font-mono font-bold text-emerald-400">
                       {readDurationMin}m
                     </span>
                   </div>

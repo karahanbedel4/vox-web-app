@@ -1,11 +1,11 @@
-import { CloudRain, Music, Film, Tv, Sparkles, LucideIcon, Radio } from 'lucide-react';
+import { CloudRain, Music, Film, Tv, Sparkles, LucideIcon, Radio, Shield, Zap } from 'lucide-react';
 import { AmbientChannel } from '../components/AmbientMixerSheet';
 
 export interface SoundTrack {
   id: string;
   name: string;
   subtitle: string;
-  category: 'nature' | 'lofi' | 'movies' | 'series';
+  category: 'nature' | 'lofi' | 'movies' | 'series' | 'marvel' | 'transformers';
   categoryTitle: string;
   youtubeId?: string;
   audioUrl?: string; // Direct HTML5 MP3 stream for iOS WebKit & Safari compatibility
@@ -19,12 +19,16 @@ export interface SoundShelf {
   id: string;
   title: string;
   subtitle: string;
-  iconName: 'CloudRain' | 'Music' | 'Film' | 'Tv' | 'Sparkles' | 'Radio';
+  iconName: 'CloudRain' | 'Music' | 'Film' | 'Tv' | 'Sparkles' | 'Radio' | 'Shield' | 'Zap';
   tracks: SoundTrack[];
 }
 
 export function getShelfIcon(iconName: string): LucideIcon {
   switch (iconName) {
+    case 'Shield':
+      return Shield;
+    case 'Zap':
+      return Zap;
     case 'CloudRain':
       return CloudRain;
     case 'Music':
@@ -40,7 +44,168 @@ export function getShelfIcon(iconName: string): LucideIcon {
   }
 }
 
-// 🌿 1. DOĞA & AMBİYANS (EN ÜSTTE - DİREKT MP3 SES AKIŞLARI)
+// 🦸 1. MARVEL AVENGERS & DEADPOOL & WOLVERINE SOUNDTRACKS
+export const MARVEL_SOUNDTRACKS: SoundTrack[] = [
+  {
+    id: 'yt-marvel-deadpool-likeaprayer',
+    name: 'Like a Prayer (Deadpool & Wolverine Mix)',
+    subtitle: 'Madonna & Rob Simonsen • Battle Royale Choir Soundtrack',
+    category: 'marvel',
+    categoryTitle: 'Marvel & Deadpool Soundtrack',
+    youtubeId: 'NdzOv1t8Ie4',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 200,
+    featured: true
+  },
+  {
+    id: 'yt-marvel-avengers-theme',
+    name: 'The Avengers - Main Title Theme',
+    subtitle: 'Alan Silvestri • Epik Marvel Sinematik Evreni Teması',
+    category: 'marvel',
+    categoryTitle: 'Marvel & Avengers Soundtrack',
+    youtubeId: 'XNCQZ0wxphY',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1635805737707-575885ab0820?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 125,
+    featured: true
+  },
+  {
+    id: 'yt-marvel-endgame-portals',
+    name: 'Avengers: Endgame - Portals',
+    subtitle: 'Alan Silvestri • "Avengers Assemble" Efsane Sahnesi',
+    category: 'marvel',
+    categoryTitle: 'Marvel & Avengers Soundtrack',
+    youtubeId: 'F_mhWxOjxp4',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 197,
+    featured: true
+  },
+  {
+    id: 'yt-marvel-infinity-war',
+    name: 'Avengers: Infinity War - Theme & Porch',
+    subtitle: 'Alan Silvestri • Thanos & Sonsuzluk Savaşı Teması',
+    category: 'marvel',
+    categoryTitle: 'Marvel & Avengers Soundtrack',
+    youtubeId: 'a10dXUS3ch0',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 160,
+    featured: true
+  },
+  {
+    id: 'yt-marvel-thor-ragnarok',
+    name: 'Thor: Ragnarok - Immigrant Song',
+    subtitle: 'Led Zeppelin • Asgard Gök Gürültüsü & Köprü Savaşı',
+    category: 'marvel',
+    categoryTitle: 'Marvel & Avengers Soundtrack',
+    youtubeId: 'zJ9dFeZ5344',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 145,
+    featured: true
+  },
+  {
+    id: 'yt-marvel-ironman3',
+    name: 'Iron Man 3 - Can You Dig It',
+    subtitle: 'Brian Tyler • Tony Stark & Karizmatik Orkestra',
+    category: 'marvel',
+    categoryTitle: 'Marvel & Avengers Soundtrack',
+    youtubeId: 'OsSHmKU0t7w',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 162
+  },
+  {
+    id: 'yt-marvel-cap-winter',
+    name: 'Captain America - Taking a Stand',
+    subtitle: 'Henry Jackman • Kış Askeri & Yüksek Tempolu Aksiyon',
+    category: 'marvel',
+    categoryTitle: 'Marvel & Avengers Soundtrack',
+    youtubeId: 'ENzNJiQNSCc',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 130
+  }
+];
+
+// 🤖 2. TRANSFORMERS EFSANE FİLM MÜZİKLERİ & SOUNDTRACKS
+export const TRANSFORMERS_SOUNDTRACKS: SoundTrack[] = [
+  {
+    id: 'yt-transformers-arrival-to-earth',
+    name: 'Transformers - Arrival to Earth',
+    subtitle: 'Steve Jablonsky • Otobotların Dünyaya İnişi & Efsane Melodi',
+    category: 'transformers',
+    categoryTitle: 'Transformers Film Müzikleri',
+    youtubeId: '0_FHPJIhNBw',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 326,
+    featured: true
+  },
+  {
+    id: 'yt-transformers-what-ive-done',
+    name: 'Linkin Park - What I\'ve Done',
+    subtitle: 'Transformers 1 • Optimus Prime Kapanış Konuşması',
+    category: 'transformers',
+    categoryTitle: 'Transformers Film Müzikleri',
+    youtubeId: '8sgycukafqQ',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 208,
+    featured: true
+  },
+  {
+    id: 'yt-transformers-new-divide',
+    name: 'Linkin Park - New Divide',
+    subtitle: 'Transformers: Yenilenlerin İntikamı • Resmi Film Müziği',
+    category: 'transformers',
+    categoryTitle: 'Transformers Film Müzikleri',
+    youtubeId: 'ysSxxIqKNN0',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 269,
+    featured: true
+  },
+  {
+    id: 'yt-transformers-autobots',
+    name: 'Transformers - Autobots Theme',
+    subtitle: 'Steve Jablonsky • Epik Kahramanlık & Birliktelik Teması',
+    category: 'transformers',
+    categoryTitle: 'Transformers Film Müzikleri',
+    youtubeId: 'w581xiVe0Q8',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 153,
+    featured: true
+  },
+  {
+    id: 'yt-transformers-no-sacrifice',
+    name: 'Transformers - No Sacrifice, No Victory',
+    subtitle: 'Steve Jablonsky • AllSpark & Witwicky Fedakarlığı',
+    category: 'transformers',
+    categoryTitle: 'Transformers Film Müzikleri',
+    youtubeId: 'cbxNyoYyGLE',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 178,
+    featured: true
+  },
+  {
+    id: 'yt-transformers-scorponok',
+    name: 'Transformers - Scorponok Battle',
+    subtitle: 'Steve Jablonsky • Çöl Savaşı & Yüksek Gerilim Teması',
+    category: 'transformers',
+    categoryTitle: 'Transformers Film Müzikleri',
+    youtubeId: '5wt2WtZUCuo',
+    type: 'youtube',
+    coverImage: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=600&auto=format&fit=crop&q=80',
+    durationSeconds: 297
+  }
+];
+
+// 🌿 3. DOĞA & AMBİYANS (DİREKT MP3 SES AKIŞLARI)
 export const NATURE_SOUNDTRACKS: SoundTrack[] = [
   {
     id: 'stream-nature-rain',
@@ -114,7 +279,7 @@ export const NATURE_SOUNDTRACKS: SoundTrack[] = [
   }
 ];
 
-// ☕ 2. LO-FI & DERİN ODAKLANMA (İKİNCİ SIRADA - YOUTUBE HQ LO-FI BEATS)
+// ☕ 4. LO-FI & DERİN ODAKLANMA (HQ LO-FI BEATS)
 export const LOFI_SOUNDTRACKS: SoundTrack[] = [
   {
     id: 'yt-lofi-girl',
@@ -189,7 +354,7 @@ export const LOFI_SOUNDTRACKS: SoundTrack[] = [
   }
 ];
 
-// 🎬 3. EFSANE FİLM & SİNEMA MÜZİKLERİ (YOUTUBE SOUNDTRACKS)
+// 🎬 5. EFSANE FİLM & SİNEMA MÜZİKLERİ (YOUTUBE SOUNDTRACKS)
 export const MOVIE_SOUNDTRACKS: SoundTrack[] = [
   {
     id: 'yt-movie-interstellar',
@@ -263,7 +428,7 @@ export const MOVIE_SOUNDTRACKS: SoundTrack[] = [
   }
 ];
 
-// 📺 4. EFSANE DİZİ MÜZİKLERİ (YOUTUBE SOUNDTRACKS)
+// 📺 6. EFSANE DİZİ MÜZİKLERİ (YOUTUBE SOUNDTRACKS)
 export const SERIES_SOUNDTRACKS: SoundTrack[] = [
   {
     id: 'yt-series-got',
@@ -337,8 +502,36 @@ export const SERIES_SOUNDTRACKS: SoundTrack[] = [
   }
 ];
 
-// COMBINED ALL SHELVES (Doğa, Lo-Fi, Film ve Dizi)
+// COMBINED ALL SHELVES (Marvel, Transformers, Film, Dizi, Doğa ve Lo-Fi)
 export const ALL_SOUND_SHELVES: SoundShelf[] = [
+  {
+    id: 'marvel',
+    title: 'Marvel Avengers & Deadpool Koleksiyonu',
+    subtitle: 'Like a Prayer, The Avengers, Portals, Infinity War, Thor Ragnarok & Iron Man',
+    iconName: 'Shield',
+    tracks: MARVEL_SOUNDTRACKS
+  },
+  {
+    id: 'transformers',
+    title: 'Transformers Efsane Film Müzikleri',
+    subtitle: 'Arrival to Earth, Linkin Park What I\'ve Done, New Divide & Autobots',
+    iconName: 'Zap',
+    tracks: TRANSFORMERS_SOUNDTRACKS
+  },
+  {
+    id: 'movies',
+    title: 'Efsane Film & Sinema Müzikleri',
+    subtitle: 'Interstellar, Inception, Harry Potter, Yüzüklerin Efendisi & Star Wars',
+    iconName: 'Film',
+    tracks: MOVIE_SOUNDTRACKS
+  },
+  {
+    id: 'series',
+    title: 'Efsane Dizi Müzikleri',
+    subtitle: 'Game of Thrones, Stranger Things, Peaky Blinders & Friends',
+    iconName: 'Tv',
+    tracks: SERIES_SOUNDTRACKS
+  },
   {
     id: 'nature',
     title: 'Doğa & Atmosfer',
@@ -352,29 +545,17 @@ export const ALL_SOUND_SHELVES: SoundShelf[] = [
     subtitle: 'Ritmik chillhop ve konsantrasyon artıran arka plan beats',
     iconName: 'Music',
     tracks: LOFI_SOUNDTRACKS
-  },
-  {
-    id: 'movies',
-    title: 'Efsane Film & Sinema Müzikleri',
-    subtitle: 'Interstellar, Inception, Harry Potter, Yüzüklerin Efendisi...',
-    iconName: 'Film',
-    tracks: MOVIE_SOUNDTRACKS
-  },
-  {
-    id: 'series',
-    title: 'Efsane Dizi Müzikleri',
-    subtitle: 'Game of Thrones, Stranger Things, Peaky Blinders & Friends',
-    iconName: 'Tv',
-    tracks: SERIES_SOUNDTRACKS
   }
 ];
 
 // Flat list of all tracks
 export const ALL_TRACKS: SoundTrack[] = [
-  ...NATURE_SOUNDTRACKS,
-  ...LOFI_SOUNDTRACKS,
+  ...MARVEL_SOUNDTRACKS,
+  ...TRANSFORMERS_SOUNDTRACKS,
   ...MOVIE_SOUNDTRACKS,
-  ...SERIES_SOUNDTRACKS
+  ...SERIES_SOUNDTRACKS,
+  ...NATURE_SOUNDTRACKS,
+  ...LOFI_SOUNDTRACKS
 ];
 
 // Helper to convert SoundTrack to AmbientChannel

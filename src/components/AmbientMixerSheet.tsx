@@ -21,7 +21,8 @@ import {
   SkipBack, 
   SkipForward, 
   Film, 
-  Tv 
+  Tv,
+  Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHapticImpact } from '../lib/haptics';
@@ -55,6 +56,12 @@ export function extractYouTubeId(url: string): string | null {
 const getSoundIcon = (id: string, active: boolean) => {
   const norm = id.toLowerCase();
   const activeClass = active ? 'text-[#1ed760]' : 'text-gray-400';
+  if (norm.includes('marvel') || norm.includes('avengers') || norm.includes('deadpool') || norm.includes('thor') || norm.includes('ironman') || norm.includes('cap-')) {
+    return <Shield className={`w-4 h-4 shrink-0 ${activeClass}`} />;
+  }
+  if (norm.includes('transformers') || norm.includes('arrival') || norm.includes('autobot') || norm.includes('divide')) {
+    return <Zap className={`w-4 h-4 shrink-0 ${activeClass}`} />;
+  }
   if (norm.includes('series') || norm.includes('friends') || norm.includes('himym') || norm.includes('got') || norm.includes('peaky') || norm.includes('stranger') || norm.includes('breaking') || norm.includes('sherlock')) {
     return <Tv className={`w-4 h-4 shrink-0 ${activeClass}`} />;
   }
