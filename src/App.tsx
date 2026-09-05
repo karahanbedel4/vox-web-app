@@ -12,6 +12,11 @@ import { CookiePolicyPage } from './components/CookiePolicyPage';
 import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
 import { TermsPage } from './components/TermsPage';
 import { LegalPage } from './components/LegalPage';
+import { AboutPage } from './components/AboutPage';
+import { MastheadContactPage } from './components/MastheadContactPage';
+import { EditorialGuidelinesPage } from './components/EditorialGuidelinesPage';
+import { GuidesPage } from './components/GuidesPage';
+import { GuideDetailPage } from './components/GuideDetailPage';
 import { NotFoundPage } from './components/NotFoundPage';
 
 import { Article, UserProfile } from './types';
@@ -570,6 +575,20 @@ export default function App() {
           <RouterRoute path="/terms" element={<TermsPage />} />
           <RouterRoute path="/yasal-uyari" element={<LegalPage />} />
           <RouterRoute path="/legal" element={<LegalPage />} />
+
+          {/* Corporate & E-E-A-T Editorial Pages (Critical for Google AdSense & Search Quality) */}
+          <RouterRoute path="/hakkimizda" element={<AboutPage />} />
+          <RouterRoute path="/about" element={<AboutPage />} />
+          <RouterRoute path="/kunye" element={<MastheadContactPage />} />
+          <RouterRoute path="/iletisim" element={<MastheadContactPage />} />
+          <RouterRoute path="/contact" element={<MastheadContactPage />} />
+          <RouterRoute path="/yayin-ilkeleri" element={<EditorialGuidelinesPage />} />
+          <RouterRoute path="/editorial-guidelines" element={<EditorialGuidelinesPage />} />
+
+          {/* High-Value Deep Guides & Research Articles */}
+          <RouterRoute path="/rehberler" element={<GuidesPage />} />
+          <RouterRoute path="/rehber" element={<GuidesPage />} />
+          <RouterRoute path="/rehber/:slug" element={<GuideDetailPage />} />
 
           {/* Dedicated 404 Not Found Route */}
           <RouterRoute path="/404" element={<NotFoundPage />} />

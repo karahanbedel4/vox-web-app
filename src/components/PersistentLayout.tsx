@@ -25,7 +25,10 @@ import {
   Plus,
   ChevronRight,
   Menu,
-  Search
+  Search,
+  BookOpen,
+  User,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Article, UserProfile, PlaybackState } from '../types';
@@ -40,6 +43,7 @@ import { woodRainSynth } from '../lib/audioSynth';
 import { useTheme } from '../lib/ThemeContext';
 import { InfoModal, InfoModalType } from './InfoModal';
 import { LegalDisclaimerModal } from './LegalDisclaimerModal';
+import { AuthModal } from './AuthModal';
 import { VoxLogo } from './VoxLogo';
 import { XLogoIcon } from './XLogoIcon';
 import { appStorage, getCookie, setCookie } from '../lib/storage';
@@ -110,8 +114,17 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   const [infoModalType, setInfoModalType] = useState<InfoModalType>(null);
   const [isLegalDisclaimerOpen, setIsLegalDisclaimerOpen] = useState<boolean>(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const modalScrollRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLElement>(null);
+
+  const isLoggedIn = Boolean(user && user.authProvider !== 'guest' && user.email);
+
+  useEffect(() => {
+    const handleOpenAuthModal = () => setIsAuthModalOpen(true);
+    window.addEventListener('vox_open_auth_modal', handleOpenAuthModal);
+    return () => window.removeEventListener('vox_open_auth_modal', handleOpenAuthModal);
+  }, []);
 
   // Scroll to top, close mobile drawer, and track page view on route change
   useEffect(() => {
@@ -374,7 +387,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       <aside className={`${isLightsOut ? 'hidden' : 'hidden md:flex'} w-64 lg:w-72 flex-shrink-0 flex-col justify-between h-[calc(100vh-1.5rem)] fixed top-3 left-3 z-40 bg-black rounded-[32px] border border-white/10 p-5 shadow-2xl overflow-y-auto scrollbar-none text-white select-none transition-all duration-300`}>
         <div className="flex flex-col gap-4">
           {/* LOGO & BRANDING */}
-          <div className="px-1 pt-1">
+          <div className="px-1 pt-1 flex items-center justify-between">
             <Link 
               to="/" 
               className="inline-flex items-center cursor-pointer group hover:opacity-90 transition-opacity" 
@@ -382,6 +395,32 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             >
               <VoxLogo size="md" textColor="light" />
             </Link>
+
+            {/* Desktop Header User Account Quick Action */}
+            {isLoggedIn ? (
+              <Link
+                to="/profil"
+                className="flex items-center gap-1.5 p-1 rounded-xl hover:bg-white/10 transition-colors"
+                title="Profilime Git"
+              >
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt="Avatar" className="w-6 h-6 rounded-lg object-cover border border-emerald-500/40" />
+                ) : (
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold text-[10px] flex items-center justify-center border border-emerald-500/40">
+                    {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
+                  </div>
+                )}
+              </Link>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                title="Giriş Yap (İsteğe Bağlı)"
+              >
+                <User className="w-3 h-3" />
+                <span>Giriş</span>
+              </button>
+            )}
           </div>
 
           {/* MAIN SECTION NAVIGATION */}
@@ -419,6 +458,45 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 <Target className="w-4 h-4 text-[#10b981]" />
                 <span>ODAKLAN</span>
               </div>
+            </NavLink>
+
+            {/* REHBERLER */}
+            <NavLink
+              to="/rehberler"
+              className={({ isActive }) =>
+                `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                  isActive
+                    ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`
+              }
+            >
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#10b981]" />
+                <span>REHBERLER</span>
+              </div>
+            </NavLink>
+
+            {/* PROFİL / HESAP */}
+            <NavLink
+              to="/profil"
+              className={({ isActive }) =>
+                `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                  isActive
+                    ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`
+              }
+            >
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-[#10b981]" />
+                <span>{isLoggedIn ? 'HESABIM' : 'HESAP'}</span>
+              </div>
+              {isLoggedIn ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              ) : (
+                <span className="text-[8px] font-bold text-gray-400 bg-white/10 px-1.5 py-0.5 rounded">OPSİYONEL</span>
+              )}
             </NavLink>
           </nav>
 
@@ -528,21 +606,24 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             </a>
           </div>
 
-          {/* INFORMATIONAL LINKS (Hakkımızda, Gizlilik, Künye vs.) */}
-          <div className="space-y-1 text-[11px] text-gray-400 px-1">
+          {/* INFORMATIONAL LINKS (Hakkımızda, Künye, Yayın İlkeleri, Rehberler vs.) */}
+          <div className="space-y-1.5 text-[11px] text-gray-400 px-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
-              <button onClick={() => setInfoModalType('ads')} className="hover:text-white transition-colors cursor-pointer">Reklam</button>
-              <button onClick={() => setInfoModalType('about')} className="hover:text-white transition-colors cursor-pointer">Hakkımızda</button>
-              <button onClick={() => setInfoModalType('contact')} className="hover:text-white transition-colors cursor-pointer">İletişim</button>
+              <Link to="/rehberler" className="hover:text-[#1ed760] text-emerald-400 font-bold transition-colors cursor-pointer flex items-center gap-1">
+                <BookOpen className="w-3 h-3" />
+                <span>Rehberler</span>
+              </Link>
+              <Link to="/hakkimizda" className="hover:text-white transition-colors cursor-pointer">Hakkımızda</Link>
+              <Link to="/kunye" className="hover:text-white transition-colors cursor-pointer">Künye & İletişim</Link>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+              <Link to="/yayin-ilkeleri" className="hover:text-white transition-colors cursor-pointer">Yayın İlkeleri</Link>
               <button onClick={() => setInfoModalType('terms')} className="hover:text-white transition-colors cursor-pointer">Kullanım Koşulları</button>
-              <button onClick={() => setInfoModalType('privacy')} className="hover:text-white transition-colors cursor-pointer">Gizlilik Politikası</button>
+              <button onClick={() => setInfoModalType('privacy')} className="hover:text-white transition-colors cursor-pointer">Gizlilik</button>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
               <Link to="/cerez-politikasi" className="hover:text-amber-400 text-gray-300 transition-colors cursor-pointer">Çerez Politikası</Link>
-              <button onClick={() => setInfoModalType('impressum')} className="hover:text-white transition-colors cursor-pointer">Künye</button>
-              <button onClick={() => setIsLegalDisclaimerOpen(true)} className="hover:text-emerald-400 text-gray-400 transition-colors cursor-pointer font-medium">Yasal Uyarı ve İletişim</button>
+              <button onClick={() => setInfoModalType('ads')} className="hover:text-white transition-colors cursor-pointer">Reklam</button>
             </div>
           </div>
 
@@ -586,8 +667,34 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           <VoxLogo size="md" />
         </Link>
 
-        {/* Right: Quick Controls (Ambient Sound / PRO Button) */}
+        {/* Right: Quick Controls (User / Ambient Sound / PRO Button) */}
         <div className="flex items-center gap-1.5 -mr-1">
+          {/* Mobile Header User Account Quick Action */}
+          <button
+            onClick={() => {
+              if (isLoggedIn) {
+                navigate('/profil');
+              } else {
+                setIsAuthModalOpen(true);
+              }
+            }}
+            className="p-1 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1 cursor-pointer text-xs font-medium"
+            title={isLoggedIn ? 'Hesabım' : 'Giriş Yap (İsteğe Bağlı)'}
+          >
+            {isLoggedIn && user?.photoURL ? (
+              <img src={user.photoURL} alt="Avatar" className="w-6 h-6 rounded-lg object-cover border border-emerald-500/40" />
+            ) : isLoggedIn ? (
+              <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold text-[10px] flex items-center justify-center border border-emerald-500/40">
+                {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:text-emerald-400 text-[11px] font-bold">
+                <User className="w-3 h-3" />
+                <span>Giriş</span>
+              </div>
+            )}
+          </button>
+
           <button
             onClick={() => setIsAmbientMixerOpen(true)}
             className={`p-2 rounded-xl transition-all relative cursor-pointer ${
@@ -655,6 +762,55 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                   </button>
                 </div>
 
+                {/* Mobile Drawer User Account Bar */}
+                <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+                  {isLoggedIn ? (
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      {user?.photoURL ? (
+                        <img src={user.photoURL} alt="Avatar" className="w-8 h-8 rounded-xl object-cover border border-emerald-500/40 shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center border border-emerald-500/40 shrink-0">
+                          {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-white truncate leading-tight">{user?.displayName || 'VOX Kullanıcısı'}</p>
+                        <p className="text-[10px] text-emerald-400 truncate mt-0.5">Hesap Bağlı</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-gray-400 shrink-0">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-white leading-tight">Misafir Oturumu</p>
+                        <p className="text-[10px] text-gray-400">İsteğe Bağlı Giriş</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {isLoggedIn ? (
+                    <Link
+                      to="/profil"
+                      onClick={() => setIsMobileDrawerOpen(false)}
+                      className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white cursor-pointer shrink-0"
+                    >
+                      Profil
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setIsMobileDrawerOpen(false);
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white cursor-pointer shrink-0"
+                    >
+                      Giriş
+                    </button>
+                  )}
+                </div>
+
                 {/* Main Navigation */}
                 <nav className="flex flex-col gap-2 pt-1">
                   <NavLink
@@ -689,6 +845,40 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     <div className="flex items-center gap-2.5">
                       <Target className="w-4 h-4 text-[#10b981]" />
                       <span>ODAKLAN (Pomodoro)</span>
+                    </div>
+                  </NavLink>
+
+                  <NavLink
+                    to="/rehberler"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                        isActive
+                          ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <BookOpen className="w-4 h-4 text-[#10b981]" />
+                      <span>REHBERLER (Araştırma)</span>
+                    </div>
+                  </NavLink>
+
+                  <NavLink
+                    to="/profil"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                        isActive
+                          ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <User className="w-4 h-4 text-[#10b981]" />
+                      <span>{isLoggedIn ? 'HESABIM & AYARLAR' : 'HESAP / GİRİŞ (OPSİYONEL)'}</span>
                     </div>
                   </NavLink>
                 </nav>
@@ -763,20 +953,23 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 </div>
 
                 {/* Informational links */}
-                <div className="space-y-1 text-[11px] text-gray-400 px-1">
+                <div className="space-y-1.5 text-[11px] text-gray-400 px-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
-                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('ads'); }} className="hover:text-white cursor-pointer">Reklam</button>
-                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('about'); }} className="hover:text-white cursor-pointer">Hakkımızda</button>
-                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('contact'); }} className="hover:text-white cursor-pointer">İletişim</button>
+                    <Link to="/rehberler" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-[#1ed760] text-emerald-400 font-bold cursor-pointer flex items-center gap-1">
+                      <BookOpen className="w-3 h-3" />
+                      <span>Rehberler</span>
+                    </Link>
+                    <Link to="/hakkimizda" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-white cursor-pointer">Hakkımızda</Link>
+                    <Link to="/kunye" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-white cursor-pointer">Künye & İletişim</Link>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+                    <Link to="/yayin-ilkeleri" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-white cursor-pointer">Yayın İlkeleri</Link>
                     <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('terms'); }} className="hover:text-white cursor-pointer">Kullanım Koşulları</button>
-                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('privacy'); }} className="hover:text-white cursor-pointer">Gizlilik Politikası</button>
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('privacy'); }} className="hover:text-white cursor-pointer">Gizlilik</button>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
                     <Link to="/cerez-politikasi" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-amber-400 text-gray-300 cursor-pointer">Çerez Politikası</Link>
-                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('impressum'); }} className="hover:text-white cursor-pointer">Künye</button>
-                    <button onClick={() => { setIsMobileDrawerOpen(false); setIsLegalDisclaimerOpen(true); }} className="hover:text-emerald-400 text-gray-400 cursor-pointer font-medium">Yasal Uyarı ve İletişim</button>
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('ads'); }} className="hover:text-white cursor-pointer">Reklam</button>
                   </div>
                 </div>
 
@@ -917,6 +1110,12 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       <LegalDisclaimerModal
         isOpen={isLegalDisclaimerOpen}
         onClose={() => setIsLegalDisclaimerOpen(false)}
+      />
+
+      {/* OPTIONAL AUTH MODAL (Google & Email Sign-in) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
       />
 
       {/* MOBILE FLOATING MINI-PLAYER (Only shown when playing TTS News Article) */}

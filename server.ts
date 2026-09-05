@@ -7,6 +7,7 @@ import { createServer as createViteServer } from 'vite';
 import { YoutubeTranscript } from 'youtube-transcript';
 import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
+import { GUIDE_ARTICLES } from './src/data/guides';
 
 const app = express();
 const PORT = 3000;
@@ -79,48 +80,6 @@ Disallow: /api/*
 
 Sitemap: https://voxozet.com/sitemap.xml
 `);
-});
-
-// Dynamic sitemap.xml endpoint for Search Engines
-app.get('/sitemap.xml', (req, res) => {
-  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
-
-  const baseUrl = 'https://voxozet.com';
-  const now = new Date().toISOString().split('T')[0];
-
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>${baseUrl}/</loc><lastmod>${now}</lastmod><changefreq>always</changefreq><priority>1.0</priority></url>
-  <url><loc>${baseUrl}/gundem</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>
-  <url><loc>${baseUrl}/teknoloji</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>
-  <url><loc>${baseUrl}/ekonomi</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>
-  <url><loc>${baseUrl}/odaklan</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>${baseUrl}/kitaplik</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-  <url><loc>${baseUrl}/cerez-politikasi</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>${baseUrl}/gizlilik</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>${baseUrl}/privacy</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>${baseUrl}/kullanim-kosullari</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>${baseUrl}/terms</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>${baseUrl}/yasal-uyari</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>${baseUrl}/legal</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-`;
-
-  serverNewsCache.all.slice(0, 150).forEach(art => {
-    const cleanSlug = art.title.toLowerCase()
-      .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .substring(0, 70);
-
-    const artDate = art.createdAt ? art.createdAt.split('T')[0] : now;
-    if (cleanSlug && cleanSlug.length > 5) {
-      xml += `  <url><loc>${baseUrl}/haber/${cleanSlug}-voxozet</loc><lastmod>${artDate}</lastmod><changefreq>never</changefreq><priority>0.8</priority></url>\n`;
-    }
-  });
-
-  xml += `</urlset>`;
-  res.send(xml);
 });
 
 // Lazy initialization of Gemini API client server-side
@@ -2963,8 +2922,23 @@ app.get(['/sitemap.xml', '/sitemap'], (req, res) => {
       { path: '/dunya', priority: '0.8', changefreq: 'hourly' },
       { path: '/spor', priority: '0.8', changefreq: 'hourly' },
       { path: '/saglik', priority: '0.8', changefreq: 'hourly' },
-      { path: '/odaklan', priority: '0.8', changefreq: 'daily' },
-      { path: '/kitaplik', priority: '0.7', changefreq: 'weekly' }
+      { path: '/odaklan', priority: '0.9', changefreq: 'daily' },
+      { path: '/kitaplik', priority: '0.7', changefreq: 'weekly' },
+      // Corporate & E-E-A-T Quality Pages
+      { path: '/hakkimizda', priority: '0.8', changefreq: 'monthly' },
+      { path: '/kunye', priority: '0.8', changefreq: 'monthly' },
+      { path: '/yayin-ilkeleri', priority: '0.8', changefreq: 'monthly' },
+      { path: '/cerez-politikasi', priority: '0.5', changefreq: 'monthly' },
+      { path: '/gizlilik', priority: '0.5', changefreq: 'monthly' },
+      { path: '/kullanim-kosullari', priority: '0.5', changefreq: 'monthly' },
+      // High-Value Editorial Research & Deep Guides
+      { path: '/rehberler', priority: '0.9', changefreq: 'weekly' },
+      { path: '/rehber/dijital-bilgi-zehirlenmesi-ve-zihinsel-berraklik', priority: '0.9', changefreq: 'monthly' },
+      { path: '/rehber/pomodoro-teknigi-ve-derin-calisma-rehberi', priority: '0.9', changefreq: 'monthly' },
+      { path: '/rehber/film-muzikleri-ve-odaklanmanin-norolojisi', priority: '0.9', changefreq: 'monthly' },
+      { path: '/rehber/sesli-gazetecilik-ve-yapay-zeka-donusumu', priority: '0.9', changefreq: 'monthly' },
+      { path: '/rehber/dijital-dikkat-daginikligi-ve-odaklanma-rehberi', priority: '0.9', changefreq: 'monthly' },
+      { path: '/rehber/bilgi-diyeti-ve-medya-okuryazarligi', priority: '0.9', changefreq: 'monthly' }
     ];
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -3560,8 +3534,245 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
 });
 
 function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: string): string {
-  // If this is an article page (/haber/:slug), dynamically inject specific article metadata for Googlebot, Twitterbot, LinkedIn, etc.
-  if (reqPath.startsWith('/haber/')) {
+  let modifiedTemplate = template;
+  let semanticBodyHtml = '';
+
+  const isEnglish = reqPath.startsWith('/en') || reqPath === '/focus' || queryLang === 'en';
+  const isFocus = reqPath === '/odaklan' || reqPath === '/focus' || reqPath.includes('/focus');
+
+  // 1. REHBER MAKALE DETAYI (/rehber/:slug)
+  if (reqPath.startsWith('/rehber/')) {
+    const slug = reqPath.replace('/rehber/', '').split('?')[0].toLowerCase().trim();
+    const guide = GUIDE_ARTICLES.find(g => g.slug.toLowerCase() === slug);
+
+    if (guide) {
+      const gTitle = `${guide.title} | VOX Rehber`;
+      const gDesc = guide.summary.replace(/["'\n\r]/g, ' ').substring(0, 200).trim();
+      const gUrl = `https://voxozet.com/rehber/${guide.slug}`;
+
+      const schemaJson = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        'headline': guide.title,
+        'description': gDesc,
+        'image': ['https://voxozet.com/og-image.png'],
+        'datePublished': guide.publishedDate,
+        'dateModified': guide.updatedDate,
+        'author': [{
+          '@type': 'Person',
+          'name': guide.author.name,
+          'jobTitle': guide.author.role,
+          'email': guide.author.email
+        }],
+        'publisher': {
+          '@type': 'Organization',
+          'name': 'VOX',
+          'logo': { '@type': 'ImageObject', 'url': 'https://voxozet.com/logo.png' }
+        },
+        'mainEntityOfPage': { '@type': 'WebPage', '@id': gUrl }
+      });
+
+      const paragraphsHtml = guide.content.map(p => `<p style="margin-bottom: 1.25em; line-height: 1.7; font-size: 16px;">${p}</p>`).join('\n');
+      const tagsHtml = guide.keywords.map(k => `<span style="display: inline-block; background: #eee; padding: 4px 10px; border-radius: 6px; margin: 0 6px 6px 0; font-size: 13px;">#${k}</span>`).join('');
+
+      semanticBodyHtml = `
+        <article style="max-width: 800px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222;">
+          <nav style="margin-bottom: 16px; font-size: 13px; color: #666;">
+            <a href="/" style="color: #059669; text-decoration: none;">Ana Sayfa</a> &gt; 
+            <a href="/rehberler" style="color: #059669; text-decoration: none;">Rehberler</a> &gt; 
+            <span>${guide.category}</span>
+          </nav>
+          <header style="margin-bottom: 24px; border-bottom: 1px solid #eee; padding-bottom: 16px;">
+            <span style="background: #e6f9f0; color: #059669; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 9999px;">${guide.category}</span>
+            <h1 style="font-size: 28px; line-height: 1.3; margin: 12px 0 8px 0; color: #111;">${guide.title}</h1>
+            <p style="font-size: 16px; color: #666; margin: 0 0 16px 0;">${guide.subtitle}</p>
+            <div style="font-size: 13px; color: #555; display: flex; flex-wrap: wrap; gap: 16px;">
+              <span><strong>Yazar:</strong> ${guide.author.name} (${guide.author.role})</span>
+              <span><strong>Tarih:</strong> ${guide.publishedDate}</span>
+              <span><strong>Okuma Süresi:</strong> ~${guide.readTimeMinutes} dakika</span>
+            </div>
+          </header>
+          <div style="background: #f8fafc; border-left: 4px solid #059669; padding: 14px 18px; margin-bottom: 24px; font-size: 15px; color: #334155;">
+            <strong>Özet:</strong> ${guide.summary}
+          </div>
+          <div style="font-size: 16px; color: #1e293b; line-height: 1.8;">
+            ${paragraphsHtml}
+          </div>
+          <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #eee;">
+            <strong>Etiketler:</strong><br/>
+            <div style="margin-top: 8px;">${tagsHtml}</div>
+          </div>
+          <div style="margin-top: 32px; padding: 18px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px;">
+            <h3 style="margin: 0 0 6px 0; font-size: 16px; color: #111;">Yazar Hakkında: ${guide.author.name}</h3>
+            <p style="margin: 0 0 8px 0; font-size: 13px; color: #555;">VOX Kurucusu ve Genel Yayın Yönetmeni. Dijital medya, derin odaklanma, teknoloji ve bilgi okuryazarlığı üzerine araştırmalar yürütüyor.</p>
+            <a href="mailto:${guide.author.email}" style="color: #059669; font-size: 13px; text-decoration: none;">İletişim: ${guide.author.email}</a>
+          </div>
+        </article>
+      `;
+
+      modifiedTemplate = modifiedTemplate
+        .replace(/<title>.*?<\/title>/, `<title>${gTitle}</title>`)
+        .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${gTitle}" />`)
+        .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${gDesc}" />`)
+        .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${gTitle}" />`)
+        .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${gDesc}" />`)
+        .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${gUrl}" />`)
+        .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${gTitle}" />`)
+        .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${gDesc}" />`)
+        .replace('</head>', `  <script type="application/ld+json">${schemaJson}</script>\n  </head>`);
+    }
+  }
+
+  // 2. REHBERLER LİSTESİ (/rehberler)
+  else if (reqPath === '/rehberler' || reqPath === '/rehber') {
+    const listTitle = 'Özgün Rehberler & Araştırmalar | VOX';
+    const listDesc = 'VOX editöryal ekibi tarafından hazırlanan derin odaklanma, Pomodoro tekniği, bilgi diyeti ve yapay zeka gazeteciliği kapsamlı rehberleri.';
+    
+    const guidesHtml = GUIDE_ARTICLES.map(g => `
+      <article style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 20px; background: #fff;">
+        <span style="background: #e6f9f0; color: #059669; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 9999px;">${g.category}</span>
+        <h2 style="font-size: 20px; margin: 10px 0 6px 0;"><a href="/rehber/${g.slug}" style="color: #0f172a; text-decoration: none;">${g.title}</a></h2>
+        <p style="font-size: 14px; color: #64748b; line-height: 1.6; margin: 0 0 12px 0;">${g.summary}</p>
+        <div style="font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between;">
+          <span>Yazar: ${g.author.name} • ${g.readTimeMinutes} dk okuma</span>
+          <a href="/rehber/${g.slug}" style="color: #059669; font-weight: bold; text-decoration: none;">Yazıyı Oku &rarr;</a>
+        </div>
+      </article>
+    `).join('\n');
+
+    semanticBodyHtml = `
+      <div style="max-width: 900px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222;">
+        <header style="margin-bottom: 28px;">
+          <h1 style="font-size: 32px; color: #0f172a; margin: 0 0 8px 0;">Özgün Rehberler ve Derin Analizler</h1>
+          <p style="font-size: 16px; color: #64748b; margin: 0;">Dijital gürültüyü azaltan, üretkenliği artıran ve zihinsel berraklık sağlayan kapsamlı araştırma kütüphanesi.</p>
+        </header>
+        <div>${guidesHtml}</div>
+      </div>
+    `;
+
+    modifiedTemplate = modifiedTemplate
+      .replace(/<title>.*?<\/title>/, `<title>${listTitle}</title>`)
+      .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${listTitle}" />`)
+      .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${listDesc}" />`)
+      .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${listTitle}" />`)
+      .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${listDesc}" />`);
+  }
+
+  // 3. HAKKIMIZDA (/hakkimizda, /about)
+  else if (reqPath === '/hakkimizda' || reqPath === '/about') {
+    const abTitle = 'Hakkımızda | VOX - Bağımsız Dijital Haber ve Odaklanma Platformu';
+    const abDesc = 'VOX nedir? Misyonumuz, vizyonumuz, Kurucu & Genel Yayın Yönetmeni Karahan Bedel hakkında bilgiler ve yapay zeka ile haber tüketimi felsefemiz.';
+
+    semanticBodyHtml = `
+      <div style="max-width: 800px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222; line-height: 1.7;">
+        <h1 style="font-size: 32px; color: #0f172a; margin: 0 0 12px 0;">Hakkımızda</h1>
+        <p style="font-size: 16px; color: #475569; margin-bottom: 20px;"><strong>VOX (voxozet.com)</strong>, modern çağın en büyük problemi olan dijital bilgi kirliliği ve dikkat dağınıklığına karşı geliştirilmiş bağımsız bir dijital medya ve üretkenlik platformudur.</p>
+
+        <section style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+          <h2 style="font-size: 20px; margin: 0 0 8px 0; color: #0f172a;">Kurucu ve Genel Yayın Yönetmeni: Karahan Bedel</h2>
+          <p style="font-size: 14px; color: #475569; margin: 0 0 8px 0;">Yazılım geliştirici, bağımsız dijital yayıncı ve araştırmacı. VOX projesi; haber tüketiminde tık avcısı başlıkların yerine nitelikli, teyitli özetler ve derin çalışma (deep work) ortamları sunma vizyonuyla hayata geçirildi.</p>
+          <p style="font-size: 13px; color: #059669; margin: 0;">Resmi İletişim: <a href="mailto:karahanbedel@gmail.com" style="color: #059669;">karahanbedel@gmail.com</a> • İstanbul, Türkiye</p>
+        </section>
+
+        <h2 style="font-size: 22px; color: #0f172a; margin-top: 24px;">Misyonumuz: Daha Az Oku, Daha Çok Dinle</h2>
+        <p>Geleneksel haber sitelerinin ürettiği yapay gerilim ve zaman kaybının aksine, VOX güvenilir basın ajanslarından derlenen haberleri yapay zeka ile 50-80 kelimelik hap özetlere dönüştürür ve stüdyo kalitesinde seslendirme ile sunar.</p>
+
+        <h2 style="font-size: 22px; color: #0f172a; margin-top: 24px;">Derin Odaklanma Alanı</h2>
+        <p>Haber takibinin ötesinde kullanıcılarımızın çalışmalarına odaklanabilmeleri için Pomodoro sayacı ve arka plan film müzikleri (Hans Zimmer, Interstellar vb.) içeren ambiyans ses mikseri sunuyoruz.</p>
+
+        <div style="margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 13px; color: #64748b;">
+          <a href="/kunye" style="color: #059669; margin-right: 16px;">Künye ve İletişim</a>
+          <a href="/yayin-ilkeleri" style="color: #059669; margin-right: 16px;">Yayın İlkeleri</a>
+          <a href="/rehberler" style="color: #059669;">Rehberler</a>
+        </div>
+      </div>
+    `;
+
+    modifiedTemplate = modifiedTemplate
+      .replace(/<title>.*?<\/title>/, `<title>${abTitle}</title>`)
+      .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${abTitle}" />`)
+      .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${abDesc}" />`);
+  }
+
+  // 4. KÜNYE & İLETİŞİM (/kunye, /iletisim, /contact)
+  else if (reqPath === '/kunye' || reqPath === '/iletisim' || reqPath === '/contact') {
+    const kTitle = 'Künye & İletişim | VOX';
+    const kDesc = 'VOX Yayın Künyesi: Kurucu & Genel Yayın Yönetmeni Karahan Bedel, resmi iletişim bilgileri, adres ve yer sağlayıcı detayları.';
+
+    semanticBodyHtml = `
+      <div style="max-width: 800px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222; line-height: 1.7;">
+        <h1 style="font-size: 32px; color: #0f172a; margin: 0 0 12px 0;">Künye ve Resmi İletişim</h1>
+        <p style="font-size: 15px; color: #475569; margin-bottom: 24px;">5651 Sayılı Kanun ve Google Yayıncı Politikaları uyarınca VOX Dijital Medya Platformu'na ait künye bilgileri aşağıdadır:</p>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; width: 220px;"><strong>Yayın Adı:</strong></td>
+            <td style="padding: 10px 0; color: #0f172a;">VOX (voxozet.com)</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b;"><strong>Kurucu & Genel Yayın Yönetmeni:</strong></td>
+            <td style="padding: 10px 0; color: #0f172a;">Karahan Bedel</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b;"><strong>Yayın Türü:</strong></td>
+            <td style="padding: 10px 0; color: #0f172a;">Süreli Yaygın Dijital Yayın / Haber ve Sesli İçerik Portalı</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b;"><strong>Resmi E-Posta:</strong></td>
+            <td style="padding: 10px 0; color: #059669;"><a href="mailto:karahanbedel@gmail.com" style="color: #059669;">karahanbedel@gmail.com</a></td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b;"><strong>Yer Sağlayıcı (Hosting):</strong></td>
+            <td style="padding: 10px 0; color: #0f172a;">Google Cloud Platform (GCP) / Cloud Run Services</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b;"><strong>Konum / Merkez:</strong></td>
+            <td style="padding: 10px 0; color: #0f172a;">İstanbul, Türkiye</td>
+          </tr>
+        </table>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+          <h2 style="font-size: 18px; margin: 0 0 8px 0;">Telif Hakları ve Düzeltme Talepleri</h2>
+          <p style="font-size: 13px; color: #475569; margin: 0;">Sitemizdeki içeriklerle ilgili her türlü düzeltme, tekzip ve iş birliği talepleriniz için doğrudan <a href="mailto:karahanbedel@gmail.com" style="color: #059669;">karahanbedel@gmail.com</a> adresine yazabilirsiniz. 24 saat içinde yanıt verilir.</p>
+        </div>
+      </div>
+    `;
+
+    modifiedTemplate = modifiedTemplate
+      .replace(/<title>.*?<\/title>/, `<title>${kTitle}</title>`)
+      .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${kTitle}" />`)
+      .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${kDesc}" />`);
+  }
+
+  // 5. YAYIN İLKELERİ (/yayin-ilkeleri, /editorial-guidelines)
+  else if (reqPath === '/yayin-ilkeleri' || reqPath === '/editorial-guidelines') {
+    const yTitle = 'Yayın İlkeleri & Doğruluk Beyanı | VOX';
+    const yDesc = 'VOX Yayın İlkeleri: Kaynak teyidi, doğruluk kontrolü, yapay zeka kullanım şeffaflığı, düzeltme ve bağımsızlık politikası.';
+
+    semanticBodyHtml = `
+      <div style="max-width: 800px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222; line-height: 1.7;">
+        <h1 style="font-size: 32px; color: #0f172a; margin: 0 0 12px 0;">Yayın İlkeleri ve Doğruluk Beyanı</h1>
+        <p style="font-size: 15px; color: #475569; margin-bottom: 24px;">VOX, gazetecilik etiğine, tarafsızlık kurallarına ve Google Yayıncı Politikaları'na tam uyum taahhüt eder.</p>
+
+        <h2 style="font-size: 20px; color: #0f172a;">1. Doğruluk ve Kaynak Teyidi (Fact-Checking)</h2>
+        <p style="font-size: 14px; color: #334155;">Haberlerimiz teyitli kamu kurumları ve uluslararası saygın ajanslardan (AA, Reuters, Bloomberg) derlenir. Doğrulanmamış sosyal medya iddiaları haberleştirilmez.</p>
+
+        <h2 style="font-size: 20px; color: #0f172a; margin-top: 20px;">2. Yapay Zeka ve Şeffaflık</h2>
+        <p style="font-size: 14px; color: #334155;">Haberlerin özetlenmesinde ve Türkçe seslendirilmesinde yapay zekadan faydalanılır. Ancak nihai yayın denetimi Kurucu ve Genel Yayın Yönetmeni Karahan Bedel gözetimindedir.</p>
+
+        <h2 style="font-size: 20px; color: #0f172a; margin-top: 20px;">3. Düzeltme ve Tekzip Politikası</h2>
+        <p style="font-size: 14px; color: #334155;">Olası maddi hatalarda haber derhal şeffaf biçimde güncellenir. İtirazlar için resmi kanal: <a href="mailto:karahanbedel@gmail.com" style="color: #059669;">karahanbedel@gmail.com</a>.</p>
+      </div>
+    `;
+
+    modifiedTemplate = modifiedTemplate
+      .replace(/<title>.*?<\/title>/, `<title>${yTitle}</title>`)
+      .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${yTitle}" />`)
+      .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${yDesc}" />`);
+  }
+
+  // 6. HABER DETAYI (/haber/:slug)
+  else if (reqPath.startsWith('/haber/')) {
     const slug = reqPath.replace('/haber/', '').split('?')[0].toLowerCase().trim();
     const article = serverNewsCache.all.find(a => {
       const cleanSlug = a.title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').substring(0, 40);
@@ -3585,7 +3796,7 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
         'dateModified': pubDate,
         'author': [{
           '@type': 'Person',
-          'name': article.author || 'VOX'
+          'name': article.author || 'VOX Editör Ekibi'
         }],
         'publisher': {
           '@type': 'Organization',
@@ -3601,9 +3812,26 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
         }
       });
 
-      const schemaScript = `<script type="application/ld+json">${schemaJson}</script>`;
+      semanticBodyHtml = `
+        <article style="max-width: 800px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222; line-height: 1.7;">
+          <nav style="margin-bottom: 16px; font-size: 13px; color: #666;">
+            <a href="/" style="color: #059669; text-decoration: none;">Ana Sayfa</a> &gt; <span>${article.category || 'Gündem'}</span>
+          </nav>
+          <header style="margin-bottom: 20px;">
+            <span style="background: #e6f9f0; color: #059669; font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 9999px;">${article.category || 'Haber'}</span>
+            <h1 style="font-size: 26px; line-height: 1.3; margin: 12px 0 8px 0; color: #0f172a;">${article.title}</h1>
+            <div style="font-size: 12px; color: #64748b;">Yayın Tarihi: ${pubDate.split('T')[0]} • Kaynak: ${(article as any).source || 'VOX Haber'}</div>
+          </header>
+          <div style="font-size: 16px; color: #334155; line-height: 1.8; margin-bottom: 24px;">
+            <p>${article.summary || article.title}</p>
+          </div>
+          <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px; font-size: 12px; color: #64748b;">
+            Bu haber VOX yapay zeka ve editöryal doğruluk filtreleri tarafından teyit edilmiş kaynaklardan özetlenmiştir.
+          </div>
+        </article>
+      `;
 
-      return template
+      modifiedTemplate = modifiedTemplate
         .replace(/<title>.*?<\/title>/, `<title>${artTitle}</title>`)
         .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${artTitle}" />`)
         .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${artDesc}" />`)
@@ -3615,39 +3843,107 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
         .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${artDesc}" />`)
         .replace(/<meta name="twitter:image" content=".*?" \/>/, `<meta name="twitter:image" content="${artImg}" />`)
         .replace(/<meta name="twitter:url" content=".*?" \/>/, `<meta name="twitter:url" content="${artUrl}" />`)
-        .replace('</head>', `  ${schemaScript}\n  </head>`);
+        .replace('</head>', `  <script type="application/ld+json">${schemaJson}</script>\n  </head>`);
     }
   }
 
-  const isEnglish = reqPath.startsWith('/en') || reqPath === '/focus' || queryLang === 'en';
-  const isFocus = reqPath === '/odaklan' || reqPath === '/focus' || reqPath.includes('/focus');
+  // 7. ANA SAYFA VE DİĞER SAYFALAR İÇİN ZENGİN GENEL BOT İÇERİĞİ
+  if (!semanticBodyHtml) {
+    const topArticles = serverNewsCache.all.slice(0, 8);
+    const articlesHtml = topArticles.map(a => `
+      <article style="border-bottom: 1px solid #e5e7eb; padding: 16px 0;">
+        <span style="font-size: 11px; color: #059669; font-weight: bold;">${a.category || 'Gündem'}</span>
+        <h3 style="font-size: 18px; margin: 6px 0 4px 0;"><a href="/haber/${a.id}" style="color: #0f172a; text-decoration: none;">${a.title}</a></h3>
+        <p style="font-size: 14px; color: #475569; margin: 0; line-height: 1.5;">${(a.summary || '').substring(0, 150)}...</p>
+      </article>
+    `).join('\n');
 
-  const title = isEnglish
-    ? (isFocus ? 'VOX Focus | Read Less, Listen More, Focus Better' : 'VOX | Read Less, Listen More, Focus Better')
-    : (isFocus ? 'VOX | Odaklan' : 'VOX | Oku, Dinle, Odaklan');
+    const topGuidesHtml = GUIDE_ARTICLES.slice(0, 3).map(g => `
+      <li style="margin-bottom: 10px;">
+        <a href="/rehber/${g.slug}" style="color: #059669; font-weight: 600; text-decoration: none;">${g.title}</a>
+        <span style="font-size: 12px; color: #64748b; display: block;">${g.summary.substring(0, 100)}...</span>
+      </li>
+    `).join('\n');
 
-  const description = isEnglish
-    ? 'Read less. Listen more. Focus better. Cut through the noise with AI podcast news and deep focus soundscapes.'
-    : 'Daha az oku. Daha çok dinle. Daha iyi odaklan. Güncel haber akışında kalabalıktan kurtulun; yapay zeka ile haberleri sesli dinleyin ve film müzikleriyle odaklanın.';
+    semanticBodyHtml = `
+      <div style="max-width: 900px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222;">
+        <header style="margin-bottom: 24px; border-bottom: 2px solid #059669; padding-bottom: 16px;">
+          <h1 style="font-size: 32px; color: #0f172a; margin: 0 0 6px 0;">VOX - Oku, Dinle, Odaklan</h1>
+          <p style="font-size: 16px; color: #475569; margin: 0 0 12px 0;">Daha az oku. Daha çok dinle. Daha iyi odaklan. Bağımsız Dijital Haber ve Derin Odaklanma Platformu.</p>
+          <nav style="display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; font-weight: bold;">
+            <a href="/" style="color: #059669; text-decoration: none;">Ana Sayfa</a>
+            <a href="/rehberler" style="color: #059669; text-decoration: none;">Özgün Rehberler</a>
+            <a href="/odaklan" style="color: #334155; text-decoration: none;">Odaklanma Modu</a>
+            <a href="/hakkimizda" style="color: #334155; text-decoration: none;">Hakkımızda</a>
+            <a href="/kunye" style="color: #334155; text-decoration: none;">Künye & İletişim</a>
+            <a href="/yayin-ilkeleri" style="color: #334155; text-decoration: none;">Yayın İlkeleri</a>
+          </nav>
+        </header>
 
-  const fullDescription = isEnglish
-    ? 'Read less. Listen more. Focus better. VOX cuts through the noise in current news, turns articles into audio podcasts with AI, and provides deep focus environments with legendary soundtracks.'
-    : 'Daha az oku. Daha çok dinle. Daha iyi odaklan. Güncel haber akışında kalabalıktan kurtulmanızı ve asıl olana odaklanmanızı sağlar. Haberleri podcaste çevirin, dizi-film müzikleri ve ambiyans ile derin odaklanın.';
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px;">
+          <section>
+            <h2 style="font-size: 20px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Günün Öne Çıkan Haberleri</h2>
+            <div>${articlesHtml || '<p>En son haberler güncelleniyor...</p>'}</div>
+          </section>
 
-  const url = `https://voxozet.com${reqPath}`;
-  const locale = isEnglish ? 'en_US' : 'tr_TR';
+          <aside>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+              <h3 style="font-size: 16px; margin: 0 0 8px 0; color: #0f172a;">Kurucu Notu: Karahan Bedel</h3>
+              <p style="font-size: 13px; color: #475569; line-height: 1.6; margin: 0 0 8px 0;">
+                VOX, bilgi kirliliğine karşı tarafsız özetler ve üretkenliği artıran sesli odaklanma alanları sunar.
+              </p>
+              <a href="/hakkimizda" style="color: #059669; font-size: 12px; font-weight: bold; text-decoration: none;">Vizyonumuzu İnceleyin &rarr;</a>
+            </div>
 
-  return template
-    .replace(/<title>.*?<\/title>/, `<title>${title}</title>`)
-    .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${title}" />`)
-    .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${description}" />`)
-    .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${title}" />`)
-    .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${fullDescription}" />`)
-    .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${url}" />`)
-    .replace(/<meta property="og:locale" content=".*?" \/>/, `<meta property="og:locale" content="${locale}" />`)
-    .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${title}" />`)
-    .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${fullDescription}" />`)
-    .replace(/<meta name="twitter:url" content=".*?" \/>/, `<meta name="twitter:url" content="${url}" />`);
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px;">
+              <h3 style="font-size: 16px; margin: 0 0 10px 0; color: #0f172a;">Öne Çıkan Rehberler</h3>
+              <ul style="padding-left: 16px; margin: 0; font-size: 13px;">${topGuidesHtml}</ul>
+            </div>
+          </aside>
+        </div>
+      </div>
+    `;
+
+    const defTitle = isEnglish
+      ? (isFocus ? 'VOX Focus | Read Less, Listen More, Focus Better' : 'VOX | Read Less, Listen More, Focus Better')
+      : (isFocus ? 'VOX | Odaklan' : 'VOX | Oku, Dinle, Odaklan');
+
+    const defDesc = isEnglish
+      ? 'Read less. Listen more. Focus better. Cut through the noise with AI podcast news and deep focus soundscapes.'
+      : 'Daha az oku. Daha çok dinle. Daha iyi odaklan. Güncel haber akışında kalabalıktan kurtulun; yapay zeka ile haberleri sesli dinleyin ve film müzikleriyle odaklanın.';
+
+    modifiedTemplate = modifiedTemplate
+      .replace(/<title>.*?<\/title>/, `<title>${defTitle}</title>`)
+      .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${defTitle}" />`)
+      .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${defDesc}" />`)
+      .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${defTitle}" />`)
+      .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${defDesc}" />`)
+      .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="https://voxozet.com${reqPath}" />`);
+  }
+
+  // Common Semantic Footer for all SSR Pages
+  const commonFooterHtml = `
+    <footer style="max-width: 900px; margin: 40px auto 20px auto; border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 12px; color: #64748b; font-family: sans-serif; text-align: center;">
+      <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;">
+        <a href="/hakkimizda" style="color: #64748b; text-decoration: none;">Hakkımızda</a>
+        <a href="/kunye" style="color: #64748b; text-decoration: none;">Künye & İletişim</a>
+        <a href="/yayin-ilkeleri" style="color: #64748b; text-decoration: none;">Yayın İlkeleri</a>
+        <a href="/rehberler" style="color: #64748b; text-decoration: none;">Rehberler</a>
+        <a href="/cerez-politikasi" style="color: #64748b; text-decoration: none;">Çerez Politikası</a>
+        <a href="/gizlilik" style="color: #64748b; text-decoration: none;">Gizlilik Politikası</a>
+        <a href="/kullanim-kosullari" style="color: #64748b; text-decoration: none;">Kullanım Koşulları</a>
+      </div>
+      <p style="margin: 0;">© 2026 VOX (voxozet.com) - Kurucu & Genel Yayın Yönetmeni: Karahan Bedel. Tüm hakları saklıdır.</p>
+    </footer>
+  `;
+
+  // Inject semantic SSR HTML into <div id="root">
+  // When React starts on client-side, ReactDOM.createRoot will hydrate/replace this instantly.
+  // Google AdSense bot, Mediapartners-Google, and SEO crawlers will read this full rich semantic content!
+  const fullPrerenderHtml = `<div id="root"><div id="vox-ssr-content">\n${semanticBodyHtml}\n${commonFooterHtml}\n</div></div>`;
+  modifiedTemplate = modifiedTemplate.replace(/<div id="root">[\s\S]*?<\/div>/, fullPrerenderHtml);
+
+  return modifiedTemplate;
 }
 
 // Serve frontend with Vite middleware in development or static dist in production

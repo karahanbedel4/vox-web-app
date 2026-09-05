@@ -15,7 +15,11 @@ import {
   Database,
   Cloud,
   Cpu,
-  Info
+  Info,
+  User,
+  LogIn,
+  LogOut,
+  CheckCircle2
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -29,6 +33,8 @@ import {
 import { UserProfile } from '../types';
 import { appStorage } from '../lib/storage';
 import { quotaMonitor, CloudQuotaReport } from '../lib/quotaMonitor';
+import { signOutApp } from '../lib/firebase';
+import { AuthModal } from './AuthModal';
 
 interface ProfileTabProps {
   user: UserProfile | null;
@@ -53,12 +59,31 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     return (appStorage.getItemSync('vox_theme') as 'dark' | 'light' | 'system') || 'dark';
   });
 
+  // Auth modal state
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
   // Clear Cache state
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [cacheClearedMsg, setCacheClearedMsg] = useState<string | null>(null);
 
   // Cloud Quota Report state
   const [quotaReport, setQuotaReport] = useState<CloudQuotaReport>(() => quotaMonitor.getReport());
+
+  const isLoggedIn = Boolean(user && user.authProvider !== 'guest' && user.email);
+
+  const handleSignOut = async () => {
+    triggerHaptic();
+    setIsSigningOut(true);
+    try {
+      await signOutApp();
+      onRefreshUser();
+    } catch (err) {
+      console.warn('Sign out notice:', err);
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   useEffect(() => {
     setQuotaReport(quotaMonitor.getReport());
@@ -119,6 +144,84 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
   return (
     <div className="pt-20 pb-28 px-4 max-w-md mx-auto space-y-6 text-on-surface">
+      {/* User Account Card (Logged-in vs Guest) */}
+      <section className="bg-surface-container/90 border border-white/10 p-5 rounded-3xl shadow-lg space-y-4">
+        {isLoggedIn ? (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3.5 min-w-0">
+              {user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName || 'Kullanıcı'}
+                  className="w-12 h-12 rounded-2xl object-cover border border-emerald-500/40 shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-black text-lg shrink-0">
+                  {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-base font-bold text-white truncate">
+                    {user?.displayName || 'VOX Kullanıcısı'}
+                  </h2>
+                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                    <CheckCircle2 className="w-2.5 h-2.5" />
+                    {user?.authProvider === 'google' ? 'Google' : 'E-posta'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 truncate mt-0.5">{user?.email}</p>
+                <p className="text-[10px] text-emerald-400/90 font-mono mt-0.5">Bulut Senkronizasyonu Aktif</p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/15 text-gray-400 hover:text-red-300 border border-white/10 hover:border-red-500/30 transition-all flex items-center gap-1 text-xs font-bold shrink-0 cursor-pointer"
+              title="Çıkış Yap"
+            >
+              {isSigningOut ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <LogOut className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden sm:inline">Çıkış</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 shrink-0">
+                <User className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-white">Misafir Kullanıcı</h2>
+                  <span className="text-[9px] font-medium text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+                    Giriş Yapılmadı
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5 leading-snug">
+                  Cihazlar arası eşitleme için hesabınızı bağlayabilirsiniz (isteğe bağlı).
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                triggerHaptic();
+                setIsAuthModalOpen(true);
+              }}
+              className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 transition-all cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Giriş Yap / Hesap Bağla (Opsiyonel)</span>
+            </button>
+          </div>
+        )}
+      </section>
+
       {/* Lead Magnet Banner: VOX iOS App */}
       <section 
         onClick={() => { triggerHaptic(); if (onOpenPaywall) onOpenPaywall(); }}
@@ -163,7 +266,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             </p>
             <p className="text-emerald-400 text-[10px] flex items-center gap-1 font-bold">
               <TrendingUp className="w-3 h-3" />
-              <span>Misafir Oturumu Aktif</span>
+              <span>{isLoggedIn ? 'Kullanıcı Hesabı Bağlı' : 'Misafir Oturumu Aktif'}</span>
             </p>
           </div>
 
@@ -397,6 +500,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
         )}
       </section>
+
+      {/* Optional Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={() => {
+          onRefreshUser();
+        }}
+      />
     </div>
   );
 };

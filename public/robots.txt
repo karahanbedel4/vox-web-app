@@ -9,12 +9,22 @@ Allow: /saglik
 Allow: /haber/
 Allow: /odaklan
 Allow: /kitaplik
+Allow: /rehberler
+Allow: /rehber/
+Allow: /hakkimizda
+Allow: /kunye
+Allow: /yayin-ilkeleri
+Allow: /cerez-politikasi
+Allow: /gizlilik
+Allow: /kullanim-kosullari
 Disallow: /api/
 Disallow: /api/*
 
 User-agent: Googlebot
 Allow: /
 Allow: /haber/
+Allow: /rehber/
+Allow: /rehberler
 
 User-agent: Googlebot-News
 Allow: /
