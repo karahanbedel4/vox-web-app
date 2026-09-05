@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown, Send, Radio, Zap } from 'lucide-react';
 import { Article } from '../types';
-import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl, sanitizeNewsText } from '../lib/newsService';
+import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl, sanitizeNewsText, isDummyArticle } from '../lib/newsService';
 import { getArticlesPaginated } from '../lib/firebase';
 import { cacheTop3Articles } from '../lib/offlineService';
 import { useTheme } from '../lib/ThemeContext';
@@ -22,20 +22,6 @@ interface DashboardViewProps {
   onOpenPaywall: (reason?: 'limit_reached' | 'pages_exceeded' | 'not_logged_in') => void;
 }
 
-function isDummyArticle(a: Article): boolean {
-  if (!a || !a.id || !a.title) return true;
-  const id = a.id.toLowerCase();
-  const title = (a.title || '').toLowerCase();
-  return id.includes('quantum-geopolitics') || 
-         id.includes('silicon-forest') || 
-         id.includes('ethics-of-ai') || 
-         id.includes('dunya-diplomasi-2026') || 
-         id.includes('kultur-sanat-dijital-muze') ||
-         id.includes('fallback_') ||
-         title.includes('quantum geopolitics') ||
-         title.includes('silicon forest') ||
-         title.includes('yapay zeka etiği');
-}
 
 function formatTwitterAuthor(author?: string): string {
   if (!author) return 'Özet Geç Haber';

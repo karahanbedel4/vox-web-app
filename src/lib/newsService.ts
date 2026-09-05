@@ -44,6 +44,34 @@ export function sanitizeNewsText(str: string): string {
   return text.replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n\n').trim();
 }
 
+/**
+ * Strict dummy article checker to filter out mock / placeholder news
+ */
+export function isDummyArticle(a: Article | null | undefined): boolean {
+  if (!a || !a.title) return true;
+  const id = (a.id || '').toLowerCase();
+  const title = (a.title || '').toLowerCase().trim();
+  const summary = (a.summary || '').toLowerCase();
+  const content = (a.content || '').toLowerCase();
+
+  return id.includes('quantum-geopolitics') || 
+         id.includes('silicon-forest') || 
+         id.includes('ethics-of-ai') || 
+         id.includes('dunya-diplomasi-2026') || 
+         id.includes('kultur-sanat-dijital-muze') ||
+         id.includes('fallback_') ||
+         id.includes('tweet_tr_') ||
+         title.includes('quantum geopolitics') ||
+         title.includes('silicon forest') ||
+         title.includes('yapay zeka etiği') ||
+         title.includes('türkiye genelinde enerji ve lojistik') ||
+         title.includes('turkiye genelinde enerji ve lojistik') ||
+         summary.includes('türkiye genelinde enerji ve lojistik') ||
+         summary.includes('turkiye genelinde enerji ve lojistik') ||
+         content.includes('türkiye genelinde enerji ve lojistik') ||
+         content.includes('turkiye genelinde enerji ve lojistik');
+}
+
 const TOPIC_PHOTOS: Record<string, string[]> = {
   police: [
     'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80',
@@ -876,7 +904,7 @@ export async function fetchRealTweets(category?: string, forceRefresh = false): 
             createdAt: item.createdAt || new Date().toISOString(),
             keyPoints: [cleanTitle, `Kaynak: 𝕏 ${item.author || 'VOX'}`, `Kategori: ${item.category || 'Gündem'}`]
           };
-        });
+        }).filter((a: Article) => !isDummyArticle(a));
         fetchedArticles.push(...mapped);
       }
     }
@@ -1039,10 +1067,10 @@ export async function fetchNewsByCategory(category: string = 'Tümü', lang: str
   // 6. Aggregate Web RSS articles + Twitter articles into one single array
   const allCombined = [...twitterArticles, ...articles];
 
-  // Deduplicate by title
+  // Deduplicate by title & strictly filter out any dummy articles
   const uniqueMap = new Map<string, Article>();
   allCombined.forEach(a => {
-    if (a.title && !uniqueMap.has(a.title.toLowerCase().trim())) {
+    if (a.title && !isDummyArticle(a) && !uniqueMap.has(a.title.toLowerCase().trim())) {
       uniqueMap.set(a.title.toLowerCase().trim(), a);
     }
   });

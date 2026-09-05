@@ -52,7 +52,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Article } from '../types';
 import { triggerHapticImpact, triggerHapticNotification } from '../lib/haptics';
 import { AmbientChannel } from './AmbientMixerSheet';
-import { fetchNewsByCategory } from '../lib/newsService';
+import { fetchNewsByCategory, isDummyArticle } from '../lib/newsService';
 import { appStorage } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
 import { woodRainSynth } from '../lib/audioSynth';
@@ -498,14 +498,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   // Right side news list (Filtered for real news & tweets, no dummy items)
   const displayArticles = useMemo(() => {
     const raw = liveNews.length > 0 ? liveNews : articles;
-    return raw.filter(a => 
-      a && a.title && 
-      !a.id.includes('quantum-geopolitics') && 
-      !a.id.includes('silicon-forest') && 
-      !a.id.includes('ethics-of-ai') &&
-      !a.id.includes('dunya-diplomasi-2026') &&
-      !a.id.includes('kultur-sanat-dijital-muze')
-    ).slice(0, 12);
+    return raw.filter(a => a && a.title && !isDummyArticle(a)).slice(0, 12);
   }, [liveNews, articles]);
 
   return (

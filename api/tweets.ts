@@ -9,43 +9,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  // Curated instant live news stream items
-  const now = new Date().toISOString();
-  const tweets = [
-    {
-      id: `tweet_tr_1_${Date.now()}`,
-      title: 'Türkiye genelinde enerji ve lojistik koridoru projelerinde yeni etaplar hizmete alınıyor.',
-      summary: 'Akdeniz ve Marmara havzasında temiz enerji iletim hatları ve modern demiryolu bağlantıları devreye girdi.',
-      content: 'Enerji ve Tabii Kaynaklar Bakanlığı ile Ulaştırma Bakanlığı koordinasyonunda yürütülen altyapı yatırımlarıyla bölgesel kalkınma hızlanıyor.',
-      category: 'Gündem',
-      author: 'VOX Gündem',
-      sourceType: 'twitter',
-      sourceUrl: 'https://x.com',
-      createdAt: now
-    },
-    {
-      id: `tweet_tr_2_${Date.now()}`,
-      title: 'Merkez Bankası likidite adımları ve piyasa göstergelerinde istikrarlı seyir devam ediyor.',
-      summary: 'Dezenflasyon süreci ve dış kaynak girişleriyle birlikte finansal göstergelerde pozitif dengelenme sürüyor.',
-      content: 'Ekonomi yönetimi ve TCMB kararlı adımlarıyla iç ve dış piyasalarda güven endekslerinin güçlendiği belirtiliyor.',
-      category: 'Ekonomi',
-      author: 'VOX Finans',
-      sourceType: 'twitter',
-      sourceUrl: 'https://x.com',
-      createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString()
-    },
-    {
-      id: `tweet_tr_3_${Date.now()}`,
-      title: 'Yerli teknoloji girişimleri yapay zeka ve mikroelektronik AR-GE çalışmalarında hız kazanıyor.',
-      summary: 'TÜBİTAK destekli yeni nesil dil modelleri ve çip tasarımı laboratuvarlarında yeni prototipler test edildi.',
-      content: 'Savunma, sivil havacılık ve sağlık sektörlerinde kullanılacak yerli algoritmalar küresel standartlara ulaştı.',
-      category: 'Teknoloji',
-      author: 'VOX Teknoloji',
-      sourceType: 'twitter',
-      sourceUrl: 'https://x.com',
-      createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString()
-    }
+  // Fetch real tweets via live mirrors without hardcoded dummy fallback
+  const accounts = [
+    { username: 'ConflictTR', name: 'Conflict TR', category: 'Gündem' },
+    { username: 'ozetgechaber', name: 'Özet Geç Haber', category: 'Teknoloji' },
+    { username: 'vaziyetcomtr', name: 'Vaziyet', category: 'Ekonomi' }
   ];
+
+  const tweets: any[] = [];
+
+  try {
+    const fetchPromises = accounts.map(async (acc) => {
+      const mirrors = [
+        `https://nitter.poast.org/${acc.username}/rss`,
+        `https://rsshub.app/twitter/user/${acc.username}`
+      ];
+
+      for (const mirror of mirrors) {
+        try {
+          const resp = await fetch(mirror, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VoxBot/1.0)' },
+            signal: AbortSignal.timeout(3000)
+          });
+          if (resp.ok) {
+            const xml = await resp.text();
+            const itemRegex = /<item[\s\S]*?<\/item>/gi;
+            const matches = xml.match(itemRegex) || [];
+            return matches.slice(0, 5).map((itemBlock, idx) => {
+              const titleMatch = itemBlock.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+              const descMatch = itemBlock.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
+              const linkMatch = itemBlock.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+              const rawTitle = titleMatch ? titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1').replace(/<[^>]+>/g, '').trim() : '';
+              const rawDesc = descMatch ? descMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1').replace(/<[^>]+>/g, '').trim() : '';
+              const clean = (rawDesc || rawTitle).replace(/https?:\/\/[^\s]+/g, '').trim();
+              if (!clean) return null;
+              return {
+                id: `tweet_${acc.username}_${idx}_${Date.now()}`,
+                title: rawTitle || clean.substring(0, 80),
+                summary: clean,
+                content: clean,
+                category: acc.category,
+                author: acc.name,
+                sourceType: 'twitter',
+                sourceUrl: linkMatch ? linkMatch[1] : `https://x.com/${acc.username}`,
+                createdAt: new Date().toISOString()
+              };
+            }).filter(Boolean);
+          }
+        } catch (e) {}
+      }
+      return [];
+    });
+
+    const results = await Promise.all(fetchPromises);
+    results.forEach(list => {
+      if (Array.isArray(list)) tweets.push(...list);
+    });
+  } catch (err) {}
 
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120');

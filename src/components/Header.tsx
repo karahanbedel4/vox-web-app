@@ -58,12 +58,6 @@ export const Header: React.FC<HeaderProps> = ({
           <VoxLogo size={isScrolled ? 'xs' : 'sm'} />
         </Link>
 
-        {isPremium && (
-          <span className="bg-primary/15 border border-primary/40 text-primary text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1 shadow-sm">
-            <Sparkles className="w-2.5 h-2.5 fill-current" />
-            PRO
-          </span>
-        )}
         {streakInfo && streakInfo.currentStreak > 0 && (
           <div
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border transition-all ${

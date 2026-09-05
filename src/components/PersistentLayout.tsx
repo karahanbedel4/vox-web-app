@@ -667,7 +667,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           <VoxLogo size="md" />
         </Link>
 
-        {/* Right: Quick Controls (User / Ambient Sound / PRO Button) */}
+        {/* Right: Quick Controls (User / Ambient Sound) */}
         <div className="flex items-center gap-1.5 -mr-1">
           {/* Mobile Header User Account Quick Action */}
           <button
@@ -709,15 +709,6 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             {isAmbientActive && (
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             )}
-          </button>
-
-          <button
-            onClick={() => onOpenPaywall('limit_reached')}
-            className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-black tracking-wider flex items-center gap-1 uppercase hover:bg-emerald-500/25 active:scale-95 transition-all"
-            title="VOX Premium"
-          >
-            <Sparkles className="w-3 h-3 fill-current" />
-            <span>PRO</span>
           </button>
         </div>
       </header>
