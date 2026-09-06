@@ -281,7 +281,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         theme === 'light' ? 'border-slate-200' : 'border-white/5'
       }`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shrink-0">
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+            theme === 'light'
+              ? 'bg-slate-100 border-slate-200 text-slate-800'
+              : 'bg-white/5 border-white/10 text-white'
+          }`}>
             <Newspaper className="w-5 h-5" />
           </div>
           <div>
@@ -289,11 +293,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               theme === 'light' ? 'text-slate-950' : 'text-white'
             }`}>
               <span>Haber Akışı</span>
-              <span className="text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+              <span className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                theme === 'light'
+                  ? 'bg-slate-100 text-slate-700 border-slate-200'
+                  : 'bg-white/10 text-zinc-300 border-white/10'
+              }`}>
                 {displayList.length} Haber
               </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 Canlı
               </span>
             </h1>
@@ -317,8 +325,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               placeholder="Haberlerde ara..."
               className={`w-full rounded-xl pl-8 pr-8 py-2 text-xs focus:outline-none transition-all shadow-inner ${
                 theme === 'light'
-                  ? 'bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-emerald-600'
-                  : 'bg-[#121814] border border-white/10 text-white placeholder-gray-500 focus:border-emerald-500'
+                  ? 'bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-slate-500'
+                  : 'bg-[#141715] border border-white/10 text-white placeholder-gray-500 focus:border-white/30'
               }`}
             />
             {searchQuery ? (
@@ -336,7 +344,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <button
             onClick={() => loadCategoryArticles(false)}
             disabled={isRefreshing}
-            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 shrink-0 cursor-pointer"
+            className={`border px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 shrink-0 cursor-pointer ${
+              theme === 'light'
+                ? 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm'
+                : 'bg-white/5 hover:bg-white/10 text-zinc-300 border-white/10'
+            }`}
             title="Haberleri Yenile"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -356,14 +368,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 setActiveCategory(tab);
                 setGoogleSearchResults(null);
               }}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                 isActive
                   ? theme === 'light'
-                    ? 'bg-emerald-800 text-white shadow-sm border border-emerald-800'
-                    : 'bg-[#143d2b] text-emerald-300 border border-emerald-500/40 shadow-sm'
+                    ? 'bg-slate-900 text-white shadow-sm border border-slate-900'
+                    : 'bg-white text-slate-900 shadow-sm font-bold'
                   : theme === 'light'
                     ? 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
-                    : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10'
+                    : 'bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white border border-white/10'
               }`}
             >
               {tab === 'Tümü' && '🌐 '}
@@ -379,9 +391,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         })}
 
         {googleSearchResults !== null && (
-          <div className="flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-bold text-emerald-400">
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${
+            theme === 'light'
+              ? 'bg-slate-100 text-slate-800 border-slate-300'
+              : 'bg-white/10 text-zinc-200 border-white/15'
+          }`}>
             <span>Arama Sonuçları ({googleSearchResults.length})</span>
-            <button onClick={handleClearSearch} className="hover:text-white cursor-pointer">
+            <button onClick={handleClearSearch} className="hover:opacity-75 cursor-pointer">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -393,11 +409,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="sticky top-20 z-30 flex justify-center">
           <button
             onClick={handleApplyNewArticles}
-            className="bg-[#1ed760] hover:bg-[#1bc456] text-black font-black px-5 py-2.5 rounded-full shadow-[0_8px_25px_rgba(30,215,96,0.4)] flex items-center gap-2.5 text-xs transition-all transform hover:scale-105 active:scale-95 cursor-pointer animate-bounce"
+            className={`font-semibold px-4 py-2 rounded-full shadow-xl flex items-center gap-2 text-xs transition-all transform hover:scale-105 active:scale-95 cursor-pointer border ${
+              theme === 'light'
+                ? 'bg-slate-900 text-white border-slate-700'
+                : 'bg-white text-slate-900 border-zinc-200'
+            }`}
           >
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-black"></span>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span>{newArticlesCount} Yeni Haber Geldi — Akışı Güncelle</span>
             <ArrowUp className="w-3.5 h-3.5" />
@@ -410,28 +430,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="space-y-4">
           <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
             theme === 'light'
-              ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
-              : 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200'
+              ? 'bg-slate-50 border-slate-200 text-slate-800'
+              : 'bg-white/[0.03] border-white/10 text-zinc-300'
           }`}>
             <div className="flex items-center gap-3">
-              <div className="relative w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
-                <Radio className="w-4 h-4 text-emerald-400 relative z-10" />
+              <div className="relative w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <Radio className="w-4 h-4 text-emerald-500 relative z-10" />
               </div>
               <div>
                 <p className="text-xs font-bold flex items-center gap-1.5">
-                  <span>VOX Akıllı Canlı Akış Taranıyor...</span>
-                  <span className="text-[10px] font-medium opacity-80">(Son 10-15 dk gelişmeler)</span>
+                  <span>VOX Canlı Akış Taranıyor...</span>
+                  <span className="text-[10px] font-normal opacity-75">(Son dakika gelişmeleri)</span>
                 </p>
-                <p className="text-[11px] opacity-75">TRT, NTV, Habertürk ve canlı RSS akışları çekiliyor...</p>
+                <p className="text-[11px] opacity-75">TRT, NTV, Habertürk ve canlı kaynak akışları kontrol ediliyor...</p>
               </div>
             </div>
-            <RefreshCw className="w-4 h-4 text-emerald-400 animate-spin shrink-0" />
+            <RefreshCw className="w-4 h-4 text-zinc-400 animate-spin shrink-0" />
           </div>
 
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className={`p-4 rounded-2xl flex gap-4 items-center animate-pulse ${
-              theme === 'light' ? 'bg-white border border-slate-200' : 'bg-[#161c23] border border-white/5'
+              theme === 'light' ? 'bg-white border border-slate-200' : 'bg-[#141715] border border-white/5'
             }`}>
               <div className={`w-24 h-24 rounded-xl shrink-0 ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
               <div className="flex-1 space-y-2">
@@ -448,7 +467,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       ) : displayList.length === 0 ? (
         <div className={`text-center py-16 rounded-3xl space-y-3 ${
-          theme === 'light' ? 'bg-white border border-slate-200' : 'bg-[#161c23] border border-white/5'
+          theme === 'light' ? 'bg-white border border-slate-200' : 'bg-[#141715] border border-white/5'
         }`}>
           <Newspaper className="w-12 h-12 text-gray-400 mx-auto" />
           <h3 className={`text-base font-bold ${theme === 'light' ? 'text-slate-800' : 'text-gray-300'}`}>Haber Bulunamadı</h3>
@@ -470,14 +489,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div
                   className={`p-4 md:p-5 rounded-2xl flex flex-col md:flex-row gap-4 md:items-center justify-between transition-all group ${
                     theme === 'light'
-                      ? 'bg-white border border-slate-200 hover:border-[#1ed760]/60 shadow-sm hover:shadow-md'
-                      : 'bg-[#161c23] border border-white/5 hover:border-[#1ed760]/30 shadow-sm hover:shadow-[0_0_20px_rgba(30,215,96,0.06)]'
+                      ? 'bg-white border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md'
+                      : 'bg-[#141715] border border-white/5 hover:border-white/15 shadow-sm'
                   }`}
                 >
                   {/* Thumbnail Image */}
                   <div
                     onClick={() => handleArticleCardClick(article)}
-                    className="relative w-full md:w-36 h-36 md:h-28 rounded-xl overflow-hidden shrink-0 bg-[#0e1410] border border-white/5 cursor-pointer group-hover:scale-[1.02] transition-transform"
+                    className="relative w-full md:w-36 h-36 md:h-28 rounded-xl overflow-hidden shrink-0 bg-slate-900 border border-white/5 cursor-pointer group-hover:scale-[1.01] transition-transform"
                   >
                     <img
                       src={sanitizeImageUrl(article.imageUrl) || getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
@@ -493,18 +512,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
                     {article.sourceType === 'twitter' && (
-                      <span className="absolute top-2 right-2 text-[10px] font-black text-white bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/15 shadow-sm">
-                        <XLogoIcon className="w-2.5 h-2.5 text-[#1ed760]" />
+                      <span className="absolute top-2 right-2 text-[10px] font-bold text-white bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/15 shadow-sm">
+                        <XLogoIcon className="w-2.5 h-2.5 text-zinc-300" />
                         <span>𝕏</span>
                       </span>
                     )}
                     {article.sourceType === 'telegram' && (
-                      <span className="absolute top-2 right-2 text-[10px] font-black text-white bg-[#229ED9]/90 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/20 shadow-sm">
+                      <span className="absolute top-2 right-2 text-[10px] font-bold text-white bg-[#229ED9]/90 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/20 shadow-sm">
                         <Send className="w-2.5 h-2.5 text-white" />
                         <span>TG</span>
                       </span>
                     )}
-                    <span className="absolute bottom-2 left-2 text-[10px] font-mono text-[#1ed760] bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded font-bold border border-[#1ed760]/20">
+                    <span className="absolute bottom-2 left-2 text-[10px] font-mono text-zinc-300 bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded font-medium border border-white/10">
                       {Math.floor((article.durationSeconds || 90) / 60)} dk
                     </span>
                   </div>
@@ -513,20 +532,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
-                          article.sourceType === 'twitter'
-                            ? 'text-[#1ed760] bg-[#1ed760]/10 border-[#1ed760]/30'
-                            : article.sourceType === 'telegram'
-                            ? 'text-[#229ED9] bg-[#229ED9]/10 border-[#229ED9]/30'
-                            : 'text-[#1ed760] bg-[#1ed760]/10 border-[#1ed760]/20'
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                          theme === 'light'
+                            ? 'bg-slate-100 text-slate-700 border-slate-200'
+                            : 'bg-white/5 text-zinc-300 border-white/10'
                         }`}>
                           {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : article.sourceType === 'telegram' ? 'Telegram Canlı' : (article.category || activeCategory)}
                         </span>
                         {article.sourceType === 'twitter' ? (
                           <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                            theme === 'light' ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white/5 border-white/10 text-emerald-300'
+                            theme === 'light' ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white/5 border-white/10 text-zinc-300'
                           }`}>
-                            <XLogoIcon className="w-3 h-3 text-[#1ed760]" />
+                            <XLogoIcon className="w-3 h-3 text-zinc-400" />
                             <span>{formatTwitterAuthor(article.author)}</span>
                           </span>
                         ) : article.sourceType === 'telegram' ? (
@@ -537,7 +554,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             <span>{article.author}</span>
                           </span>
                         ) : (
-                          <span className={`text-xs font-mono font-medium ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>
+                          <span className={`text-xs font-medium ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>
                             {article.author || 'Anadolu Ajansı'}
                           </span>
                         )}
@@ -547,18 +564,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         onClick={() => onOpenPaywall('limit_reached')}
                         className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                           isBookmarked 
-                            ? 'text-[#1ed760] bg-[#1ed760]/10' 
+                            ? 'text-amber-500 bg-amber-500/10' 
                             : theme === 'light' ? 'text-slate-400 hover:text-slate-700' : 'text-gray-500 hover:text-gray-300'
                         }`}
                         title="Haberleri kaydetmek için VOX iOS uygulamasını indirin"
                       >
-                        <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-[#1ed760]' : ''}`} />
+                        <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-amber-500' : ''}`} />
                       </button>
                     </div>
 
                     <h3
                       onClick={() => handleArticleCardClick(article)}
-                      className={`font-display text-base md:text-lg font-bold group-hover:text-[#1ed760] transition-colors cursor-pointer leading-snug ${
+                      className={`font-display text-base md:text-lg font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors cursor-pointer leading-snug ${
                         theme === 'light' ? 'text-slate-900' : 'text-white'
                       }`}
                     >
@@ -579,24 +596,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       {/* Read Text Button -> Navigates to /haber/:slug */}
                       <button
                         onClick={() => handleArticleCardClick(article)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                           theme === 'light'
                             ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
                             : 'bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10'
                         }`}
                       >
-                        <BookOpen className="w-3.5 h-3.5 text-[#1ed760]" />
+                        <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
                         <span>Haberi Oku</span>
                       </button>
 
-                      {/* HIGH-ENERGY CTA BUTTON -> Opens App Store Marketing Modal */}
+                      {/* ELEGANT APPLE-STYLE CTA BUTTON */}
                       <button
                         onClick={() => onOpenPaywall('limit_reached')}
-                        className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(249,115,22,0.3)] hover:shadow-[0_0_20px_rgba(249,115,22,0.45)] active:scale-95 cursor-pointer"
+                        className={`font-semibold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer border ${
+                          theme === 'light'
+                            ? 'bg-slate-900 hover:bg-slate-800 text-white border-slate-800'
+                            : 'bg-white hover:bg-zinc-100 text-slate-950 border-white'
+                        }`}
                         title="Sesli dinlemek için iOS uygulamasını indirin"
                       >
                         <span> Uygulamada Dinle</span>
-                        <Lock className="w-3 h-3 text-white" />
+                        <Lock className="w-3 h-3 opacity-80" />
                       </button>
                     </div>
                   </div>

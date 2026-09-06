@@ -315,7 +315,7 @@ export const ReadTab: React.FC<ReadTabProps> = ({
           }}
           className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border transition-all ${
             isZenMode 
-              ? 'bg-primary text-on-primary border-primary shadow-[0_0_12px_rgba(78,222,163,0.4)]' 
+              ? 'bg-primary text-on-primary border-primary shadow-sm' 
               : 'bg-surface-container/80 text-on-surface-variant border-white/10 hover:border-white/20'
           }`}
           title="Okuma Modu (Sadece metne odaklan, gezinti menülerini gizle)"
@@ -351,7 +351,7 @@ export const ReadTab: React.FC<ReadTabProps> = ({
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                   selectedCategory === cat
-                    ? 'bg-primary text-on-primary shadow-[0_0_12px_rgba(78,222,163,0.3)] font-bold'
+                    ? 'bg-primary text-on-primary shadow-sm font-bold'
                     : 'bg-surface-container/80 text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
@@ -375,7 +375,7 @@ export const ReadTab: React.FC<ReadTabProps> = ({
 
       {/* Currently Playing Active Mini Player Bar */}
       {currentArticle && (
-        <div className="bg-surface-container/90 border border-primary/30 p-3 rounded-2xl flex items-center justify-between shadow-[0_0_20px_rgba(78,222,163,0.15)] animate-fade-in">
+        <div className="bg-surface-container/90 border border-primary/30 p-3 rounded-2xl flex items-center justify-between shadow-lg animate-fade-in">
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary shrink-0">
               <Volume2 className={`w-5 h-5 ${isPlaying ? 'animate-bounce' : ''}`} />
@@ -928,7 +928,7 @@ export const ReadTab: React.FC<ReadTabProps> = ({
                 onClick={() => {
                   onPlayArticle(readingArticle);
                 }}
-                className="flex-1 bg-primary text-on-primary py-3.5 rounded-full font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(78,222,163,0.3)] active:scale-95 transition-transform"
+                className="flex-1 bg-primary text-on-primary py-3.5 rounded-full font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md"
               >
                 <Play className="w-4 h-4 fill-current" />
                 <span>{isPlaying && currentArticle?.id === readingArticle.id ? 'Seslendirmeyi Duraklat' : 'Karaoke Modunda Oku & Dinle'}</span>
@@ -968,7 +968,7 @@ export const ReadTab: React.FC<ReadTabProps> = ({
                     onClick={() => toggleFavoriteCategory(interest)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
                       isSelected
-                        ? 'bg-primary text-on-primary font-bold shadow-[0_0_12px_rgba(78,222,163,0.3)]'
+                        ? 'bg-primary text-on-primary font-bold shadow-sm'
                         : 'bg-surface-container-high/80 text-on-surface-variant hover:bg-surface-container-highest border border-white/5'
                     }`}
                   >
@@ -985,7 +985,7 @@ export const ReadTab: React.FC<ReadTabProps> = ({
                   setShowInterestsModal(false);
                   loadCategoryNews(true);
                 }}
-                className="w-full bg-primary text-on-primary py-3 rounded-xl text-xs font-bold active:scale-95 transition-transform shadow-[0_0_15px_rgba(78,222,163,0.3)]"
+                className="w-full bg-primary text-on-primary py-3 rounded-xl text-xs font-bold active:scale-95 transition-transform shadow-md"
               >
                 Kaydet ve Akışı Yenile ({favoriteCategories.length} Seçili)
               </button>

@@ -404,9 +404,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 title="Profilime Git"
               >
                 {user?.photoURL ? (
-                  <img src={user.photoURL} alt="Avatar" className="w-6 h-6 rounded-lg object-cover border border-emerald-500/40" />
+                  <img src={user.photoURL} alt="Avatar" className="w-6 h-6 rounded-lg object-cover border border-white/15" />
                 ) : (
-                  <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold text-[10px] flex items-center justify-center border border-emerald-500/40">
+                  <div className="w-6 h-6 rounded-lg bg-white/10 text-white font-bold text-[10px] flex items-center justify-center border border-white/15">
                     {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
                   </div>
                 )}
@@ -414,10 +414,10 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                className="text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
                 title="Giriş Yap (İsteğe Bağlı)"
               >
-                <User className="w-3 h-3" />
+                <User className="w-3 h-3 text-zinc-400" />
                 <span>Giriş</span>
               </button>
             )}
@@ -429,33 +429,33 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             <NavLink
               to="/"
               className={({ isActive }) =>
-                `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                `flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold tracking-wide transition-all ${
                   isActive || location.pathname === '/' || location.pathname === '/gundem' || location.pathname === '/teknoloji' || location.pathname === '/ekonomi'
-                    ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-white/10 text-white border border-white/10 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`
               }
             >
-              <div className="flex items-center gap-2">
-                <Newspaper className="w-4 h-4 text-[#10b981]" />
+              <div className="flex items-center gap-2.5">
+                <Newspaper className="w-4 h-4 text-emerald-400" />
                 <span>GÜNDEM</span>
               </div>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             </NavLink>
 
             {/* ODAKLAN */}
             <NavLink
               to="/odaklan"
               className={({ isActive }) =>
-                `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                `flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold tracking-wide transition-all ${
                   isActive
-                    ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-white/10 text-white border border-white/10 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`
               }
             >
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-[#10b981]" />
+              <div className="flex items-center gap-2.5">
+                <Target className="w-4 h-4 text-emerald-400" />
                 <span>ODAKLAN</span>
               </div>
             </NavLink>
@@ -464,15 +464,15 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             <NavLink
               to="/profil"
               className={({ isActive }) =>
-                `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                `flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold tracking-wide transition-all ${
                   isActive
-                    ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-white/10 text-white border border-white/10 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`
               }
             >
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-[#10b981]" />
+              <div className="flex items-center gap-2.5">
+                <User className="w-4 h-4 text-emerald-400" />
                 <span>{isLoggedIn ? 'HESABIM' : 'HESAP'}</span>
               </div>
               {isLoggedIn && (
@@ -1148,7 +1148,11 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
 
                 <button
                   onClick={handleTogglePlay}
-                  className="w-10 h-10 rounded-full bg-[#1ed760] text-black font-bold flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(30,215,96,0.3)] cursor-pointer"
+                  className={`w-10 h-10 rounded-full font-bold flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer border ${
+                    theme === 'light'
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'bg-white text-slate-950 border-white'
+                  }`}
                   title={playbackState.isPlaying ? 'Duraklat' : 'Oynat'}
                 >
                   {playbackState.isPlaying ? (
@@ -1326,11 +1330,11 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 {/* Bullet Points / Key Points */}
                 {readingArticle.keyPoints && readingArticle.keyPoints.length > 0 && (
                   <div className="bg-[#1a221d] p-4 sm:p-5 rounded-2xl space-y-3 border border-white/10">
-                    <span className="text-xs font-extrabold text-[#1ed760] uppercase tracking-wider block">Öne Çıkan Başlıklar</span>
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">Öne Çıkan Başlıklar</span>
                     <ul className="space-y-2.5 text-xs sm:text-sm text-gray-200">
                       {readingArticle.keyPoints.map((kp, idx) => (
                         <li key={idx} className="flex items-start gap-2.5 leading-relaxed">
-                          <span className="w-2 h-2 rounded-full bg-[#1ed760] mt-1.5 shrink-0 shadow-[0_0_8px_rgba(30,215,96,0.6)]"></span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 shrink-0"></span>
                           <span>{kp}</span>
                         </li>
                       ))}
@@ -1368,14 +1372,14 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                   onClick={() => {
                     onOpenPaywall('limit_reached');
                   }}
-                  className="flex-1 py-3.5 px-4 bg-[#1ed760] text-black font-extrabold text-xs sm:text-sm rounded-xl shadow-[0_0_20px_rgba(30,215,96,0.3)] hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 py-3.5 px-4 bg-white hover:bg-zinc-100 text-slate-950 font-bold text-xs sm:text-sm rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                 >
                   <span> Uygulamada Dinle 🔒</span>
                 </button>
 
                 <button
                   onClick={() => setReadingArticle(null)}
-                  className="px-6 py-3.5 bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer"
+                  className="px-6 py-3.5 bg-white/5 hover:bg-white/10 text-gray-300 font-semibold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer border border-white/5"
                 >
                   Kapat
                 </button>
@@ -1400,7 +1404,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.25 }}
-            className="fixed bottom-24 md:bottom-20 left-4 z-50 max-w-sm rounded-xl bg-surface-variant/90 backdrop-blur-md border border-[#1ed760]/30 shadow-2xl p-4 text-white"
+            className="fixed bottom-24 md:bottom-20 left-4 z-50 max-w-sm rounded-2xl bg-surface-variant/95 backdrop-blur-md border border-white/10 shadow-xl p-4 text-white"
           >
             <div className="flex items-start gap-3">
               <span className="text-xl shrink-0 mt-0.5" role="img" aria-label="cookie">🍪</span>
@@ -1411,7 +1415,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handleAcceptCookies}
-                    className="px-3.5 py-1.5 rounded-lg bg-[#1ed760] text-black font-bold text-xs hover:brightness-110 active:scale-95 transition-all shadow-[0_0_15px_rgba(30,215,96,0.3)] cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-zinc-100 text-slate-950 font-bold text-xs active:scale-95 transition-all shadow-sm cursor-pointer"
                   >
                     Kabul Et
                   </button>

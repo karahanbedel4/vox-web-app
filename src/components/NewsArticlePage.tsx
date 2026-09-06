@@ -362,10 +362,14 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
           <button
             id="btn-article-play-audio"
             onClick={() => onPlayArticle(article)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
               isPlaying
-                ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]'
-                : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
+                ? theme === 'light'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                  : 'bg-white text-slate-950 border-white shadow-sm'
+                : theme === 'light'
+                ? 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200'
+                : 'bg-white/5 text-zinc-200 border-white/10 hover:bg-white/10'
             }`}
             title="Haberi Sesli Dinle"
           >
@@ -382,18 +386,16 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             )}
           </button>
 
-
-
           {/* Bookmark Button */}
           <button
             id="btn-article-toggle-bookmark"
             onClick={() => onToggleBookmark(article)}
-            className={`p-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`p-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               isBookmarked
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
                 : theme === 'light'
-                ? 'text-slate-600 bg-slate-100 hover:bg-slate-200'
-                : 'text-gray-400 bg-white/5 hover:bg-white/10 hover:text-white'
+                ? 'text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200'
+                : 'text-gray-400 bg-white/5 hover:bg-white/10 hover:text-white border border-white/10'
             }`}
             title={isBookmarked ? 'Kaydedilenlerden Çıkar' : 'Haberi Kaydet'}
           >
@@ -404,17 +406,17 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
           <button
             id="btn-article-share"
             onClick={handleShare}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
               theme === 'light'
-                ? 'text-slate-700 bg-slate-100 hover:bg-slate-200'
-                : 'text-gray-300 bg-white/5 hover:bg-white/10 hover:text-white'
+                ? 'text-slate-700 bg-slate-100 hover:bg-slate-200 border-slate-200'
+                : 'text-gray-300 bg-white/5 hover:bg-white/10 hover:text-white border border-white/10'
             }`}
             title="Haberi Paylaş"
           >
             {isCopied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Kopyalandı</span>
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-emerald-500 font-bold">Kopyalandı</span>
               </>
             ) : (
               <>
@@ -439,12 +441,20 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
           
           {/* Metadata Row: Source Publisher Logo / Badge + Category + Time */}
           <div className="flex flex-wrap items-center gap-2.5 text-xs">
-            <span className="px-2.5 py-1 rounded-lg font-bold bg-white/10 text-white border border-white/10 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className={`px-2.5 py-1 rounded-lg font-semibold border flex items-center gap-1.5 ${
+              theme === 'light'
+                ? 'bg-slate-100 text-slate-800 border-slate-200'
+                : 'bg-white/10 text-white border-white/10'
+            }`}>
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
               {article.author || 'VOX Stüdyo'}
             </span>
 
-            <span className="px-2.5 py-1 rounded-lg font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className={`px-2.5 py-1 rounded-lg font-semibold border ${
+              theme === 'light'
+                ? 'bg-slate-100 text-slate-700 border-slate-200'
+                : 'bg-white/5 text-zinc-300 border-white/10'
+            }`}>
               {article.category || 'Gündem'}
             </span>
 
@@ -461,15 +471,17 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             {sanitizeNewsText(article.title)}
           </h1>
 
-          {/* Quick Summary Capsule (Bundle "Haberin Özeti" style) */}
+          {/* Quick Summary Capsule */}
           {article.summary && (
             <div className={`p-4 sm:p-5 rounded-2xl border transition-colors ${
               theme === 'light'
-                ? 'bg-emerald-50/60 border-emerald-200/80 text-emerald-950'
-                : 'bg-emerald-950/20 border-emerald-500/20 text-emerald-100'
+                ? 'bg-slate-50 border-slate-200 text-slate-800'
+                : 'bg-white/[0.03] border-white/10 text-zinc-200'
             }`}>
-              <div className="flex items-center gap-2 mb-2 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                <Sparkles className="w-4 h-4 fill-current" />
+              <div className={`flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-wider ${
+                theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
+              }`}>
+                <Sparkles className="w-4 h-4 text-emerald-500" />
                 <span>Haberin Özeti</span>
               </div>
               <p className="text-sm sm:text-base leading-relaxed font-medium">
@@ -536,79 +548,28 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             )}
           </div>
 
-          {/* DEDICATED PROMINENT "KAYNAK" SECTION AT THE BOTTOM OF THE ARTICLE */}
-          <section
-            id="article-source-section"
-            className={`mt-8 p-5 sm:p-6 rounded-2xl border transition-all ${
-              theme === 'light'
-                ? 'bg-slate-50/90 border-slate-300/80 shadow-sm text-slate-800'
-                : 'bg-gradient-to-br from-[#121915] via-[#0e1411] to-[#0c100e] border-emerald-500/30 text-gray-200 shadow-xl'
-            }`}
-          >
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-              <div className="flex items-start gap-3.5 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
-                  <Globe className="w-6 h-6" />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-500 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                      Kaynak & Yayıncı
-                    </span>
-                    <span className="text-xs font-bold text-gray-400">
-                      {article.author || 'Haber Merkezi'}
-                    </span>
-                  </div>
-                  <p className="text-sm font-semibold leading-snug">
-                    Bu haberin tam metni, tüm galerisi ve resmi detayları <strong className="text-emerald-500 dark:text-emerald-400 font-bold">{article.author || 'orijinal kaynak'}</strong> tarafından yayınlanmıştır.
-                  </p>
-                  {article.sourceUrl && (
-                    <p className="text-xs text-gray-400 truncate max-w-md font-mono pt-0.5">
-                      {(() => {
-                        try {
-                          return new URL(article.sourceUrl).hostname.replace('www.', '');
-                        } catch {
-                          return article.sourceUrl;
-                        }
-                      })()}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {article.sourceUrl && (() => {
-                const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
-                return (
-                  <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => setIsInAppViewerOpen(true)}
-                      className={`flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 ${
-                        theme === 'light'
-                          ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-sm'
-                          : 'bg-white/10 border-white/15 text-white hover:bg-white/15'
-                      }`}
-                      title="Haberi VOX içerisindeki önizleme penceresinde aç"
-                    >
-                      <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Sitede Önizle</span>
-                    </button>
-                    <a
-                      href={outboundUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => trackOutboundClick(article, outboundUrl)}
-                      className="flex-1 md:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
-                      title={`${article.author || 'Orijinal kaynak'} sitesinde tam haberi aç`}
-                    >
-                      <span>Orijinal Habere Git</span>
-                      <ExternalLink className="w-4 h-4 stroke-[2.5]" />
-                    </a>
-                  </div>
-                );
-              })()}
+          {/* Subtle Clean Source Attribution */}
+          <div className={`mt-8 pt-4 border-t flex items-center justify-between text-xs ${
+            theme === 'light' ? 'border-slate-200 text-slate-500' : 'border-white/10 text-zinc-400'
+          }`}>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Kaynak:</span>
+              <strong className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-zinc-200'}`}>
+                {article.author || 'Orijinal Kaynak'}
+              </strong>
             </div>
-          </section>
+            {article.sourceUrl && (
+              <span className="font-mono text-[11px] opacity-70">
+                {(() => {
+                  try {
+                    return new URL(article.sourceUrl).hostname.replace('www.', '');
+                  } catch {
+                    return '';
+                  }
+                })()}
+              </span>
+            )}
+          </div>
 
           {/* Mobile In-Article Ad Container */}
           <div className="block lg:hidden pt-4">
@@ -692,22 +653,32 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             </div>
 
             {/* 3. Pomodoro Focus Promo Card */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/50 to-[#121814] border border-emerald-500/30 text-white space-y-3">
+            <div className={`p-4 rounded-2xl border space-y-3 ${
+              theme === 'light'
+                ? 'bg-slate-50 border-slate-200 text-slate-800'
+                : 'bg-[#141715] border-white/10 text-white'
+            }`}>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wide flex items-center gap-1.5 text-emerald-400">
-                  <Headphones className="w-4 h-4" />
+                <span className={`text-xs font-bold uppercase tracking-wide flex items-center gap-1.5 ${
+                  theme === 'light' ? 'text-slate-700' : 'text-zinc-300'
+                }`}>
+                  <Headphones className="w-4 h-4 text-emerald-500" />
                   <span>Odaklanma Modu</span>
                 </span>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                   Canlı
                 </span>
               </div>
-              <p className="text-[11px] text-gray-300 leading-snug">
+              <p className={`text-[11px] leading-snug ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>
                 Haber okurken arkada sakinleştirici yağmur ve doğa sesleriyle derin odaklanmaya geçin.
               </p>
               <Link
                 to="/odaklan"
-                className="inline-flex items-center justify-between w-full px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold transition-all active:scale-95 shadow-md"
+                className={`inline-flex items-center justify-between w-full px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
+                  theme === 'light'
+                    ? 'bg-white hover:bg-slate-100 text-slate-800 border-slate-200 shadow-sm'
+                    : 'bg-white/10 hover:bg-white/15 text-white border-white/10'
+                }`}
               >
                 <span>Odaklanma Alanını Aç</span>
                 <ChevronRight className="w-4 h-4" />
@@ -719,38 +690,56 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
 
       </div>
 
-      {/* MOBILE STICKY FLOATING ORIGINAL ARTICLE BAR (Always accessible on scroll) */}
+      {/* UNIVERSAL FLOATING ORIGINAL ARTICLE BAR (Mobile, Tablet & Desktop) */}
       {article.sourceUrl && (() => {
         const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
         return (
-          <div className="sm:hidden fixed bottom-20 left-3 right-3 z-30 pointer-events-auto">
-            <div className={`p-3 rounded-2xl border shadow-2xl flex items-center justify-between gap-2.5 backdrop-blur-xl ${
+          <div className="fixed bottom-20 sm:bottom-6 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:min-w-[420px] sm:max-w-xl z-40 pointer-events-auto">
+            <div className={`px-4 py-2.5 rounded-2xl border shadow-2xl flex items-center justify-between gap-3 sm:gap-6 backdrop-blur-xl transition-all ${
               theme === 'light'
-                ? 'bg-white/95 border-emerald-300/80 shadow-emerald-950/15 text-slate-800'
-                : 'bg-[#0f1712]/95 border-emerald-500/40 text-white shadow-black/80'
+                ? 'bg-white/95 border-slate-200/90 text-slate-800 shadow-slate-900/10'
+                : 'bg-[#141715]/95 border-white/15 text-white shadow-black/90'
             }`}>
-              <div className="min-w-0 flex-1 pl-1">
-                <p className="text-[10px] uppercase font-black text-emerald-500 tracking-wider">Orijinal Kaynak</p>
-                <p className="text-xs font-bold truncate leading-tight">{article.author || 'Tam Haberi Oku'}</p>
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                  theme === 'light' ? 'bg-slate-100 border-slate-200 text-slate-700' : 'bg-white/10 border-white/10 text-zinc-300'
+                }`}>
+                  <Globe className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 leading-tight">
+                  <p className="text-[10px] uppercase font-bold tracking-wider opacity-60">Kaynak</p>
+                  <p className="text-xs sm:text-sm font-bold truncate">{article.author || 'Orijinal Yayıncı'}</p>
+                </div>
               </div>
+
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsInAppViewerOpen(true)}
-                  className="p-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white active:scale-95 transition-all"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer active:scale-95 ${
+                    theme === 'light'
+                      ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300'
+                  }`}
                   title="VOX'ta Önizle"
                 >
-                  <Maximize2 className="w-4 h-4 text-emerald-400" />
+                  <Maximize2 className="w-3.5 h-3.5 opacity-75" />
+                  <span className="hidden sm:inline">Önizle</span>
                 </button>
+
                 <a
                   href={outboundUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackOutboundClick(article, outboundUrl)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-500 text-black active:scale-95 transition-all shadow-md"
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-all shadow-sm cursor-pointer border ${
+                    theme === 'light'
+                      ? 'bg-slate-900 hover:bg-slate-800 text-white border-slate-800'
+                      : 'bg-white hover:bg-zinc-100 text-slate-950 border-white'
+                  }`}
                 >
                   <span>Habere Git</span>
-                  <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <ExternalLink className="w-3.5 h-3.5 stroke-[2.2]" />
                 </a>
               </div>
             </div>

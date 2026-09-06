@@ -403,7 +403,7 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
                   triggerHaptic();
                   onToggleChannel(primaryActive.id);
                 }}
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1ed760] hover:bg-[#1ed760]/90 text-black flex items-center justify-center font-bold hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-[0_0_15px_rgba(30,215,96,0.35)]"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-zinc-100 text-slate-950 flex items-center justify-center font-bold hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md"
                 title="Durdur / Oynat"
               >
                 <Pause className="w-4 h-4 fill-current" />

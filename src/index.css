@@ -20,20 +20,20 @@
 }
 
 :root {
-  --color-primary: #1ed760;
-  --color-on-primary: #05180c;
-  --color-surface: #0a0d0b;
-  --color-surface-container: #121814;
-  --color-surface-container-high: #1a221d;
-  --color-surface-variant: #222e27;
-  --color-on-surface: #f3f5f4;
-  --color-on-surface-variant: #9aa8a0;
+  --color-primary: #059669;
+  --color-on-primary: #ffffff;
+  --color-surface: #0d100e;
+  --color-surface-container: #141715;
+  --color-surface-container-high: #1c201d;
+  --color-surface-variant: #232824;
+  --color-on-surface: #f4f5f5;
+  --color-on-surface-variant: #9ba39e;
   --color-card-border: rgba(255, 255, 255, 0.08);
-  --color-card-bg: #121814;
-  --color-input-bg: rgba(0, 0, 0, 0.5);
+  --color-card-bg: #141715;
+  --color-input-bg: rgba(0, 0, 0, 0.4);
   --color-input-border: rgba(255, 255, 255, 0.12);
-  --color-subcard-bg: rgba(7, 12, 9, 0.6);
-  --color-pill-bg: rgba(18, 24, 20, 0.8);
+  --color-subcard-bg: rgba(13, 16, 14, 0.7);
+  --color-pill-bg: rgba(255, 255, 255, 0.06);
 
   /* Safe Area Inset Variables for Native iOS / Android */
   --sat: env(safe-area-inset-top, 0px);

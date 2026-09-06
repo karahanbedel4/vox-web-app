@@ -314,7 +314,7 @@ export const ListenTab: React.FC<ListenTabProps> = ({
             return (
               <div
                 key={idx}
-                className="w-1 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-full transition-all duration-150 shadow-[0_0_8px_rgba(78,222,163,0.5)]"
+                className="w-1 bg-emerald-500 rounded-full transition-all duration-150"
                 style={{ height: `${Math.max(4, Math.min(42, height))}px` }}
               />
             );
@@ -349,7 +349,7 @@ export const ListenTab: React.FC<ListenTabProps> = ({
         {/* Bottom Emerald Progress Bar */}
         <div className="w-full bg-emerald-950/60 h-1.5 rounded-full overflow-hidden border border-emerald-500/20">
           <div
-            className="bg-gradient-to-r from-emerald-400 to-teal-300 h-full transition-all duration-300 shadow-[0_0_10px_rgba(78,222,163,0.8)]"
+            className="bg-emerald-500 h-full transition-all duration-300"
             style={{ width: `${Math.min(100, (currentTime / (duration || 1)) * 100)}%` }}
           />
         </div>
@@ -388,18 +388,18 @@ export const ListenTab: React.FC<ListenTabProps> = ({
                   onClick={() => onSeek(st.startTime)}
                   className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 flex items-start gap-3 ${
                     isActive
-                      ? 'bg-emerald-500/15 border border-emerald-400/40 shadow-[0_0_25px_rgba(78,222,163,0.2)] scale-[1.02]'
+                      ? 'bg-emerald-500/10 border border-emerald-500/30 scale-[1.01]'
                       : 'hover:bg-white/5 opacity-50 hover:opacity-90'
                   }`}
                 >
                   <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full shrink-0 mt-1 ${
-                    isActive ? 'bg-emerald-400 text-black font-bold' : 'bg-white/10 text-white/60'
+                    isActive ? 'bg-white text-slate-950 font-bold' : 'bg-white/10 text-white/60'
                   }`}>
                     {formatTime(st.startTime)}
                   </span>
                   <p className={`font-serif leading-relaxed ${
                     isActive
-                      ? 'text-xl font-bold text-white drop-shadow-[0_0_15px_rgba(78,222,163,0.6)]'
+                      ? 'text-xl font-bold text-white'
                       : 'text-base font-medium text-white/70'
                   }`}>
                     {st.text}
@@ -410,7 +410,7 @@ export const ListenTab: React.FC<ListenTabProps> = ({
           </div>
 
           {/* Bottom Floating Mini Player Control */}
-          <div className="bg-surface-container/90 border border-emerald-500/30 p-4 rounded-3xl backdrop-blur-xl shrink-0 space-y-3 shadow-2xl">
+          <div className="bg-surface-container/95 border border-white/10 p-4 rounded-3xl backdrop-blur-xl shrink-0 space-y-3 shadow-xl">
             <div className="flex items-center justify-between text-xs font-mono text-emerald-400 font-bold">
               <span>{formatTime(currentTime)}</span>
               <input
@@ -419,7 +419,7 @@ export const ListenTab: React.FC<ListenTabProps> = ({
                 max={duration || 100}
                 value={currentTime}
                 onChange={(e) => onSeek(Number(e.target.value))}
-                className="flex-1 mx-3 h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                className="flex-1 mx-3 h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-500"
               />
               <span>-{formatTime(remainingTime)}</span>
             </div>
@@ -427,7 +427,7 @@ export const ListenTab: React.FC<ListenTabProps> = ({
             <div className="flex items-center justify-between px-2">
               <button
                 onClick={() => setSpeedMenuOpen(!speedMenuOpen)}
-                className="px-3 py-1 rounded-full bg-white/10 text-xs font-bold text-emerald-300"
+                className="px-3 py-1 rounded-full bg-white/10 text-xs font-bold text-zinc-300"
               >
                 {playbackRate}x
               </button>
@@ -441,7 +441,7 @@ export const ListenTab: React.FC<ListenTabProps> = ({
 
               <button
                 onClick={isPlaying ? onPause : onPlay}
-                className="w-14 h-14 rounded-full bg-emerald-400 text-black flex items-center justify-center shadow-[0_0_20px_rgba(78,222,163,0.5)] active:scale-95 transition-transform"
+                className="w-14 h-14 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-lg active:scale-95 transition-transform"
               >
                 {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
               </button>

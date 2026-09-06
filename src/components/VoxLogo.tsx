@@ -14,7 +14,7 @@ export const VoxLogo: React.FC<VoxLogoProps> = ({
   size = 'md',
   showText = true,
   textColor = 'auto',
-  accentColor = '#20DE92',
+  accentColor,
 }) => {
   const { theme } = useTheme();
 
@@ -28,8 +28,8 @@ export const VoxLogo: React.FC<VoxLogoProps> = ({
   }[size];
 
   const isDarkText = textColor === 'dark' || (textColor === 'auto' && theme === 'light');
-  const voxFill = isDarkText ? '#090A0F' : '#FFFFFF';
-  const greenFill = accentColor || '#20DE92';
+  const voxFill = isDarkText ? '#0f172a' : '#FFFFFF';
+  const greenFill = accentColor || (theme === 'light' ? '#047857' : '#10b981');
 
   if (!showText) {
     // Dual Pill Minimal Icon Only (||)
