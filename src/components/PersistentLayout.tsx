@@ -723,38 +723,38 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileDrawerOpen(false)}
-              className="md:hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm"
+              className="md:hidden fixed inset-0 z-[65] bg-black/80 backdrop-blur-md"
             />
 
-            {/* Slide-in Drawer */}
+            {/* Slide-in Drawer (Clean, Modern, Uncluttered, bottom-padded) */}
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="md:hidden fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 bg-black border-r border-white/10 p-5 shadow-2xl overflow-y-auto text-white flex flex-col justify-between select-none"
+              className="md:hidden fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-[70] bg-[#0c100e] border-r border-white/10 p-5 shadow-2xl overflow-y-auto text-white flex flex-col justify-between select-none pb-32"
             >
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3.5">
                 {/* Header row with logo and close button */}
                 <div className="flex items-center justify-between pt-1 pb-3 border-b border-white/10">
                   <Link 
                     to="/" 
                     onClick={() => setIsMobileDrawerOpen(false)}
-                    className="inline-flex items-center cursor-pointer"
+                    className="inline-flex items-center cursor-pointer active:scale-95 transition-transform"
                   >
                     <VoxLogo size="md" textColor="light" />
                   </Link>
                   <button
                     onClick={() => setIsMobileDrawerOpen(false)}
                     className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
-                    title="Kapat"
+                    title="Menüyü Kapat"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* Mobile Drawer User Account Bar */}
-                <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+                {/* Mobile Drawer User Account Box */}
+                <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between">
                   {isLoggedIn ? (
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       {user?.photoURL ? (
@@ -785,7 +785,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     <Link
                       to="/profil"
                       onClick={() => setIsMobileDrawerOpen(false)}
-                      className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white cursor-pointer shrink-0"
+                      className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white cursor-pointer shrink-0 transition-colors"
                     >
                       Profil
                     </Link>
@@ -795,47 +795,47 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                         setIsMobileDrawerOpen(false);
                         setIsAuthModalOpen(true);
                       }}
-                      className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white cursor-pointer shrink-0"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-xs font-bold text-white cursor-pointer shrink-0 transition-all shadow-sm"
                     >
-                      Giriş
+                      Giriş Yap
                     </button>
                   )}
                 </div>
 
-                {/* Main Navigation */}
-                <nav className="flex flex-col gap-2 pt-1">
+                {/* Main Navigation (Clean & uncluttered) */}
+                <nav className="flex flex-col gap-1.5 pt-1">
                   <NavLink
                     to="/"
                     onClick={() => setIsMobileDrawerOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                      `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
                         isActive || location.pathname === '/' || location.pathname === '/gundem' || location.pathname === '/teknoloji' || location.pathname === '/ekonomi'
-                          ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
-                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                          : 'text-gray-300 hover:text-white hover:bg-white/5'
                       }`
                     }
                   >
                     <div className="flex items-center gap-2.5">
-                      <Newspaper className="w-4 h-4 text-[#10b981]" />
-                      <span>GÜNDEM (Haber Akışı)</span>
+                      <Newspaper className="w-4 h-4 text-emerald-400" />
+                      <span>Gündem (Haber Akışı)</span>
                     </div>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   </NavLink>
 
                   <NavLink
                     to="/odaklan"
                     onClick={() => setIsMobileDrawerOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                      `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
                         isActive
-                          ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
-                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                          : 'text-gray-300 hover:text-white hover:bg-white/5'
                       }`
                     }
                   >
                     <div className="flex items-center gap-2.5">
-                      <Target className="w-4 h-4 text-[#10b981]" />
-                      <span>ODAKLAN (Pomodoro)</span>
+                      <Target className="w-4 h-4 text-emerald-400" />
+                      <span>Odaklan (Pomodoro)</span>
                     </div>
                   </NavLink>
 
@@ -843,90 +843,79 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     to="/rehberler"
                     onClick={() => setIsMobileDrawerOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
+                      `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
                         isActive
-                          ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
-                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                          : 'text-gray-300 hover:text-white hover:bg-white/5'
                       }`
                     }
                   >
                     <div className="flex items-center gap-2.5">
-                      <BookOpen className="w-4 h-4 text-[#10b981]" />
-                      <span>REHBERLER (Araştırma)</span>
+                      <BookOpen className="w-4 h-4 text-emerald-400" />
+                      <span>Rehberler & Araştırma</span>
                     </div>
                   </NavLink>
 
-                  <NavLink
-                    to="/profil"
-                    onClick={() => setIsMobileDrawerOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-black tracking-wider transition-all ${
-                        isActive
-                          ? 'bg-[#1f2521] text-white border border-white/15 shadow-lg scale-[1.01]'
-                          : 'text-gray-400 hover:text-white hover:bg-white/5'
-                      }`
-                    }
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <User className="w-4 h-4 text-[#10b981]" />
-                      <span>{isLoggedIn ? 'HESABIM & AYARLAR' : 'HESAP / GİRİŞ (OPSİYONEL)'}</span>
-                    </div>
-                  </NavLink>
+                  {isLoggedIn && (
+                    <NavLink
+                      to="/profil"
+                      onClick={() => setIsMobileDrawerOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
+                          isActive
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : 'text-gray-300 hover:text-white hover:bg-white/5'
+                        }`
+                      }
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <User className="w-4 h-4 text-emerald-400" />
+                        <span>Hesabım & Kaydedilenler</span>
+                      </div>
+                    </NavLink>
+                  )}
                 </nav>
 
-                {/* Mobile App Download Prompt */}
-                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 space-y-2 mt-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                      <span>📱</span>
-                      <span>Mobil Uygulama</span>
+                {/* Compact Highlights (Premium & Mobile App) */}
+                <div className="space-y-2 pt-1">
+                  <button
+                    onClick={() => {
+                      setIsMobileDrawerOpen(false);
+                      onOpenPaywall('limit_reached');
+                    }}
+                    className="flex items-center justify-between w-full p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-left transition-all hover:bg-emerald-500/15 active:scale-98 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-xs font-bold text-white">VOX Premium</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                      İncele <ChevronRight className="w-3 h-3" />
                     </span>
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm">
-                      Yakında!
+                  </button>
+
+                  <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-gray-400">
+                    <span className="flex items-center gap-1.5">
+                      <span>📱 Mobil Uygulama</span>
+                    </span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                      Yakında
                     </span>
                   </div>
-                  <p className="text-[10px] text-gray-400 leading-snug">
-                    iOS App Store & Google Play'de çok yakında sizlerle!
-                  </p>
                 </div>
               </div>
 
-              {/* Bottom Elements: Pro, Theme, Social, Links, Powered by */}
+              {/* Bottom Section: Theme, Social, Legal Links, Powered by */}
               <div className="flex flex-col gap-3 pt-3 border-t border-white/10 mt-4">
-                {/* Premium Promo */}
-                <button
-                  onClick={() => {
-                    setIsMobileDrawerOpen(false);
-                    onOpenPaywall('limit_reached');
-                  }}
-                  className="flex items-center justify-between w-full p-3 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-[#121814] border border-emerald-500/30 text-left transition-all group shadow-md cursor-pointer active:scale-95"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shrink-0">
-                      <div className="w-full h-full bg-black rounded-[10px] flex items-center justify-center text-emerald-400">
-                        <Sparkles className="w-4 h-4 fill-emerald-400" />
-                      </div>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black text-white tracking-wide">VOX Premium</span>
-                        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">PRO</span>
-                      </div>
-                      <p className="text-[10px] text-gray-400 truncate">Sınırsız Sesli Deneyim</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                </button>
-
                 {/* Theme Switch */}
                 <div className="flex items-center justify-between py-1 px-1">
-                  <div className="flex items-center gap-2 text-xs font-extrabold text-gray-200">
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-300">
                     {theme === 'light' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-gray-400" />}
-                    <span className="tracking-wider">{theme === 'light' ? 'AÇIK TEMA' : 'KOYU TEMA'}</span>
+                    <span>{theme === 'light' ? 'Açık Tema' : 'Koyu Tema'}</span>
                   </div>
                   <button
                     onClick={toggleTheme}
-                    className={`w-12 h-6 rounded-full p-0.5 flex items-center transition-all cursor-pointer ${
+                    className={`w-11 h-6 rounded-full p-0.5 flex items-center transition-all cursor-pointer ${
                       theme === 'light' ? 'bg-[#3b82f6] justify-end' : 'bg-white/20 justify-start'
                     }`}
                     title="Açık/Koyu Tema Değiştir"
@@ -936,43 +925,41 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                 </div>
 
                 {/* Social Media Icons */}
-                <div className="flex items-center justify-between px-1 text-gray-400">
+                <div className="flex items-center justify-around px-2 py-1 text-gray-400 bg-white/[0.02] rounded-xl border border-white/5">
                   <a href="https://threads.net/@voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"><Hash className="w-4 h-4" /></a>
                   <a href="https://linkedin.com/company/voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"><Linkedin className="w-4 h-4" /></a>
                   <a href="https://x.com/voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"><Twitter className="w-4 h-4" /></a>
                   <a href="https://instagram.com/voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"><Instagram className="w-4 h-4" /></a>
                 </div>
 
-                {/* Informational links */}
-                <div className="space-y-1.5 text-[11px] text-gray-400 px-1">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
-                    <Link to="/rehberler" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-[#1ed760] text-emerald-400 font-bold cursor-pointer flex items-center gap-1">
-                      <BookOpen className="w-3 h-3" />
-                      <span>Rehberler</span>
+                {/* Legal & Info Links (Prominent, unblocked, clear grouping) */}
+                <div className="space-y-2 text-xs text-gray-400 px-1 pt-1">
+                  <div className="flex items-center justify-between text-[11px] font-medium border-b border-white/5 pb-1.5">
+                    <Link to="/cerez-politikasi" onClick={() => setIsMobileDrawerOpen(false)} className="text-amber-400 hover:text-amber-300 font-bold cursor-pointer">
+                      🍪 Çerez Yönetimi
                     </Link>
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('ads'); }} className="text-emerald-400 hover:text-emerald-300 font-bold cursor-pointer">
+                      📣 Reklam & Sponsorluk
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] font-medium">
                     <Link to="/hakkimizda" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-white cursor-pointer">Hakkımızda</Link>
                     <Link to="/kunye" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-white cursor-pointer">Künye & İletişim</Link>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
                     <Link to="/yayin-ilkeleri" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-white cursor-pointer">Yayın İlkeleri</Link>
-                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('terms'); }} className="hover:text-white cursor-pointer">Kullanım Koşulları</button>
-                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('privacy'); }} className="hover:text-white cursor-pointer">Gizlilik</button>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
-                    <Link to="/cerez-politikasi" onClick={() => setIsMobileDrawerOpen(false)} className="hover:text-amber-400 text-gray-300 cursor-pointer">Çerez Politikası</Link>
-                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('ads'); }} className="hover:text-white cursor-pointer">Reklam</button>
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('privacy'); }} className="text-left hover:text-white cursor-pointer">Gizlilik Politikası</button>
+                    <button onClick={() => { setIsMobileDrawerOpen(false); setInfoModalType('terms'); }} className="text-left hover:text-white cursor-pointer">Kullanım Koşulları</button>
                   </div>
                 </div>
 
-                {/* Powered by Google AI Studio */}
-                <div className="flex items-center justify-between text-[10px] text-gray-500 font-mono pt-1 border-t border-white/10">
+                {/* Footer Brand Info */}
+                <div className="flex items-center justify-between text-[10px] text-gray-500 font-mono pt-2 border-t border-white/10">
                   <span>© 2026 VOX</span>
-                  <span className="text-gray-700">|</span>
-                  <span className="flex items-center gap-1 text-gray-300 font-medium">
+                  <span className="flex items-center gap-1 text-gray-400 font-medium">
                     Powered by
-                    <span className="text-white font-black inline-flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded">
-                      <Sparkles className="w-3 h-3 text-[#4285F4] animate-pulse" />
-                      Google AI Studio
+                    <span className="text-white font-bold inline-flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded">
+                      <Sparkles className="w-2.5 h-2.5 text-[#4285F4]" />
+                      Google AI
                     </span>
                   </span>
                 </div>
@@ -982,8 +969,10 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         )}
       </AnimatePresence>
 
-      {/* FLOATING EXPANDABLE MOBILE BOTTOM DOCK (Clean, Minimal: Gündem + Odaklan + Tema) */}
-      <div className="md:hidden fixed bottom-3 left-3 right-3 z-50 pointer-events-none flex justify-center">
+      {/* FLOATING EXPANDABLE MOBILE BOTTOM DOCK (Clean, Minimal: Gündem + Odaklan + Tema - Hidden when drawer is open) */}
+      <div className={`md:hidden fixed bottom-3 left-3 right-3 z-40 pointer-events-none flex justify-center transition-all duration-300 ${
+        isMobileDrawerOpen ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+      }`}>
         <nav className={`pointer-events-auto w-full max-w-xs h-14 rounded-full backdrop-blur-2xl border px-3 py-1.5 flex items-center justify-around shadow-2xl transition-all duration-300 ${
           theme === 'light'
             ? 'bg-white/95 border-slate-200 text-slate-700 shadow-slate-900/10'

@@ -16,7 +16,11 @@ import {
   Headphones,
   Newspaper,
   ChevronRight,
-  TrendingUp
+  TrendingUp,
+  Globe,
+  Maximize2,
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Article } from '../types';
@@ -62,6 +66,7 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isInAppViewerOpen, setIsInAppViewerOpen] = useState<boolean>(false);
 
   // Sync TTS playback status
   useEffect(() => {
@@ -351,8 +356,8 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
           <span>Geri</span>
         </button>
 
-        {/* Action Controls: Share + Bookmark + TTS */}
-        <div className="flex items-center gap-2">
+        {/* Action Controls: Share + Bookmark + TTS + Original Source */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {/* TTS Audio Listen Button */}
           <button
             id="btn-article-play-audio"
@@ -376,6 +381,24 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
               </>
             )}
           </button>
+
+          {/* Quick Outbound Link Button in Top Bar */}
+          {article.sourceUrl && (() => {
+            const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
+            return (
+              <a
+                href={outboundUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackOutboundClick(article, outboundUrl)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-md active:scale-95 transition-all cursor-pointer"
+                title={`${article.author || 'Kaynak'} sitesinde tam haberi aç`}
+              >
+                <span>Kaynağa Git</span>
+                <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+              </a>
+            );
+          })()}
 
           {/* Bookmark Button */}
           <button
@@ -453,6 +476,65 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
           }`}>
             {sanitizeNewsText(article.title)}
           </h1>
+
+          {/* PROMINENT ORIGINAL SOURCE ACTION CARD (Top Priority for detailed reading) */}
+          {article.sourceUrl && (() => {
+            const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
+            return (
+              <div className={`p-4 sm:p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg ${
+                theme === 'light'
+                  ? 'bg-gradient-to-r from-emerald-50 via-teal-50/50 to-white border-emerald-300/80 text-slate-800'
+                  : 'bg-gradient-to-r from-emerald-950/60 via-[#111914] to-[#0c120e] border-emerald-500/40 text-white'
+              }`}>
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black uppercase tracking-wider text-emerald-500 dark:text-emerald-400">
+                        Orijinal Kaynak
+                      </span>
+                      <span className="text-xs text-gray-400 font-bold">• {article.author || 'Haber Yayıncısı'}</span>
+                    </div>
+                    <p className="text-xs sm:text-sm font-semibold leading-snug mt-0.5">
+                      Bu haberin tam metni, tüm galerisi ve orijinal detayları yayıncı sayfasındadır.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+                  {/* Option A: Quick In-App Viewer Modal */}
+                  <button
+                    type="button"
+                    onClick={() => setIsInAppViewerOpen(true)}
+                    className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 ${
+                      theme === 'light'
+                        ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm'
+                        : 'bg-white/10 border-white/15 text-white hover:bg-white/15'
+                    }`}
+                    title="Haberi VOX içerisindeki önizleme penceresinde aç"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Sitede Önizle</span>
+                  </button>
+
+                  {/* Option B: Direct Outbound Link */}
+                  <a
+                    href={outboundUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackOutboundClick(article, outboundUrl)}
+                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
+                    title={`${article.author || 'Orijinal kaynak'} sitesinde tam haberi aç`}
+                  >
+                    <span>Orijinal Habere Git</span>
+                    <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </a>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Quick Summary Capsule (Bundle "Haberin Özeti" style) */}
           {article.summary && (
@@ -550,17 +632,27 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             {article.sourceUrl && (() => {
               const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
               return (
-                <a
-                  href={outboundUrl}
-                  target="_blank"
-                  rel="noopener"
-                  onClick={() => trackOutboundClick(article, outboundUrl)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 transition-all shrink-0 cursor-pointer"
-                  title={`${article.author || 'Orijinal kaynak'} sitesinde tam haberi aç`}
-                >
-                  <span>Orijinal Habere Git</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setIsInAppViewerOpen(true)}
+                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 bg-white/5 hover:bg-white/10 text-gray-200 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Önizle</span>
+                  </button>
+                  <a
+                    href={outboundUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackOutboundClick(article, outboundUrl)}
+                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-500 text-black hover:bg-emerald-400 active:scale-95 transition-all shrink-0 cursor-pointer shadow-md"
+                    title={`${article.author || 'Orijinal kaynak'} sitesinde tam haberi aç`}
+                  >
+                    <span>Orijinal Habere Git</span>
+                    <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </a>
+                </div>
               );
             })()}
           </div>
@@ -673,6 +765,125 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
         </aside>
 
       </div>
+
+      {/* MOBILE STICKY FLOATING ORIGINAL ARTICLE BAR (Always accessible on scroll) */}
+      {article.sourceUrl && (() => {
+        const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
+        return (
+          <div className="sm:hidden fixed bottom-20 left-3 right-3 z-30 pointer-events-auto">
+            <div className={`p-3 rounded-2xl border shadow-2xl flex items-center justify-between gap-2.5 backdrop-blur-xl ${
+              theme === 'light'
+                ? 'bg-white/95 border-emerald-300/80 shadow-emerald-950/15 text-slate-800'
+                : 'bg-[#0f1712]/95 border-emerald-500/40 text-white shadow-black/80'
+            }`}>
+              <div className="min-w-0 flex-1 pl-1">
+                <p className="text-[10px] uppercase font-black text-emerald-500 tracking-wider">Orijinal Kaynak</p>
+                <p className="text-xs font-bold truncate leading-tight">{article.author || 'Tam Haberi Oku'}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsInAppViewerOpen(true)}
+                  className="p-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white active:scale-95 transition-all"
+                  title="VOX'ta Önizle"
+                >
+                  <Maximize2 className="w-4 h-4 text-emerald-400" />
+                </button>
+                <a
+                  href={outboundUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackOutboundClick(article, outboundUrl)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-500 text-black active:scale-95 transition-all shadow-md"
+                >
+                  <span>Habere Git</span>
+                  <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+                </a>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* IN-APP SOURCE VIEWER MODAL / IFRAME READER */}
+      {isInAppViewerOpen && article.sourceUrl && (() => {
+        const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
+        return (
+          <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-md flex flex-col animate-in fade-in duration-200">
+            {/* Top Toolbar */}
+            <header className="h-14 px-4 bg-[#0d120f] border-b border-white/10 flex items-center justify-between shrink-0 text-white select-none">
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  onClick={() => setIsInAppViewerOpen(false)}
+                  className="p-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+                  title="Kapat ve VOX'a Dön"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">VOX'a Dön</span>
+                </button>
+                <div className="h-4 w-px bg-white/10 hidden sm:block" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white truncate max-w-xs sm:max-w-md">
+                    {article.title}
+                  </p>
+                  <p className="text-[10px] text-emerald-400 font-semibold truncate">
+                    {article.author || 'Kaynak Yayıncı'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={outboundUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackOutboundClick(article, outboundUrl)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs transition-all shadow-md"
+                  title="Yeni sekmede tam sayfa aç"
+                >
+                  <span>Yeni Sekmede Aç</span>
+                  <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+                </a>
+                <button
+                  onClick={() => setIsInAppViewerOpen(false)}
+                  className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                  title="Kapat"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </header>
+
+            {/* Advisory Info Banner for iframe security policies */}
+            <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between gap-3 text-[11px] text-amber-300">
+              <div className="flex items-center gap-2 min-w-0">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <p className="truncate">
+                  Bazı haber kaynakları güvenlik politikası (X-Frame-Options) gereği sayfanın uygulama içine gömülmesini kısıtlayabilir.
+                </p>
+              </div>
+              <a
+                href={outboundUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-bold text-amber-400 shrink-0 hover:text-white"
+              >
+                Sayfa açılmazsa doğrudan sitede açın →
+              </a>
+            </div>
+
+            {/* Embedded Iframe Container */}
+            <div className="flex-1 w-full bg-white relative">
+              <iframe
+                src={outboundUrl}
+                title={article.title}
+                className="w-full h-full border-0"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              />
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
