@@ -382,23 +382,7 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             )}
           </button>
 
-          {/* Quick Outbound Link Button in Top Bar */}
-          {article.sourceUrl && (() => {
-            const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
-            return (
-              <a
-                href={outboundUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackOutboundClick(article, outboundUrl)}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-md active:scale-95 transition-all cursor-pointer"
-                title={`${article.author || 'Kaynak'} sitesinde tam haberi aç`}
-              >
-                <span>Kaynağa Git</span>
-                <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
-              </a>
-            );
-          })()}
+
 
           {/* Bookmark Button */}
           <button
@@ -477,65 +461,6 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             {sanitizeNewsText(article.title)}
           </h1>
 
-          {/* PROMINENT ORIGINAL SOURCE ACTION CARD (Top Priority for detailed reading) */}
-          {article.sourceUrl && (() => {
-            const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
-            return (
-              <div className={`p-4 sm:p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg ${
-                theme === 'light'
-                  ? 'bg-gradient-to-r from-emerald-50 via-teal-50/50 to-white border-emerald-300/80 text-slate-800'
-                  : 'bg-gradient-to-r from-emerald-950/60 via-[#111914] to-[#0c120e] border-emerald-500/40 text-white'
-              }`}>
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
-                    <Globe className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-black uppercase tracking-wider text-emerald-500 dark:text-emerald-400">
-                        Orijinal Kaynak
-                      </span>
-                      <span className="text-xs text-gray-400 font-bold">• {article.author || 'Haber Yayıncısı'}</span>
-                    </div>
-                    <p className="text-xs sm:text-sm font-semibold leading-snug mt-0.5">
-                      Bu haberin tam metni, tüm galerisi ve orijinal detayları yayıncı sayfasındadır.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
-                  {/* Option A: Quick In-App Viewer Modal */}
-                  <button
-                    type="button"
-                    onClick={() => setIsInAppViewerOpen(true)}
-                    className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 ${
-                      theme === 'light'
-                        ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm'
-                        : 'bg-white/10 border-white/15 text-white hover:bg-white/15'
-                    }`}
-                    title="Haberi VOX içerisindeki önizleme penceresinde aç"
-                  >
-                    <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Sitede Önizle</span>
-                  </button>
-
-                  {/* Option B: Direct Outbound Link */}
-                  <a
-                    href={outboundUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackOutboundClick(article, outboundUrl)}
-                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
-                    title={`${article.author || 'Orijinal kaynak'} sitesinde tam haberi aç`}
-                  >
-                    <span>Orijinal Habere Git</span>
-                    <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </a>
-                </div>
-              </div>
-            );
-          })()}
-
           {/* Quick Summary Capsule (Bundle "Haberin Özeti" style) */}
           {article.summary && (
             <div className={`p-4 sm:p-5 rounded-2xl border transition-colors ${
@@ -611,51 +536,79 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             )}
           </div>
 
-          {/* Attribution & Original Source Link with VOX Branding */}
-          <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
-            theme === 'light'
-              ? 'bg-white border-slate-200 text-slate-700'
-              : 'bg-[#121814] border-white/10 text-gray-300'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
-                <VoxLogo size="xs" showText={false} />
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400">Yayıncı & Doğrulama</span>
-                <p className="text-xs font-semibold">
-                  Bu haber <strong className="text-emerald-400 font-bold">{article.author || 'Orijinal Kaynak'}</strong> tarafından yayınlanmış olup VOX Akıllı Akış motoru ile anlık derlenmiştir.
-                </p>
-              </div>
-            </div>
-
-            {article.sourceUrl && (() => {
-              const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
-              return (
-                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => setIsInAppViewerOpen(true)}
-                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 bg-white/5 hover:bg-white/10 text-gray-200 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Önizle</span>
-                  </button>
-                  <a
-                    href={outboundUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackOutboundClick(article, outboundUrl)}
-                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-500 text-black hover:bg-emerald-400 active:scale-95 transition-all shrink-0 cursor-pointer shadow-md"
-                    title={`${article.author || 'Orijinal kaynak'} sitesinde tam haberi aç`}
-                  >
-                    <span>Orijinal Habere Git</span>
-                    <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </a>
+          {/* DEDICATED PROMINENT "KAYNAK" SECTION AT THE BOTTOM OF THE ARTICLE */}
+          <section
+            id="article-source-section"
+            className={`mt-8 p-5 sm:p-6 rounded-2xl border transition-all ${
+              theme === 'light'
+                ? 'bg-slate-50/90 border-slate-300/80 shadow-sm text-slate-800'
+                : 'bg-gradient-to-br from-[#121915] via-[#0e1411] to-[#0c100e] border-emerald-500/30 text-gray-200 shadow-xl'
+            }`}
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+                  <Globe className="w-6 h-6" />
                 </div>
-              );
-            })()}
-          </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-500 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                      Kaynak & Yayıncı
+                    </span>
+                    <span className="text-xs font-bold text-gray-400">
+                      {article.author || 'Haber Merkezi'}
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold leading-snug">
+                    Bu haberin tam metni, tüm galerisi ve resmi detayları <strong className="text-emerald-500 dark:text-emerald-400 font-bold">{article.author || 'orijinal kaynak'}</strong> tarafından yayınlanmıştır.
+                  </p>
+                  {article.sourceUrl && (
+                    <p className="text-xs text-gray-400 truncate max-w-md font-mono pt-0.5">
+                      {(() => {
+                        try {
+                          return new URL(article.sourceUrl).hostname.replace('www.', '');
+                        } catch {
+                          return article.sourceUrl;
+                        }
+                      })()}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {article.sourceUrl && (() => {
+                const outboundUrl = buildOutboundSourceUrl(article.sourceUrl, article);
+                return (
+                  <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setIsInAppViewerOpen(true)}
+                      className={`flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 ${
+                        theme === 'light'
+                          ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-sm'
+                          : 'bg-white/10 border-white/15 text-white hover:bg-white/15'
+                      }`}
+                      title="Haberi VOX içerisindeki önizleme penceresinde aç"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Sitede Önizle</span>
+                    </button>
+                    <a
+                      href={outboundUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => trackOutboundClick(article, outboundUrl)}
+                      className="flex-1 md:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
+                      title={`${article.author || 'Orijinal kaynak'} sitesinde tam haberi aç`}
+                    >
+                      <span>Orijinal Habere Git</span>
+                      <ExternalLink className="w-4 h-4 stroke-[2.5]" />
+                    </a>
+                  </div>
+                );
+              })()}
+            </div>
+          </section>
 
           {/* Mobile In-Article Ad Container */}
           <div className="block lg:hidden pt-4">
