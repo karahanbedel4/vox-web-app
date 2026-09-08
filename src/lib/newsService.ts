@@ -462,20 +462,19 @@ function parseGoogleNewsItem(item: any, defaultCategory: string = 'Gündem', ind
 
   aiSummary = sanitizeNewsText(aiSummary);
 
-  // 5. ENSURE RICH MULTI-PARAGRAPH EDITORIAL CONTENT (AdSense / Reader Compliance)
+  // 5. ENSURE CLEAN EDITORIAL CONTENT
   let fullContent = cleanPlainText;
-  if (!fullContent || fullContent.length < 160) {
-    const p1 = `${cleanTitle}. ${extractedAuthor} tarafından aktarılan son bilgilere göre sahadaki gelişmeler yakından takip ediliyor.`;
-    const p2 = aiSummary && aiSummary !== cleanTitle ? aiSummary : `Konuyla ilgili resmi birimler ve yetkili makamlar tarafından yapılan ilk değerlendirmelere göre süreç titizlikle yürütülüyor.`;
-    const p3 = `Gelişmeler kamuoyu ve ilgili sektör temsilcileri tarafından dikkatle izlenirken, sürecin etkileri ${extractedAuthor} ve VOX Odak Haber bültenleri üzerinden anlık olarak aktarılmaya devam edecek.`;
-    fullContent = `${p1}\n\n${p2}\n\n${p3}`;
+  if (!fullContent || fullContent.length < 50) {
+    fullContent = aiSummary;
   }
 
-  const finalKeyPoints = (keyPoints.length >= 3) ? keyPoints : [
-    cleanTitle,
-    `${extractedAuthor} kaynağından aktarılan son veriler değerlendirildi`,
-    'Resmi açıklamalar ve sahadaki gelişmeler doğrultusunda süreç takip ediliyor'
-  ];
+  // Generate real key points from sentences
+  let finalKeyPoints = keyPoints;
+  if (!finalKeyPoints || finalKeyPoints.length < 2) {
+    const textForPoints = (fullContent && fullContent.length > 50) ? fullContent : aiSummary;
+    const sentences = textForPoints.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 25);
+    finalKeyPoints = sentences.length >= 2 ? sentences.slice(0, 3) : [aiSummary || cleanTitle];
+  }
 
   return {
     id: item.id || `news-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 6)}`,
@@ -567,7 +566,7 @@ export function cleanTweetText(rawText: string): { cleanTitle: string; cleanSumm
   }
 
   const cleanSummary = text;
-  const cleanContent = `${text}\n\nBu anlık bilgilendirme ve sıcak gelişme, VOX Akıllı Akış motoru ile Twitter (𝕏) üzerinden canlı olarak aktarılmıştır.`;
+  const cleanContent = text;
 
   return { cleanTitle, cleanSummary, cleanContent };
 }
@@ -890,6 +889,10 @@ export async function fetchRealTweets(category?: string, forceRefresh = false): 
       if (Array.isArray(list) && list.length > 0) {
         const mapped = list.map((item: any) => {
           const { cleanTitle, cleanSummary, cleanContent } = cleanTweetText(item.content || item.summary || item.text || item.title);
+          // Extract real sentences from cleanSummary for genuine key points
+          const sentences = cleanSummary.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 20);
+          const realKeyPoints = sentences.length >= 2 ? sentences.slice(0, 3) : [cleanTitle];
+
           return {
             id: item.id || `tweet_${item.author || 'vox'}_${Date.now()}_${Math.random().toString(36).substring(7)}`,
             title: item.title || cleanTitle,
@@ -902,7 +905,7 @@ export async function fetchRealTweets(category?: string, forceRefresh = false): 
             imageUrl: item.imageUrl || getTopicContextualImage(item.title || cleanTitle, item.category) || DEFAULT_VOX_FALLBACK_IMAGE,
             durationSeconds: item.durationSeconds || 90,
             createdAt: item.createdAt || new Date().toISOString(),
-            keyPoints: [cleanTitle, `Kaynak: 𝕏 ${item.author || 'VOX'}`, `Kategori: ${item.category || 'Gündem'}`]
+            keyPoints: realKeyPoints
           };
         }).filter((a: Article) => !isDummyArticle(a));
         fetchedArticles.push(...mapped);
@@ -1133,7 +1136,13 @@ export async function enrichArticleWithAI(article: Article): Promise<Article> {
   if (!article || !article.title) return article;
 
   // If already enriched with rich multi-paragraph text and clean keypoints
+  const hasRoboticFiller = article.content?.includes('sahadaki gelişmeler') ||
+    article.content?.includes('süreç titizlikle') ||
+    article.content?.includes('resmi birimler') ||
+    article.content?.includes('VOX Akıllı Akış');
+
   if (
+    !hasRoboticFiller &&
     article.content && 
     article.content.length > 250 && 
     article.content.includes('\n\n') && 

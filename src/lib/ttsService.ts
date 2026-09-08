@@ -243,11 +243,31 @@ export class TTSService {
     const summary = useEnglish ? (article.englishSummary || article.summary) : article.summary;
     const content = useEnglish ? (article.englishContent || article.content) : article.content;
 
-    const rawTextToSpeak = `${title}. ${summary}. ${content}`;
+    // Intelligently deduplicate speech text so TTS never reads identical sentences twice
+    const cleanTitle = (title || '').trim();
+    const cleanSummary = (summary || '').trim();
+    const cleanContent = (content || '').trim();
+
+    let textBody = '';
+    if (cleanContent && cleanContent.length > 80 && cleanContent !== cleanSummary) {
+      // If content already contains the summary, don't repeat summary
+      const summarySnippet = cleanSummary.substring(0, 35).toLowerCase();
+      if (summarySnippet && cleanContent.toLowerCase().includes(summarySnippet)) {
+        textBody = cleanContent;
+      } else {
+        textBody = `${cleanSummary}. ${cleanContent}`;
+      }
+    } else {
+      textBody = cleanSummary || cleanContent;
+    }
+
+    const rawTextToSpeak = `${cleanTitle}. ${textBody}`;
     const cleanTextToSpeak = rawTextToSpeak
       .replace(/\[[^\]]*\]/g, '')
       .replace(/\([^\)]*\)/g, '')
       .replace(/[#*_~`]+/g, '')
+      .replace(/Konuyla ilgili resmi makamlar ve yetkili birimler tarafından yapılan açıklamalar doğrultusunda gelişmeler yakından izleniyor\.?/gi, '')
+      .replace(/Gelişmeler kamuoyu ve ilgili sektör temsilcileri tarafından dikkatle izlenirken[^\.]*\./gi, '')
       .replace(/[\r\n]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();

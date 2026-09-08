@@ -2218,168 +2218,6 @@ const categoryDefaultImages: Record<string, string[]> = {
   ]
 };
 
-// Fast OpenGraph image scraper for publisher news pages
-async function fetchOgImageFromUrl(pageUrl: string): Promise<string> {
-  if (!pageUrl || !pageUrl.startsWith('http')) return '';
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2500);
-    const res = await fetch(pageUrl, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-      }
-    });
-    clearTimeout(timeout);
-    if (!res.ok) return '';
-    const html = await res.text();
-    const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
-      || html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
-    if (ogMatch && ogMatch[1] && ogMatch[1].startsWith('http')) {
-      return ogMatch[1].trim();
-    }
-  } catch (e) {}
-  return '';
-}
-
-// In-Memory Persistent AI Enriched Cache (zero token re-consumption)
-const enrichedArticleCache = new Map<string, { summary: string; content: string; keyPoints: string[]; imageUrl?: string }>();
-
-async function enrichNewsArticle(article: CachedNewsArticle): Promise<CachedNewsArticle> {
-  if (!article || !article.title) return article;
-
-  const cacheKey = article.id || article.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (enrichedArticleCache.has(cacheKey)) {
-    const cached = enrichedArticleCache.get(cacheKey)!;
-    return {
-      ...article,
-      summary: cached.summary || article.summary,
-      content: cached.content || article.content,
-      keyPoints: cached.keyPoints || article.keyPoints,
-      imageUrl: cached.imageUrl || article.imageUrl,
-      hasRealImage: !!(cached.imageUrl || article.hasRealImage)
-    };
-  }
-
-  let realImageUrl = article.imageUrl;
-  // If article has no real image, try fetching og:image from sourceUrl
-  if (!article.hasRealImage && article.sourceUrl && article.sourceUrl.startsWith('http')) {
-    try {
-      const ogImg = await fetchOgImageFromUrl(article.sourceUrl);
-      if (ogImg) {
-        realImageUrl = ogImg;
-        article.hasRealImage = true;
-      }
-    } catch (e) {}
-  }
-
-  // Check if article already has rich journalistic content
-  if (
-    article.content && 
-    article.content.length > 250 && 
-    article.content.includes('\n\n') && 
-    article.keyPoints && 
-    article.keyPoints.length >= 3 && 
-    !article.keyPoints.some(k => k.includes('Canlı Akış') || k.includes('Kategori:'))
-  ) {
-    enrichedArticleCache.set(cacheKey, {
-      summary: article.summary,
-      content: article.content,
-      keyPoints: article.keyPoints,
-      imageUrl: realImageUrl
-    });
-    return { ...article, imageUrl: realImageUrl };
-  }
-
-  // Call Gemini (gemini-3.7-flash) to produce high-quality journalistic content
-  try {
-    const prompt = `
-Sen VOX platformu için kıdemli bir haber editörü ve sesli podcast metin yazarısın.
-Aşağıda verilen haber başlığı, kaynak ve ham metin verilerini kullanarak; okuyucunun ve sesli dinleyicinin (TTS) olay hakkında eksiksiz, doyurucu ve derinlemesine bilgi edineceği, Google AdSense kalite standartlarına uygun, yüksek kaliteli ve zengin bir Türkçe haber metni hazırla.
-
-HABER BİLGİLERİ:
-Başlık: "${article.title}"
-Yayıncı / Kaynak: "${article.author || 'Haber Merkezi'}"
-Kategori: "${article.category || 'Gündem'}"
-Ham Bilgi: "${article.summary || article.content || ''}"
-
-KURALLAR:
-1. "summary" (Haberin Özeti): Haberin ne olduğunu, nerede ve ne zaman gerçekleştiğini aktaran 2-3 cümlelik, kristal netliğinde yönetici özeti.
-2. "content" (Detaylı İçerik): Olayın arka planını, kritik detaylarını, tarafların açıklamalarını veya olası sonuçlarını anlatan, paragraflar arasına '\\n\\n' konulmuş 3-4 zengin paragraf (250-400 kelime). Dil akıcı, Türkçe dilbilgisine tam uygun, sesli dinlemeye (TTS) elverişli ve profesyonel olmalıdır. Kesinlikle "Canlı akıştan derlendi", "Detaylar VOX Akıllı Akış tarafından..." gibi jenerik laflar yazma.
-3. "keyPoints" (Öne Çıkan Başlıklar): Haberin can alıcı 3-4 maddelik somut gelişme maddeleri (kesinlikle "Kaynak: X" veya "Kategori: Y" veya "Canlı Akış" gibi genel etiketler koyma; doğrudan haberin içindeki somut olguları yaz).
-
-Yalnızca aşağıdaki JSON formatında yanıt ver:
-{
-  "summary": "...",
-  "content": "...",
-  "keyPoints": ["...", "...", "..."]
-}
-`;
-
-    const aiRes = await callGeminiWithRetry({
-      model: 'gemini-3.7-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json'
-      }
-    });
-
-    const parsed = JSON.parse(aiRes.text || '{}');
-    if (parsed && parsed.summary && parsed.content && Array.isArray(parsed.keyPoints) && parsed.keyPoints.length > 0) {
-      const enriched = {
-        summary: parsed.summary,
-        content: parsed.content,
-        keyPoints: parsed.keyPoints.slice(0, 4),
-        imageUrl: realImageUrl
-      };
-      enrichedArticleCache.set(cacheKey, enriched);
-      return {
-        ...article,
-        ...enriched,
-        imageUrl: realImageUrl,
-        hasRealImage: !!realImageUrl
-      };
-    }
-  } catch (err) {
-    console.warn(`[AI Article Enricher] Notice for "${article.title}":`, (err as Error).message || err);
-  }
-
-  // Heuristic Fallback: Ensure clean, professional journalistic text
-  const cleanTitle = article.title.trim();
-  const publisher = article.author || 'VOX Haber';
-  const cleanSummary = article.summary && article.summary.length > 30 && !article.summary.includes('son dakika gelişmeleri') 
-    ? article.summary 
-    : `${cleanTitle}. ${publisher} tarafından aktarılan son bilgilere göre konuyla ilgili gelişmeler ve sahadaki son durum yakından takip ediliyor.`;
-  
-  const p1 = `${cleanTitle}. Konuyla ilgili yetkililerden ve ilgili birimlerden yapılan ilk açıklamalara göre süreç titizlikle yürütülüyor.`;
-  const p2 = cleanSummary;
-  const p3 = `Gelişmeler kamuoyu tarafından yakından izlenirken, sürecin önümüzdeki günlerdeki etkileri ve alınacak yeni kararlar ${publisher} ve VOX Akıllı Haber bültenleri üzerinden anlık olarak aktarılmaya devam edecek.`;
-  
-  const fallbackContent = `${p1}\n\n${p2}\n\n${p3}`;
-  const fallbackKeyPoints = [
-    cleanTitle,
-    `${publisher} kaynağından aktarılan son bilgiler değerlendirildi`,
-    'Gelişmeler ve resmi açıklamalar doğrultusunda süreç takip ediliyor'
-  ];
-
-  const enrichedFallback = {
-    summary: cleanSummary,
-    content: fallbackContent,
-    keyPoints: fallbackKeyPoints,
-    imageUrl: realImageUrl
-  };
-
-  enrichedArticleCache.set(cacheKey, enrichedFallback);
-  return {
-    ...article,
-    ...enrichedFallback,
-    imageUrl: realImageUrl
-  };
-}
-
 function cleanRssText(str: string): string {
   if (!str) return '';
   let text = str.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1');
@@ -2414,6 +2252,261 @@ function cleanRssText(str: string): string {
   text = text.replace(/href=["'][^"']*["']/gi, '');
 
   return text.replace(/\s+/g, ' ').trim();
+}
+
+interface ScrapedArticleDetails {
+  imageUrl?: string;
+  summary?: string;
+  paragraphs: string[];
+  keyPoints: string[];
+}
+
+// Deep Live Web Article Scraper: Extracts real paragraphs, high-res image and meta description
+async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDetails | null> {
+  if (!pageUrl || !pageUrl.startsWith('http')) return null;
+  if (pageUrl.includes('/video/') || pageUrl.endsWith('.pdf')) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(pageUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7'
+      }
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+
+    const html = await res.text();
+
+    // 1. Scrape High-Res Image
+    let imageUrl = '';
+    const ogImgMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+      || html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+    if (ogImgMatch && ogImgMatch[1] && ogImgMatch[1].startsWith('http')) {
+      imageUrl = ogImgMatch[1].trim();
+    }
+
+    // 2. Scrape Editorial Summary (og:description or meta description)
+    let metaSummary = '';
+    const ogDescMatch = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i);
+    if (ogDescMatch && ogDescMatch[1]) {
+      metaSummary = cleanRssText(ogDescMatch[1]);
+      metaSummary = metaSummary.replace(/^(?:Son Dakika|Haberler|Güncel|Gündem)(?:\s+Türkiye|\s+Dünya)?(?:\s+Gündem)?\s*(?:Haberleri)?\s*[-|:]\s*/i, '').trim();
+      metaSummary = metaSummary.replace(/(?:İşte detaylar\.?\.?\.?|Ayrıntılar geliyor\.?\.?\.?|Haberin devamı için tıklayınız\.?|Foto galeri için tıklayınız\.?)$/i, '').trim();
+    }
+
+    // 3. Extract Real Article Paragraphs
+    const rawP = html.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || [];
+    const cleanParagraphs: string[] = [];
+    const seenP = new Set<string>();
+
+    for (const p of rawP) {
+      const cleaned = cleanRssText(p);
+      if (cleaned.length < 50 || cleaned.length > 2500) continue;
+      
+      // Filter out code, ads, navigation, cookies, and boilerplate
+      if (cleaned.includes('{') || cleaned.includes('}') || cleaned.includes('function(') || cleaned.includes('var ') || cleaned.includes('let ') || cleaned.includes('const ') || cleaned.includes('==') || cleaned.includes('||')) continue;
+      
+      const lower = cleaned.toLowerCase();
+      if (
+        lower.includes('çerez') || lower.includes('cookie') || lower.includes('abone ol') || 
+        lower.includes('yayın akışı') || lower.includes('tıklayınız') || lower.includes('copyright') || 
+        lower.includes('bizi takip edin') || lower.includes('yazarlar') || lower.includes('hava durumu') ||
+        lower.includes('altın döviz') || lower.includes('canlı yayın') || lower.includes('paylaş:') ||
+        lower.includes('tüm hakları saklıdır') || lower.includes('reklam') || lower.includes('kaynak:') ||
+        lower.includes('holding') || lower.includes('rights reserved') || lower.includes('öne çıkanlar') ||
+        lower.includes('en çok okunanlar') || lower.includes('sponsorlu') || lower.includes('son dakika haberler')
+      ) {
+        continue;
+      }
+
+      // Deduplicate similar paragraphs
+      const fingerprint = cleaned.substring(0, 40).toLowerCase();
+      if (seenP.has(fingerprint)) continue;
+      seenP.add(fingerprint);
+
+      cleanParagraphs.push(cleaned);
+    }
+
+    // 4. Extract Key Points from distinct paragraphs
+    const keyPoints: string[] = [];
+    for (const p of cleanParagraphs) {
+      if (keyPoints.length >= 4) break;
+      const firstSentenceMatch = p.match(/^([^.!?]+[.!?])/);
+      const sentence = firstSentenceMatch ? firstSentenceMatch[1].trim() : p.substring(0, 120).trim();
+      if (sentence.length >= 35 && sentence.length <= 160 && !keyPoints.some(k => k.includes(sentence.substring(0, 20)))) {
+        keyPoints.push(sentence);
+      }
+    }
+
+    // If metaSummary is empty, use first paragraph as summary
+    if (!metaSummary && cleanParagraphs.length > 0) {
+      metaSummary = cleanParagraphs[0];
+    }
+
+    return {
+      imageUrl,
+      summary: metaSummary,
+      paragraphs: cleanParagraphs.slice(0, 8),
+      keyPoints
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
+// Fast OpenGraph image scraper for publisher news pages
+async function fetchOgImageFromUrl(pageUrl: string): Promise<string> {
+  const details = await scrapeArticleDetails(pageUrl);
+  return details?.imageUrl || '';
+}
+
+// In-Memory Persistent AI Enriched Cache (zero token re-consumption)
+const enrichedArticleCache = new Map<string, { summary: string; content: string; keyPoints: string[]; imageUrl?: string }>();
+
+async function enrichNewsArticle(article: CachedNewsArticle): Promise<CachedNewsArticle> {
+  if (!article || !article.title) return article;
+
+  const cacheKey = article.id || article.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (enrichedArticleCache.has(cacheKey)) {
+    const cached = enrichedArticleCache.get(cacheKey)!;
+    // Validate that cached content is not old robotic boilerplate
+    const isOldBoilerplate = cached.content?.includes('sürecin titizlikle yürütüldüğü') ||
+      cached.content?.includes('sahadaki son durum yakından takip ediliyor') ||
+      cached.content?.includes('resmi makamlar ve yetkili birimler') ||
+      cached.keyPoints?.some(k => k.includes('son bilgiler değerlendirildi') || k.includes('Canlı Akış'));
+    
+    if (!isOldBoilerplate) {
+      return {
+        ...article,
+        summary: cached.summary || article.summary,
+        content: cached.content || article.content,
+        keyPoints: cached.keyPoints || article.keyPoints,
+        imageUrl: cached.imageUrl || article.imageUrl,
+        hasRealImage: !!(cached.imageUrl || article.hasRealImage)
+      };
+    }
+  }
+
+  // 1. Try real web scraping from sourceUrl first to get genuine article text
+  let scraped: ScrapedArticleDetails | null = null;
+  if (article.sourceUrl && article.sourceUrl.startsWith('http')) {
+    scraped = await scrapeArticleDetails(article.sourceUrl);
+  }
+
+  const realImageUrl = scraped?.imageUrl || article.imageUrl;
+  let rawTextForAI = '';
+
+  if (scraped && scraped.paragraphs.length >= 2) {
+    rawTextForAI = scraped.paragraphs.join('\n\n');
+  } else {
+    rawTextForAI = (article.content && article.content.length > 60) ? article.content : (article.summary || article.title);
+  }
+
+  // 2. Call Gemini if available to produce high-quality executive summary and takeaways
+  try {
+    const prompt = `
+Sen VOX platformu için kıdemli bir haber editörü ve sesli podcast metin yazarısın.
+Aşağıda verilen haber başlığı, kaynak ve haber metnini kullanarak; okuyucunun konuyu eksiksiz, net ve en doğru şekilde anlayabileceği profesyonel bir Türkçe haber özeti ve detaylı içerik hazırla.
+
+HABER BİLGİLERİ:
+Başlık: "${article.title}"
+Yayıncı / Kaynak: "${article.author || 'Haber Merkezi'}"
+Kategori: "${article.category || 'Gündem'}"
+Haber Metni:
+"${rawTextForAI.substring(0, 3000)}"
+
+KURALLAR:
+1. "summary" (Haberin Özeti): Haberin özünü (olay nedir, nerede/ne zaman gerçekleşti, taraflar kimler) anlatan, tıklama tuzaklarından arındırılmış, 2-3 akıcı cümleden oluşan kristal netliğinde yönetici özeti.
+2. "content" (Detaylı İçerik): Olayın tüm detaylarını, arka planını ve açıklamalarını kapsayan, paragraflar arasına '\\n\\n' konulmuş 3-5 zengin paragraf. Asla "Yetkililer süreci takip ediyor", "Canlı akıştan derlendi" gibi şablon laflar yazma. Metindeki gerçek bilgileri aktar.
+3. "keyPoints" (Öne Çıkan Başlıklar): Haberin içindeki somut olgulardan oluşan 3-4 maddelik öne çıkan başlıklar listesi (kesinlikle başlığı tekrar etme, "Kaynak: X" veya "Kategori: Y" yazma).
+
+Yalnızca aşağıdaki JSON formatında yanıt ver:
+{
+  "summary": "...",
+  "content": "...",
+  "keyPoints": ["...", "...", "..."]
+}
+`;
+
+    const aiRes = await callGeminiWithRetry({
+      model: 'gemini-3.7-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json'
+      }
+    });
+
+    const parsed = JSON.parse(aiRes.text || '{}');
+    if (parsed && parsed.summary && parsed.content && Array.isArray(parsed.keyPoints) && parsed.keyPoints.length > 0) {
+      const enriched = {
+        summary: parsed.summary,
+        content: parsed.content,
+        keyPoints: parsed.keyPoints.slice(0, 4),
+        imageUrl: realImageUrl
+      };
+      enrichedArticleCache.set(cacheKey, enriched);
+      return {
+        ...article,
+        ...enriched,
+        imageUrl: realImageUrl,
+        hasRealImage: !!realImageUrl
+      };
+    }
+  } catch (err) {
+    // Gemini quota or network issue - fallback to real scraped content
+  }
+
+  // 3. Robust Fallback using Real Scraped Content (100% Genuine, No Fake Boilerplate)
+  let finalSummary = '';
+  let finalContent = '';
+  let finalKeyPoints: string[] = [];
+
+  if (scraped && scraped.paragraphs.length >= 2) {
+    const scrapedSummary = scraped.summary && scraped.summary.length > 35 ? scraped.summary : '';
+    const originalSummary = article.summary && article.summary.length > 30 ? cleanRssText(article.summary) : '';
+    finalSummary = originalSummary || scrapedSummary || scraped.paragraphs[0];
+    finalContent = scraped.paragraphs.join('\n\n');
+    finalKeyPoints = scraped.keyPoints.length >= 2 
+      ? scraped.keyPoints 
+      : [finalSummary];
+  } else {
+    // If not scraped, use clean raw text from RSS / Telegram
+    const rawClean = cleanRssText(article.content || article.summary || article.title);
+    finalSummary = article.summary && article.summary.length > 25 ? cleanRssText(article.summary) : rawClean;
+    finalContent = rawClean;
+    
+    // Split into sentences for real keyPoints
+    const sentences = rawClean.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 20);
+    if (sentences.length >= 2) {
+      finalKeyPoints = sentences.slice(0, 3);
+    } else {
+      finalKeyPoints = [article.title];
+    }
+  }
+
+  const enrichedFallback = {
+    summary: finalSummary,
+    content: finalContent,
+    keyPoints: finalKeyPoints,
+    imageUrl: realImageUrl
+  };
+
+  enrichedArticleCache.set(cacheKey, enrichedFallback);
+  return {
+    ...article,
+    ...enrichedFallback,
+    imageUrl: realImageUrl,
+    hasRealImage: !!realImageUrl
+  };
 }
 
 async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): Promise<CachedNewsArticle[]> {
@@ -2524,10 +2617,10 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
       }
 
       if (title && title.length > 5) {
-        const cleanSummary = summary && summary.length > 25 ? summary : `${title}. ${author} kaynağından aktarılan sıcak gelişmelerin detayları.`;
-        const cleanContent = fullContent && fullContent.length > 60 
+        const cleanSummary = summary && summary.length > 25 ? summary : `${title}. ${author} son dakika gelişmesi.`;
+        const cleanContent = fullContent && fullContent.length > 60 && fullContent !== title
           ? fullContent 
-          : `${title}.\n\n${cleanSummary}\n\nKonuyla ilgili resmi makamlar ve yetkili birimler tarafından yapılan açıklamalar doğrultusunda gelişmeler yakından izleniyor.`;
+          : cleanSummary;
 
         const categoryImages = categoryDefaultImages[feedConfig.category] || categoryDefaultImages['Gündem'];
         const fallbackImg = categoryImages[i % categoryImages.length];
@@ -2535,6 +2628,12 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
         // Unique deterministic ID based on title hash / cleaned slug
         const cleanSlug = title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').substring(0, 40);
         const uniqueId = `vox_${feedConfig.category.toLowerCase()}_${cleanSlug}`;
+
+        // Split cleanSummary or cleanContent into real informative keypoints
+        const sentences = cleanSummary.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 25);
+        const realKeyPoints = sentences.length >= 2 
+          ? sentences.slice(0, 3) 
+          : [cleanSummary];
 
         const articleObj: CachedNewsArticle = {
           id: uniqueId,
@@ -2547,13 +2646,9 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
           hasRealImage: !!extractedImg,
           sourceType: 'rss',
           sourceUrl: sourceUrl,
-          durationSeconds: Math.max(120, Math.min(360, (cleanSummary.length + cleanContent.length) * 2)),
+          durationSeconds: Math.max(90, Math.min(360, (cleanSummary.length + cleanContent.length) * 2)),
           createdAt: itemDate,
-          keyPoints: [
-            title,
-            `${author || feedConfig.author} tarafından aktarılan son bilgiler değerlendirildi`,
-            'Resmi açıklamalar ve sahadaki gelişmeler doğrultusunda süreç takip ediliyor'
-          ]
+          keyPoints: realKeyPoints
         };
 
         parsedItems.push(articleObj);
@@ -2624,11 +2719,15 @@ async function fetchTelegramChannelFeed(tgConfig: typeof PUBLIC_TELEGRAM_NEWS_CH
           const cleanSlug = title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').substring(0, 40);
           const uniqueId = `tg_${tgConfig.channel}_${cleanSlug}`;
 
+          // Extract real sentences for keyPoints
+          const sentences = rawText.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 20);
+          const realKeyPoints = sentences.length >= 2 ? sentences.slice(0, 3) : [title];
+
           items.push({
             id: uniqueId,
             title,
             summary: rawText.substring(0, 240) + (rawText.length > 240 ? '...' : ''),
-            content: `${rawText}\n\nBu anlık sıcak gelişme, VOX Akıllı Akış motoru ile Telegram (@${tgConfig.channel}) üzerinden derlenmiştir.`,
+            content: rawText,
             category: tgConfig.category,
             author: tgConfig.author,
             imageUrl: extractedImg || fallbackImg,
@@ -2637,7 +2736,7 @@ async function fetchTelegramChannelFeed(tgConfig: typeof PUBLIC_TELEGRAM_NEWS_CH
             sourceUrl: linkMatch ? linkMatch[1] : `https://t.me/${tgConfig.channel}`,
             durationSeconds: Math.max(60, Math.min(180, Math.round(rawText.length * 0.4))),
             createdAt: timeMatch ? timeMatch[1] : new Date().toISOString(),
-            keyPoints: [title, `Kaynak: Telegram (@${tgConfig.channel})`, `Kategori: ${tgConfig.category}`, 'Canlı Akış']
+            keyPoints: realKeyPoints
           });
         }
       }

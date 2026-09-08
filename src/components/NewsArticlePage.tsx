@@ -222,12 +222,19 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
       loadRelated(found);
       setIsLoading(false);
 
-      // Check if article needs AI summarization/expansion
+      // Check if article needs AI summarization/expansion or cleanup of old robotic placeholders
+      const hasRoboticFiller = found.content?.includes('sahadaki gelişmeler') ||
+        found.content?.includes('süreç titizlikle') ||
+        found.content?.includes('resmi birimler') ||
+        found.content?.includes('VOX Akıllı Akış') ||
+        found.content?.includes('resmi makamlar ve yetkili birimler');
+
       if (
+        hasRoboticFiller ||
         !found.content || 
-        found.content.length < 250 || 
+        found.content.length < 180 || 
         !found.keyPoints || 
-        found.keyPoints.some(k => k.includes('Canlı Akış') || k.includes('Kategori:'))
+        found.keyPoints.some(k => k.includes('Canlı Akış') || k.includes('Kategori:') || k.includes('son bilgiler değerlendirildi'))
       ) {
         enrichArticleWithAI(found).then(enr => {
           if (enr && (enr.content !== found.content || enr.summary !== found.summary)) {
@@ -510,42 +517,70 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             </div>
           </div>
 
-          {/* Key Bullet Points (if available) */}
-          {article.keyPoints && article.keyPoints.length > 0 && (
-            <div className={`p-4 sm:p-5 rounded-2xl border space-y-2.5 ${
-              theme === 'light'
-                ? 'bg-slate-50 border-slate-200'
-                : 'bg-white/[0.02] border-white/10'
-            }`}>
-              <h3 className={`text-xs font-black uppercase tracking-wider ${
-                theme === 'light' ? 'text-slate-600' : 'text-gray-400'
+          {/* Key Bullet Points (if available and meaningful) */}
+          {(() => {
+            const validKeyPoints = (article.keyPoints || []).filter(point => {
+              const cleaned = sanitizeNewsText(point).trim();
+              if (cleaned.length < 15) return false;
+              if (cleaned.includes('son bilgiler değerlendirildi') || cleaned.includes('Canlı Akış') || cleaned.includes('Kategori:')) return false;
+              if (cleaned.toLowerCase() === (article.title || '').trim().toLowerCase()) return false;
+              return true;
+            });
+
+            if (validKeyPoints.length === 0) return null;
+
+            return (
+              <div className={`p-4 sm:p-5 rounded-2xl border space-y-2.5 ${
+                theme === 'light'
+                  ? 'bg-slate-50 border-slate-200'
+                  : 'bg-white/[0.02] border-white/10'
               }`}>
-                Öne Çıkan Başlıklar
-              </h3>
-              <ul className="space-y-2">
-                {article.keyPoints.map((point, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm font-medium leading-relaxed">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
-                    <span>{sanitizeNewsText(point)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+                <h3 className={`text-xs font-black uppercase tracking-wider ${
+                  theme === 'light' ? 'text-slate-600' : 'text-gray-400'
+                }`}>
+                  Öne Çıkan Başlıklar
+                </h3>
+                <ul className="space-y-2">
+                  {validKeyPoints.map((point, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm font-medium leading-relaxed">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
+                      <span>{sanitizeNewsText(point)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
 
           {/* Full Article Content Body */}
           <div className={`text-base sm:text-lg leading-relaxed space-y-4 font-normal ${
             theme === 'light' ? 'text-slate-800' : 'text-gray-200'
           }`}>
-            {article.content ? (
-              sanitizeNewsText(article.content).split('\n\n').map((paragraph, pIdx) => (
+            {(() => {
+              const rawBody = article.content || article.summary || '';
+              const allSplits = sanitizeNewsText(rawBody).split('\n\n').map(p => p.trim()).filter(Boolean);
+              const paragraphs = allSplits.filter(p => {
+                if (p.length < 10) return false;
+                const normP = p.toLowerCase();
+                const normTitle = (article.title || '').trim().toLowerCase();
+                const normSummary = (article.summary || '').trim().toLowerCase();
+                if (normP === normTitle) return false;
+                if (allSplits.length > 1 && normP === normSummary) return false;
+                if (normP.includes('sürecin titizlikle yürütüldüğü') || normP.includes('sahadaki son durum yakından')) return false;
+                if (normP.includes('resmi makamlar ve yetkili birimler tarafından yapılan')) return false;
+                return true;
+              });
+
+              if (paragraphs.length === 0) {
+                return <p className="leading-relaxed">{sanitizeNewsText(article.summary || article.title)}</p>;
+              }
+
+              return paragraphs.map((paragraph, pIdx) => (
                 <p key={pIdx} className="leading-relaxed">
                   {paragraph}
                 </p>
-              ))
-            ) : (
-              <p>{sanitizeNewsText(article.summary)}</p>
-            )}
+              ));
+            })()}
           </div>
 
           {/* Subtle Clean Source Attribution */}
