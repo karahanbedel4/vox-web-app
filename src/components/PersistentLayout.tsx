@@ -29,7 +29,9 @@ import {
   BookOpen,
   User,
   LogOut,
-  Tv
+  Tv,
+  PanelLeft,
+  PanelLeftClose
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Article, UserProfile, PlaybackState } from '../types';
@@ -96,6 +98,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
     return appStorage.getItemSync('vox_lights_out_mode') === 'true';
   });
 
+  // Cinema Mode / Full Page (Hide Left Sidebar so YouTube News / Canvas fill the whole screen)
+  const [isCinemaMode, setIsCinemaMode] = useState<boolean>(false);
+
   useEffect(() => {
     const handleLightsOutEvent = (e: any) => {
       if (e && typeof e.detail === 'boolean') {
@@ -103,8 +108,51 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       }
     };
     window.addEventListener('vox_toggle_lights_out', handleLightsOutEvent);
+
+    const handleCinemaEvent = (e: any) => {
+      if (e && typeof e.detail === 'boolean') {
+        setIsCinemaMode(e.detail);
+      } else {
+        setIsCinemaMode(prev => !prev);
+      }
+    };
+    window.addEventListener('vox_toggle_cinema_mode', handleCinemaEvent);
+
+    // Detect browser F11 / native fullscreen change
+    const handleFullscreenChange = () => {
+      const isFs = Boolean(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      if (isFs) {
+        setIsCinemaMode(true);
+        window.dispatchEvent(new CustomEvent('vox_toggle_cinema_mode', { detail: true }));
+      }
+    };
+
+    // Detect F11 keydown event to give user instant feedback
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F11') {
+        setIsCinemaMode(prev => {
+          const next = !prev;
+          window.dispatchEvent(new CustomEvent('vox_toggle_cinema_mode', { detail: next }));
+          return next;
+        });
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       window.removeEventListener('vox_toggle_lights_out', handleLightsOutEvent);
+      window.removeEventListener('vox_toggle_cinema_mode', handleCinemaEvent);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -372,6 +420,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   };
 
   const activeArticle = playbackState.currentArticle;
+  const isSidebarHidden = isLightsOut || isCinemaMode;
 
   return (
     <div className={`flex min-h-screen antialiased font-sans transition-colors duration-300 ${
@@ -384,8 +433,28 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         onOpenMixer={() => setIsAmbientMixerOpen(true)}
       />
 
+      {/* Floating Restore Sidebar Button in Cinema / Fullscreen Mode */}
+      <AnimatePresence>
+        {isCinemaMode && (
+          <motion.button
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            onClick={() => {
+              setIsCinemaMode(false);
+              window.dispatchEvent(new CustomEvent('vox_toggle_cinema_mode', { detail: false }));
+            }}
+            className="hidden md:flex fixed top-4 left-4 z-50 items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/90 hover:bg-black text-white border border-white/20 shadow-2xl backdrop-blur-md text-xs font-bold transition-all cursor-pointer group active:scale-95"
+            title="Kenar Çubuğunu Göster (F11 veya ESC)"
+          >
+            <PanelLeft className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+            <span>Menüyü Göster</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       {/* LEFT FLOATING OVAL SIDEBAR (Inspired by Bundle Web App Architecture) */}
-      <aside className={`${isLightsOut ? 'hidden' : 'hidden md:flex'} w-64 lg:w-72 flex-shrink-0 flex-col justify-between h-[calc(100vh-1.5rem)] fixed top-3 left-3 z-40 bg-black rounded-[32px] border border-white/10 p-5 shadow-2xl overflow-y-auto scrollbar-none text-white select-none transition-all duration-300`}>
+      <aside className={`${isSidebarHidden ? '-translate-x-[120%] opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'} hidden md:flex w-64 lg:w-72 flex-shrink-0 flex-col justify-between h-[calc(100vh-1.5rem)] fixed top-3 left-3 z-40 bg-black rounded-[32px] border border-white/10 p-5 shadow-2xl overflow-y-auto scrollbar-none text-white select-none transition-all duration-300`}>
         <div className="flex flex-col gap-4">
           {/* LOGO & BRANDING */}
           <div className="px-1 pt-1 flex items-center justify-between">
@@ -1080,7 +1149,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       <FocusTopBanner />
 
       {/* MAIN CONTENT AREA */}
-      <main ref={mainContentRef} className={`flex-1 ${isLightsOut ? 'ml-0' : 'ml-0 md:ml-72 lg:ml-80'} pt-14 md:pt-0 pb-20 md:pb-12 min-h-screen overflow-y-auto transition-all duration-300 ${
+      <main ref={mainContentRef} className={`flex-1 ${isSidebarHidden ? 'ml-0' : 'ml-0 md:ml-72 lg:ml-80'} pt-14 md:pt-0 pb-20 md:pb-12 min-h-screen overflow-y-auto transition-all duration-300 ${
         theme === 'light' ? 'bg-[#f4f6f8] text-slate-900' : 'bg-[#0a0d0b] text-gray-200'
       }`}>
         <Outlet />

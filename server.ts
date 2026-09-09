@@ -64,6 +64,8 @@ Allow: /dunya
 Allow: /spor
 Allow: /saglik
 Allow: /haber/
+Allow: /canli-tv
+Allow: /canli-yayin
 Allow: /odaklan
 Allow: /kitaplik
 Allow: /cerez-politikasi
@@ -3015,6 +3017,8 @@ app.get(['/sitemap.xml', '/sitemap'], (req, res) => {
 
     const staticRoutes = [
       { path: '', priority: '1.0', changefreq: 'always' },
+      { path: '/canli-tv', priority: '1.0', changefreq: 'always' },
+      { path: '/canli-yayin', priority: '0.9', changefreq: 'always' },
       { path: '/gundem', priority: '0.9', changefreq: 'hourly' },
       { path: '/ekonomi', priority: '0.9', changefreq: 'hourly' },
       { path: '/teknoloji', priority: '0.9', changefreq: 'hourly' },
@@ -3126,6 +3130,8 @@ Allow: /dunya
 Allow: /spor
 Allow: /saglik
 Allow: /haber/
+Allow: /canli-tv
+Allow: /canli-yayin
 Allow: /odaklan
 Allow: /kitaplik
 Disallow: /api/
@@ -3154,6 +3160,36 @@ app.get('/ads.txt', (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send(`google.com, pub-4663082689738592, DIRECT, f08c47fec0942fa0\n`);
+});
+
+// Search Engine Sitemap Ping Endpoint (Google & Bing)
+app.get('/api/seo/ping-sitemap', async (req, res) => {
+  const sitemapUrl = encodeURIComponent('https://voxozet.com/sitemap.xml');
+  const googlePing = `https://www.google.com/ping?sitemap=${sitemapUrl}`;
+  const bingPing = `https://www.bing.com/ping?sitemap=${sitemapUrl}`;
+
+  const results: Record<string, any> = {};
+
+  try {
+    const googleRes = await fetch(googlePing);
+    results.google = { status: googleRes.status, ok: googleRes.ok };
+  } catch (err: any) {
+    results.google = { status: 'error', message: err?.message };
+  }
+
+  try {
+    const bingRes = await fetch(bingPing);
+    results.bing = { status: bingRes.status, ok: bingRes.ok };
+  } catch (err: any) {
+    results.bing = { status: 'error', message: err?.message };
+  }
+
+  res.json({
+    success: true,
+    timestamp: new Date().toISOString(),
+    sitemap: 'https://voxozet.com/sitemap.xml',
+    results
+  });
 });
 
 // Quota & Cloud Health Status Endpoint
@@ -3870,6 +3906,158 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
       .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${yDesc}" />`);
   }
 
+  // 5.5. CANLI TV & CANLI YAYINLAR (/canli-tv, /canli-yayin)
+  else if (reqPath === '/canli-tv' || reqPath === '/canli-yayin') {
+    const tvTitle = 'Canlı TV - Kesintisiz Canlı Haber Kanalları İzle | VOX';
+    const tvDesc = 'CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, Bloomberg HT, TRT Haber, TV100 ve Haber Global canlı yayınlarını tek ekranda donmadan, reklamsız ve kesintisiz izleyin.';
+    const tvUrl = 'https://voxozet.com/canli-tv';
+
+    const tvChannels = [
+      { name: 'CNN TÜRK', desc: 'Son dakika Türkiye ve dünya haberleri, canlı analizler.', cat: 'Genel Haber', url: 'https://www.youtube.com/watch?v=6N8_r2uwLEc' },
+      { name: 'Sözcü TV', desc: 'Bağımsız haber bültenleri, gündem programları ve canlı yayın.', cat: 'Genel Haber', url: 'https://www.youtube.com/watch?v=ztmY_cCtUl0' },
+      { name: 'HalkTV', desc: 'Güncel siyaset, canlı tartışmalar ve Türkiye gündemi.', cat: 'Genel Haber', url: 'https://www.youtube.com/watch?v=jHMsvYrf-UA' },
+      { name: 'Habertürk', desc: 'Ekonomi, politika ve anlık sıcak gelişmeler canlı yayında.', cat: 'Genel Haber', url: 'https://www.youtube.com/watch?v=RNVNlJ' },
+      { name: 'NTV', desc: 'Doğru ve tarafsız habercilik, teknoloji, kültür ve sanat.', cat: 'Genel Haber', url: 'https://www.youtube.com/watch?v=kYJv8v81tms' },
+      { name: 'Bloomberg HT', desc: 'Piyasalar, Borsa İstanbul, döviz ve küresel ekonomi analizleri.', cat: 'Ekonomi & Finans', url: 'https://www.youtube.com/watch?v=hHSmBJk6w0c' },
+      { name: 'TRT Haber', desc: 'Kamu yayıncılığı, Türkiye ve dünyadan resmi bültenler.', cat: 'Resmi Haber', url: 'https://www.youtube.com/watch?v=2b9v5iS5S00' },
+      { name: 'TV100', desc: 'Özel haberler, canlı dosya konuları ve gündem yayınları.', cat: 'Genel Haber', url: 'https://www.youtube.com/watch?v=tv100live' },
+      { name: 'Haber Global', desc: 'Uluslararası gelişmeler, sıcak haberler ve analizler.', cat: 'Uluslararası Haber', url: 'https://www.youtube.com/watch?v=habergloballive' }
+    ];
+
+    const channelsListHtml = tvChannels.map((c, i) => `
+      <article style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h3 style="font-size: 18px; margin: 0; color: #0f172a;">${i + 1}. ${c.name}</h3>
+          <span style="background: #fee2e2; color: #dc2626; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 9999px;">● CANLI</span>
+        </div>
+        <p style="font-size: 14px; color: #475569; margin: 0 0 8px 0; line-height: 1.5;">${c.desc}</p>
+        <div style="font-size: 12px; color: #64748b;">
+          <span>Kategori: <strong>${c.cat}</strong></span> • 
+          <a href="${c.url}" target="_blank" rel="noopener noreferrer" style="color: #059669; text-decoration: none; font-weight: bold;">YouTube Canlı Yayın &rarr;</a>
+        </div>
+      </article>
+    `).join('\n');
+
+    const schemaJson = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'WebPage',
+          '@id': tvUrl,
+          'url': tvUrl,
+          'name': tvTitle,
+          'description': tvDesc,
+          'inLanguage': 'tr-TR',
+          'isPartOf': {
+            '@type': 'WebSite',
+            '@id': 'https://voxozet.com/#website',
+            'url': 'https://voxozet.com',
+            'name': 'VOX'
+          },
+          'breadcrumb': {
+            '@type': 'BreadcrumbList',
+            'itemListElement': [
+              { '@type': 'ListItem', 'position': 1, 'name': 'Ana Sayfa', 'item': 'https://voxozet.com/' },
+              { '@type': 'ListItem', 'position': 2, 'name': 'Canlı TV', 'item': tvUrl }
+            ]
+          }
+        },
+        {
+          '@type': 'ItemList',
+          'name': 'Canlı Yayın Yapan Haber Kanalları',
+          'numberOfItems': tvChannels.length,
+          'itemListElement': tvChannels.map((c, i) => ({
+            '@type': 'ListItem',
+            'position': i + 1,
+            'name': c.name,
+            'description': c.desc,
+            'url': c.url
+          }))
+        },
+        {
+          '@type': 'FAQPage',
+          'mainEntity': [
+            {
+              '@type': 'Question',
+              'name': 'VOX Canlı TV nedir ve hangi haber kanalları vardır?',
+              'acceptedAnswer': {
+                '@type': 'Answer',
+                'text': 'VOX Canlı TV, Türkiye’nin en çok izlenen 9 haber kanalı olan CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, Bloomberg HT, TRT Haber, TV100 ve Haber Global kanallarının resmi YouTube canlı yayınlarını tek ekranda mozaik ve odak modunda sunan ücretsiz bir canlı haber platformudur.'
+              }
+            },
+            {
+              '@type': 'Question',
+              'name': 'Yayınların sesi neden başta kapalı?',
+              'acceptedAnswer': {
+                '@type': 'Answer',
+                'text': '9 farklı haber yayınının sesinin aynı anda birbirine karışmaması ve tarayıcı performansını en üst düzeyde tutmak için yayınlar sessiz başlar. Kullanıcılar diledikleri kanalın Sesi Aç butonuna tıklayarak net ses alabilir.'
+              }
+            },
+            {
+              '@type': 'Question',
+              'name': 'F11 Geniş Ekran ve Sinema Modu nasıl kullanılır?',
+              'acceptedAnswer': {
+                '@type': 'Answer',
+                'text': 'Klavyeden F11 tuşuna basarak veya üst menüdeki Geniş Ekran butonuna tıklayarak sol menü gizlenebilir ve video kutuları ekranın tüm genişliğine yayılarak tam sayfa izlenebilir.'
+              }
+            },
+            {
+              '@type': 'Question',
+              'name': 'Canlı TV yayını ücretsiz midir?',
+              'acceptedAnswer': {
+                '@type': 'Answer',
+                'text': 'Evet, VOX Canlı TV tamamen ücretsizdir ve herhangi bir üyelik gerektirmez.'
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    semanticBodyHtml = `
+      <div style="max-width: 900px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222; line-height: 1.6;">
+        <nav style="margin-bottom: 16px; font-size: 13px; color: #666;">
+          <a href="/" style="color: #059669; text-decoration: none;">Ana Sayfa</a> &gt; <span>Canlı TV</span>
+        </nav>
+        <header style="margin-bottom: 24px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+          <span style="background: #fee2e2; color: #dc2626; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 9999px;">CANLI YAYIN</span>
+          <h1 style="font-size: 32px; color: #0f172a; margin: 12px 0 8px 0;">Canlı TV - Kesintisiz Canlı Haber Kanalları</h1>
+          <p style="font-size: 16px; color: #475569; margin: 0;">Türkiye'nin lider 9 haber kanalının resmi YouTube canlı yayınları tek ekranda. Mozaik ızgara, odak modu, F11 geniş ekran ve tek tıkla ses kontrolü.</p>
+        </header>
+
+        <section style="margin-bottom: 32px;">
+          <h2 style="font-size: 22px; color: #0f172a; margin-bottom: 16px;">Aktif Canlı Yayın Akışları</h2>
+          ${channelsListHtml}
+        </section>
+
+        <section style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+          <h2 style="font-size: 20px; color: #0f172a; margin-top: 0;">Sıkça Sorulan Sorular (SSS)</h2>
+          <div style="margin-top: 12px;">
+            <h3 style="font-size: 16px; color: #0f172a; margin: 12px 0 4px 0;">Yayınları izlemek için üyelik gerekiyor mu?</h3>
+            <p style="font-size: 14px; color: #475569; margin: 0;">Hayır, VOX Canlı TV tamamen ücretsizdir ve herhangi bir üyelik veya ödeme gerektirmez.</p>
+            <h3 style="font-size: 16px; color: #0f172a; margin: 12px 0 4px 0;">Ses kontrolü nasıl çalışıyor?</h3>
+            <p style="font-size: 14px; color: #475569; margin: 0;">Tüm kanallar sayfa açıldığında otomatik ve sessiz başlar. Dilediğiniz yayının kutucuğundaki Sesi Aç düğmesine bastığınızda o kanal dinlenebilir hale gelir ve diğer tüm kanallar otomatik olarak sessize alınır.</p>
+            <h3 style="font-size: 16px; color: #0f172a; margin: 12px 0 4px 0;">F11 Geniş Ekran özelliği ne işe yarar?</h3>
+            <p style="font-size: 14px; color: #475569; margin: 0;">F11 tuşuna basarak sol menüyü gizleyebilir ve 9 haber ekranının monitörünüze tam oturmasını sağlayabilirsiniz.</p>
+          </div>
+        </section>
+      </div>
+    `;
+
+    modifiedTemplate = modifiedTemplate
+      .replace(/<title>.*?<\/title>/, `<title>${tvTitle}</title>`)
+      .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${tvTitle}" />`)
+      .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${tvDesc}" />`)
+      .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${tvTitle}" />`)
+      .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${tvDesc}" />`)
+      .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${tvUrl}" />`)
+      .replace(/<meta property="og:type" content=".*?" \/>/, `<meta property="og:type" content="video.other" />`)
+      .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${tvTitle}" />`)
+      .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${tvDesc}" />`)
+      .replace(/<meta name="twitter:url" content=".*?" \/>/, `<meta name="twitter:url" content="${tvUrl}" />`)
+      .replace('</head>', `  <script type="application/ld+json">${schemaJson}</script>\n  </head>`);
+  }
+
   // 6. HABER DETAYI (/haber/:slug)
   else if (reqPath.startsWith('/haber/')) {
     const slug = reqPath.replace('/haber/', '').split('?')[0].toLowerCase().trim();
@@ -4024,6 +4212,7 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
   const commonFooterHtml = `
     <footer style="max-width: 900px; margin: 40px auto 20px auto; border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 12px; color: #64748b; font-family: sans-serif; text-align: center;">
       <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;">
+        <a href="/canli-tv" style="color: #059669; font-weight: bold; text-decoration: none;">Canlı TV</a>
         <a href="/hakkimizda" style="color: #64748b; text-decoration: none;">Hakkımızda</a>
         <a href="/kunye" style="color: #64748b; text-decoration: none;">Künye & İletişim</a>
         <a href="/yayin-ilkeleri" style="color: #64748b; text-decoration: none;">Yayın İlkeleri</a>

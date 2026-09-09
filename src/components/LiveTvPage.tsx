@@ -15,7 +15,13 @@ import {
   Check,
   RotateCcw,
   SlidersHorizontal,
-  X
+  X,
+  PanelLeftClose,
+  PanelLeftOpen,
+  HelpCircle,
+  ChevronDown,
+  ShieldCheck,
+  Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../lib/ThemeContext';
@@ -38,11 +44,174 @@ export function LiveTvPage() {
   // Audio Coordination: Which channel currently has audio unmuted? (null = ALL MUTED)
   const [unmutedChannelId, setUnmutedChannelId] = useState<string | null>(null);
 
+  // Cinema Mode (Hide Left Sidebar for Full-Screen news viewing)
+  const [isCinemaMode, setIsCinemaMode] = useState<boolean>(false);
+
+  // FAQ Accordion Open State
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
   // Fullscreen state: which channel is in full screen (null = none)
   const [fullscreenChannelId, setFullscreenChannelId] = useState<string | null>(null);
   const [isFullscreenOverlayControlsVisible, setIsFullscreenOverlayControlsVisible] = useState<boolean>(true);
   const overlayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fullscreenContainerRef = useRef<HTMLDivElement>(null);
+
+  // Synchronize Cinema Mode with PersistentLayout & F11 / Fullscreen
+  useEffect(() => {
+    const handleCinemaEvent = (e: any) => {
+      if (e && typeof e.detail === 'boolean') {
+        setIsCinemaMode(e.detail);
+      }
+    };
+    window.addEventListener('vox_toggle_cinema_mode', handleCinemaEvent);
+
+    const handleFullscreenChange = () => {
+      const isFs = Boolean(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement
+      );
+      if (isFs) {
+        setIsCinemaMode(true);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      window.removeEventListener('vox_toggle_cinema_mode', handleCinemaEvent);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const handleToggleCinemaMode = useCallback(() => {
+    const nextState = !isCinemaMode;
+    setIsCinemaMode(nextState);
+    window.dispatchEvent(new CustomEvent('vox_toggle_cinema_mode', { detail: nextState }));
+  }, [isCinemaMode]);
+
+  // Comprehensive SEO & GEO Optimization for Google Search & Google Gemini
+  useEffect(() => {
+    const prevTitle = document.title;
+    document.title = 'Canlı TV - Kesintisiz Canlı Haber Kanalları İzle | VOX';
+
+    // Update meta description
+    let metaDesc = document.querySelector('meta[name="description"]');
+    const prevDesc = metaDesc ? metaDesc.getAttribute('content') : null;
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.setAttribute('name', 'description');
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute('content', 'CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, Bloomberg HT, TRT Haber, TV100 ve Haber Global canlı yayınlarını tek ekranda donmadan, reklamsız ve kesintisiz izleyin.');
+
+    // Inject Rich JSON-LD Structured Data for Google Rich Snippets & Gemini AI Overviews
+    const jsonLdId = 'vox-canli-tv-jsonld';
+    let scriptTag = document.getElementById(jsonLdId);
+    if (!scriptTag) {
+      scriptTag = document.createElement('script');
+      scriptTag.id = jsonLdId;
+      scriptTag.setAttribute('type', 'application/ld+json');
+      document.head.appendChild(scriptTag);
+    }
+
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'WebPage',
+          '@id': 'https://voxozet.com/canli-tv',
+          'url': 'https://voxozet.com/canli-tv',
+          'name': 'Canlı TV - Kesintisiz Canlı Haber Kanalları İzle | VOX',
+          'description': 'Türkiye’nin 9 lider haber kanalının resmi canlı yayınları tek ekranda mozaik ve odak modunda.',
+          'inLanguage': 'tr-TR',
+          'isPartOf': {
+            '@type': 'WebSite',
+            '@id': 'https://voxozet.com/#website',
+            'url': 'https://voxozet.com',
+            'name': 'VOX'
+          },
+          'breadcrumb': {
+            '@type': 'BreadcrumbList',
+            'itemListElement': [
+              {
+                '@type': 'ListItem',
+                'position': 1,
+                'name': 'Ana Sayfa',
+                'item': 'https://voxozet.com/'
+              },
+              {
+                '@type': 'ListItem',
+                'position': 2,
+                'name': 'Canlı TV',
+                'item': 'https://voxozet.com/canli-tv'
+              }
+            ]
+          }
+        },
+        {
+          '@type': 'ItemList',
+          'name': 'VOX Canlı TV Haber Kanalları Listesi',
+          'numberOfItems': LIVE_TV_CHANNELS.length,
+          'itemListElement': LIVE_TV_CHANNELS.map((ch, index) => ({
+            '@type': 'ListItem',
+            'position': index + 1,
+            'name': ch.name,
+            'url': ch.youtubeUrl,
+            'description': ch.description
+          }))
+        },
+        {
+          '@type': 'FAQPage',
+          'mainEntity': [
+            {
+              '@type': 'Question',
+              'name': 'VOX Canlı TV sayfasında hangi kanallar izlenebilir?',
+              'acceptedAnswer': {
+                '@type': 'Answer',
+                'text': 'VOX Canlı TV sayfasında CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, Bloomberg HT, TRT Haber, TV100 ve Haber Global kanallarının resmi YouTube canlı yayınları tek ekranda eş zamanlı olarak izlenebilir.'
+              }
+            },
+            {
+              '@type': 'Question',
+              'name': 'Canlı TV yayınları ücretsiz midir?',
+              'acceptedAnswer': {
+                '@type': 'Answer',
+                'text': 'Evet, VOX Canlı TV tamamen ücretsizdir. Herhangi bir abonelik, üyelik veya kart bilgisi gerekmeksizin tüm haber yayınları kesintisiz izlenebilir.'
+              }
+            },
+            {
+              '@type': 'Question',
+              'name': 'Yayınların sesi neden sayfa açıldığında kapalıdır?',
+              'acceptedAnswer': {
+                '@type': 'Answer',
+                'text': 'Aynı anda 9 farklı kanalın sesinin birbirine girmesini önlemek ve tarayıcı ses politikalarına uyum sağlamak için tüm yayınlar varsayılan olarak sessiz başlar. İzlemek istediğiniz kanalın sesini tek bir tıkla açabilirsiniz. Bir kanalın sesi açıldığında diğerleri otomatik susturulur.'
+              }
+            },
+            {
+              '@type': 'Question',
+              'name': 'Geniş Ekran ve F11 Sinema Modu nasıl kullanılır?',
+              'acceptedAnswer': {
+                '@type': 'Answer',
+                'text': 'Klavyenizden F11 tuşuna basarak veya üst kontrol çubuğundaki Geniş Ekran / Menüyü Gizle butonuna tıklayarak sol kenar çubuğunu gizleyebilir ve haber kutularının monitörünüzün tamamına yayılmasını sağlayabilirsiniz.'
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    scriptTag.textContent = JSON.stringify(structuredData);
+
+    return () => {
+      document.title = prevTitle;
+      if (prevDesc && metaDesc) {
+        metaDesc.setAttribute('content', prevDesc);
+      }
+      const existing = document.getElementById(jsonLdId);
+      if (existing) {
+        existing.remove();
+      }
+    };
+  }, []);
 
   // Filter channels based on category and search
   const filteredChannels = LIVE_TV_CHANNELS.filter(ch => {
@@ -296,7 +465,9 @@ export function LiveTvPage() {
       </AnimatePresence>
 
       {/* MAIN CONTAINER */}
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className={`transition-all duration-300 space-y-6 ${
+        isCinemaMode ? 'w-full px-2 sm:px-4 md:px-6' : 'max-w-7xl mx-auto'
+      }`}>
         
         {/* TOP HEADER & CONTROLS */}
         <div className={`p-4 sm:p-6 rounded-2xl border transition-all ${
@@ -322,7 +493,7 @@ export function LiveTvPage() {
               <p className={`text-xs sm:text-sm font-normal max-w-2xl ${
                 theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
               }`}>
-                Türkiye'nin önde gelen 9 haber kanalının kesintisiz canlı yayınları tek ekranda. Tüm yayınlar otomatik ve <strong>sessiz</strong> başlar; dilediğiniz kanalın sesini tek tıkla açabilir, köşesiz tam ekran modunda kesintisiz izleyebilirsiniz.
+                Türkiye'nin önde gelen 9 haber kanalının kesintisiz canlı yayınları tek ekranda. Tüm yayınlar otomatik ve <strong>sessiz</strong> başlar; dilediğiniz kanalın sesini tek tıkla açabilir, <strong>F11 Geniş Ekran</strong> veya tam ekran modunda kesintisiz izleyebilirsiniz.
               </p>
             </div>
 
@@ -375,12 +546,38 @@ export function LiveTvPage() {
                       ? theme === 'light' ? 'bg-white text-slate-900 shadow-sm' : 'bg-white/15 text-white shadow-sm'
                       : 'text-zinc-400 hover:text-white'
                   }`}
-                  title="Odak Modu (1 Büyük Ekran)"
+                  title="Odak Modu (1 Büyük Yayın + Kanal Listesi)"
                 >
                   <Layout className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Odak</span>
                 </button>
               </div>
+
+              {/* Cinema Mode / Full Page (Hide Left Sidebar) Toggle */}
+              <button
+                onClick={handleToggleCinemaMode}
+                className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-sm ${
+                  isCinemaMode
+                    ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/40'
+                    : theme === 'light'
+                      ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                      : 'bg-white/5 border-white/10 text-zinc-300 hover:text-white hover:bg-white/10'
+                }`}
+                title={isCinemaMode ? 'Kenar Çubuğunu Göster (F11 veya ESC)' : 'Geniş Ekran / Sol Menüyü Gizle (F11)'}
+              >
+                {isCinemaMode ? (
+                  <>
+                    <PanelLeftOpen className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Menüyü Göster</span>
+                  </>
+                ) : (
+                  <>
+                    <PanelLeftClose className="w-3.5 h-3.5" />
+                    <span className="hidden xl:inline">Geniş Ekran</span>
+                    <span className="text-[10px] opacity-75 px-1 py-0.5 rounded bg-black/20 font-mono">F11</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
@@ -710,6 +907,89 @@ export function LiveTvPage() {
             </button>
           </div>
         )}
+
+        {/* SEO & GEMINI AI KNOWLEDGE HUB / FAQ SECTION */}
+        <section 
+          id="canli-tv-bilgi-merkezi"
+          aria-labelledby="faq-section-heading"
+          className={`p-6 sm:p-8 rounded-2xl border transition-all ${
+            theme === 'light'
+              ? 'bg-white border-slate-200 shadow-sm'
+              : 'bg-[#101712] border-white/10 shadow-md'
+          }`}
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold text-red-500 uppercase tracking-wider">
+                <HelpCircle className="w-4 h-4" />
+                <span>Bilgi & Rehber</span>
+              </div>
+              <h2 id="faq-section-heading" className="text-lg sm:text-xl font-black mt-1">
+                VOX Canlı TV Hakkında & Sıkça Sorulan Sorular
+              </h2>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Resmi YouTube API Akışları</span>
+            </div>
+          </div>
+
+          {/* SSS / Accordion Items */}
+          <div className="divide-y divide-white/10 mt-2">
+            {[
+              {
+                q: "VOX Canlı TV'de hangi haber kanalları yer alıyor?",
+                a: "VOX Canlı TV sayfasında CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, Bloomberg HT, TRT Haber, TV100 ve Haber Global olmak üzere Türkiye'nin önde gelen 9 haber ve ekonomi kanalının resmi YouTube canlı yayınları tek ekranda eş zamanlı olarak sunulmaktadır."
+              },
+              {
+                q: "F11 Geniş Ekran ve Sinema Modu nasıl çalışır?",
+                a: "Klavyenizden F11 tuşuna bastığınızda veya üst araç çubuğundaki 'Geniş Ekran' butonuna tıkladığınızda sol kenar menüsü otomatik olarak gizlenir. Böylece 9 haber kutusu ekranınızın tüm yüzeyine yayılarak maksimum izleme alanı elde edilir. Menüyü geri getirmek için sol üstte beliren 'Menüyü Göster' butonuna basabilir veya ESC/F11 tuşunu kullanabilirsiniz."
+              },
+              {
+                q: "Yayınların sesi neden başta kapalı ve ses nasıl açılır?",
+                a: "Aynı anda 9 farklı kanalın sesinin birbirine girmesini önlemek ve web tarayıcılarının otomatik oynatma güvenlik politikalarına uymak için tüm yayınlar varsayılan olarak sessiz başlar. Takip etmek istediğiniz kanalın kutucuğundaki 'Sesi Aç' butonuna basarak anında net ses alabilirsiniz. Bir kanalın sesini açtığınızda diğer tüm kanallar otomatik olarak sessize alınır."
+              },
+              {
+                q: "Canlı TV yayını izlemek ücretli midir veya üyelik gerekir mi?",
+                a: "Hayır, VOX Canlı TV tamamen ücretsizdir. Herhangi bir üyelik, kayıt veya ödeme gerekmeden tüm haber kanallarını 7/24 kesintisiz ve donmadan izleyebilirsiniz."
+              },
+              {
+                q: "Yayınlar resmi ve güvenli midir?",
+                a: "Evet. VOX Canlı TV'deki tüm video yayınları, ilgili yayın kuruluşlarının onaylı YouTube resmi yayın akışlarından beslenmektedir. Sayfamızda üçüncü taraf korsan yayınlar kesinlikle yer almaz."
+              }
+            ].map((faq, idx) => {
+              const isOpen = openFaqIndex === idx;
+              return (
+                <div key={idx} className="py-4">
+                  <button
+                    onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                    className="w-full flex items-center justify-between text-left font-bold text-sm sm:text-base gap-4 cursor-pointer group"
+                    aria-expanded={isOpen}
+                  >
+                    <span className="group-hover:text-red-500 transition-colors">{faq.q}</span>
+                    <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-red-500' : 'text-zinc-400'}`} />
+                  </button>
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <p className={`text-xs sm:text-sm mt-2.5 leading-relaxed ${
+                          theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
+                        }`}>
+                          {faq.a}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         {/* FOOTER NOTICE / STREAM INFORMATION */}
         <div className={`p-4 rounded-xl border text-[11px] space-y-1 ${
