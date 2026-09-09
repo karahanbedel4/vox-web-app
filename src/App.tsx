@@ -17,6 +17,7 @@ import { MastheadContactPage } from './components/MastheadContactPage';
 import { EditorialGuidelinesPage } from './components/EditorialGuidelinesPage';
 import { GuidesPage } from './components/GuidesPage';
 import { GuideDetailPage } from './components/GuideDetailPage';
+import { LiveTvPage } from './components/LiveTvPage';
 import { NotFoundPage } from './components/NotFoundPage';
 
 import { Article, UserProfile } from './types';
@@ -501,6 +502,16 @@ export default function App() {
             <RouterRoute
               path="/haber"
               element={<RouterNavigate to="/" replace />}
+            />
+
+            {/* Canlı TV - 9 Haber Kanalı Canlı Yayınları */}
+            <RouterRoute
+              path="/canli-tv"
+              element={<LiveTvPage />}
+            />
+            <RouterRoute
+              path="/canli-yayin"
+              element={<RouterNavigate to="/canli-tv" replace />}
             />
 
             {/* Focus / Pomodoro Mode Route */}

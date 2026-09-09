@@ -28,7 +28,8 @@ import {
   Search,
   BookOpen,
   User,
-  LogOut
+  LogOut,
+  Tv
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Article, UserProfile, PlaybackState } from '../types';
@@ -443,6 +444,27 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             </NavLink>
 
+            {/* CANLI TV (9 Haber Kanalı) */}
+            <NavLink
+              to="/canli-tv"
+              className={({ isActive }) =>
+                `flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold tracking-wide transition-all ${
+                  isActive || location.pathname === '/canli-tv'
+                    ? 'bg-red-600/15 text-red-400 border border-red-500/30 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                }`
+              }
+            >
+              <div className="flex items-center gap-2.5">
+                <Tv className="w-4 h-4 text-red-500" />
+                <span>CANLI TV</span>
+              </div>
+              <span className="flex items-center gap-1.5 bg-red-600/20 border border-red-500/30 text-red-400 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                CANLI
+              </span>
+            </NavLink>
+
             {/* ODAKLAN */}
             <NavLink
               to="/odaklan"
@@ -657,6 +679,21 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             )}
           </button>
+
+          {/* Mobile Header Live TV Quick Access */}
+          <Link
+            to="/canli-tv"
+            className={`p-2 rounded-xl transition-all relative cursor-pointer ${
+              location.pathname === '/canli-tv' 
+                ? 'bg-red-600/20 text-red-400 border border-red-500/40' 
+                : 'text-gray-400 hover:text-white hover:bg-white/10'
+            }`}
+            title="Canlı TV (Haber Yayınları)"
+            aria-label="Canlı TV"
+          >
+            <Tv className="w-4 h-4 text-red-500" />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+          </Link>
         </div>
       </header>
 
@@ -767,6 +804,27 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                       <span>Gündem (Haber Akışı)</span>
                     </div>
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  </NavLink>
+
+                  <NavLink
+                    to="/canli-tv"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
+                        isActive || location.pathname === '/canli-tv'
+                          ? 'bg-red-600/15 text-red-400 border border-red-500/30'
+                          : 'text-gray-300 hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Tv className="w-4 h-4 text-red-500" />
+                      <span>Canlı TV (Haber Kanalları)</span>
+                    </div>
+                    <span className="flex items-center gap-1.5 bg-red-600/20 text-red-400 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                      CANLI
+                    </span>
                   </NavLink>
 
                   <NavLink
@@ -887,7 +945,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       <div className={`md:hidden fixed bottom-3 left-3 right-3 z-40 pointer-events-none flex justify-center transition-all duration-300 ${
         isMobileDrawerOpen ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
       }`}>
-        <nav className={`pointer-events-auto w-full max-w-xs h-14 rounded-full backdrop-blur-2xl border px-3 py-1.5 flex items-center justify-around shadow-2xl transition-all duration-300 ${
+        <nav className={`pointer-events-auto w-full max-w-sm h-14 rounded-full backdrop-blur-2xl border px-2.5 py-1.5 flex items-center justify-around shadow-2xl transition-all duration-300 ${
           theme === 'light'
             ? 'bg-white/95 border-slate-200 text-slate-700 shadow-slate-900/10'
             : 'bg-[#101612]/95 border-white/10 text-gray-300'
@@ -898,7 +956,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             return (
               <NavLink
                 to="/"
-                className={`relative flex items-center justify-center gap-1.5 py-2 px-4 rounded-full transition-all duration-300 active:scale-95 ${
+                className={`relative flex items-center justify-center gap-1.5 py-2 px-3 rounded-full transition-all duration-300 active:scale-95 ${
                   isGundemActive
                     ? theme === 'light' ? 'text-white font-bold' : 'text-emerald-300 font-bold'
                     : 'text-gray-400 hover:text-white'
@@ -924,6 +982,40 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     className="text-xs whitespace-nowrap overflow-hidden leading-none font-medium"
                   >
                     Gündem
+                  </motion.span>
+                </div>
+              </NavLink>
+            );
+          })()}
+
+          {/* TAB 2: CANLI TV */}
+          {(() => {
+            const isTvActive = location.pathname === '/canli-tv';
+            return (
+              <NavLink
+                to="/canli-tv"
+                className={`relative flex items-center justify-center gap-1.5 py-2 px-3 rounded-full transition-all duration-300 active:scale-95 ${
+                  isTvActive
+                    ? 'text-white font-bold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {isTvActive && (
+                  <motion.div
+                    layoutId="mobileActiveDockPill"
+                    className="absolute inset-0 rounded-full shadow-sm bg-red-600 text-white"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <div className="relative z-10 flex items-center gap-1.5">
+                  <Tv className="w-4 h-4 shrink-0 text-red-500" />
+                  <motion.span
+                    initial={false}
+                    animate={{ width: isTvActive ? 'auto' : 0, opacity: isTvActive ? 1 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-xs whitespace-nowrap overflow-hidden leading-none font-medium"
+                  >
+                    Canlı TV
                   </motion.span>
                 </div>
               </NavLink>
