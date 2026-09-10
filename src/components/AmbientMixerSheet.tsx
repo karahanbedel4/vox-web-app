@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   CloudRain, 
   Volume2, 
@@ -108,11 +108,55 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
   const [customInputName, setCustomInputName] = useState('');
   const [showAddCustom, setShowAddCustom] = useState(false);
 
+  // Mobile detection: Mobile users receive only direct audio streams (Doğa & Lo-Fi)
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 768 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileDevice(window.innerWidth < 768 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState<'all' | 'nature' | 'lofi' | 'cinema'>('all');
+
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
 
   // Active playing channels
   const activeChannels = channels.filter(c => c.active && c.volume > 0);
   const primaryActive = activeChannels[0] || null;
+
+  // Filtered channels list according to device & selected category
+  const displayedChannels = useMemo(() => {
+    // If mobile, only include direct streams (Nature & Lo-Fi)
+    let list = isMobileDevice 
+      ? channels.filter(c => c.type === 'stream' || c.type === 'synth')
+      : channels;
+
+    if (selectedCategoryTab === 'nature') {
+      return list.filter(c => {
+        const id = c.id.toLowerCase();
+        return id.includes('nature') || id.includes('rain') || id.includes('forest') || id.includes('ocean') || id.includes('fire') || id.includes('cafe') || id.includes('thunder') || id.includes('wind') || id.includes('crickets');
+      });
+    }
+
+    if (selectedCategoryTab === 'lofi') {
+      return list.filter(c => {
+        const id = c.id.toLowerCase();
+        return id.includes('lofi') || id.includes('september') || id.includes('sleepy') || id.includes('delight') || id.includes('cradle') || id.includes('catwalk') || id.includes('dreaming') || id.includes('valley') || id.includes('coding') || id.includes('holidays');
+      });
+    }
+
+    if (selectedCategoryTab === 'cinema') {
+      return list.filter(c => c.type === 'youtube');
+    }
+
+    return list;
+  }, [channels, isMobileDevice, selectedCategoryTab]);
 
   // Listen for YouTube IFrame player onEnded events to auto-advance playlist
   useEffect(() => {
@@ -573,9 +617,69 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
               </div>
             )}
 
+            {/* Audio Concurrency & Background Layering Tip */}
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200/90 flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <p className="leading-relaxed text-[11px]">
+                <strong className="text-emerald-300 font-bold">Arka Plan Katmanı:</strong> Doğa ve Lo-Fi sesleri diğer sekmelerde veya cihazınızda çalan YouTube müziğinizi durdurmaz; bağımsız arka plan sesi olarak üst üste çalar.
+              </p>
+            </div>
+
+            {/* Category Filter Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <button
+                onClick={() => setSelectedCategoryTab('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  selectedCategoryTab === 'all'
+                    ? 'bg-[#1ed760] text-black shadow-sm'
+                    : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'
+                }`}
+              >
+                Tümü ({isMobileDevice ? '18' : '49'})
+              </button>
+
+              <button
+                onClick={() => setSelectedCategoryTab('nature')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                  selectedCategoryTab === 'nature'
+                    ? 'bg-[#1ed760] text-black shadow-sm'
+                    : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'
+                }`}
+              >
+                <Trees className="w-3.5 h-3.5" />
+                <span>Doğa Sesleri (9)</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedCategoryTab('lofi')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                  selectedCategoryTab === 'lofi'
+                    ? 'bg-[#1ed760] text-black shadow-sm'
+                    : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'
+                }`}
+              >
+                <Music className="w-3.5 h-3.5" />
+                <span>Lo-Fi Beats (9)</span>
+              </button>
+
+              {!isMobileDevice && (
+                <button
+                  onClick={() => setSelectedCategoryTab('cinema')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                    selectedCategoryTab === 'cinema'
+                      ? 'bg-[#1ed760] text-black shadow-sm'
+                      : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'
+                  }`}
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  <span>Film & Dizi Müzikleri (31)</span>
+                </button>
+              )}
+            </div>
+
             {/* Channel Cards */}
             <div className="space-y-3">
-              {channels.map((ch) => (
+              {displayedChannels.map((ch) => (
                 <div 
                   key={ch.id}
                   className={`p-4 rounded-2xl border transition-all ${
@@ -585,13 +689,25 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2.5 truncate pr-2">
+                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
                       {ch.type === 'youtube' || !ch.type ? (
                         <Youtube className={`w-4 h-4 shrink-0 ${ch.active ? 'text-red-400' : 'text-gray-500'}`} />
                       ) : (
                         getSoundIcon(ch.id, ch.active)
                       )}
-                      <p className="font-display text-xs font-bold text-white truncate">{ch.name}</p>
+                      <div className="min-w-0 flex items-center gap-2">
+                        <p className="font-display text-xs font-bold text-white truncate">{ch.name}</p>
+                        {ch.type === 'stream' && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium shrink-0 hidden sm:inline">
+                            Direkt Ses
+                          </span>
+                        )}
+                        {ch.type === 'youtube' && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 font-medium shrink-0 hidden sm:inline">
+                            Video
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <button

@@ -65,7 +65,7 @@ import {
   playTaskCompleteChime,
   playMindfulnessBell
 } from '../lib/FocusContext';
-import { ALL_SOUND_SHELVES, SoundTrack, getShelfIcon } from '../lib/soundtrackData';
+import { ALL_SOUND_SHELVES, MOBILE_SOUND_SHELVES, SoundTrack, getShelfIcon } from '../lib/soundtrackData';
 import { VoxLogo } from './VoxLogo';
 
 interface FocusTabProps {
@@ -214,9 +214,25 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     showTemporaryStatus(nextVal ? '🌙 Işıkları Kapat (Zen Modu) Açıldı' : '☀️ Normal Mod Açıldı');
   };
 
+  // Detect mobile device to selectively render Doğa + Lo-Fi on mobile vs All Shelves on desktop
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 768 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileDevice(window.innerWidth < 768 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const displayedShelves = isMobileDevice ? MOBILE_SOUND_SHELVES : ALL_SOUND_SHELVES;
+
   // Currently playing active soundtrack from ambient channels
   const currentPlayingTrack = useMemo(() => {
-    for (const shelf of ALL_SOUND_SHELVES) {
+    for (const shelf of displayedShelves) {
       for (const track of shelf.tracks) {
         const ch = ambientChannels.find(c => (c.id === track.id || (Boolean(track.youtubeId) && Boolean(c.youtubeId) && c.youtubeId === track.youtubeId)) && c.active && c.volume > 0);
         if (ch) {
@@ -225,12 +241,12 @@ export const FocusTab: React.FC<FocusTabProps> = ({
       }
     }
     return null;
-  }, [ambientChannels]);
+  }, [ambientChannels, displayedShelves]);
 
   // All flattened tracks for Next/Previous jumping within phone mockup
   const allFlattenedTracks = useMemo(() => {
-    return ALL_SOUND_SHELVES.flatMap(s => s.tracks);
-  }, []);
+    return displayedShelves.flatMap(s => s.tracks);
+  }, [displayedShelves]);
 
   const handleNextInMockup = () => {
     triggerHapticImpact('light').catch(() => {});
@@ -1582,9 +1598,24 @@ export const FocusTab: React.FC<FocusTabProps> = ({
           </div>
         </div>
 
+        {/* Horizontal Sound Shelves Header & Indicator */}
+        <div className="flex items-center justify-between pt-1 pb-1">
+          {isMobileDevice ? (
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+              <Sparkles className="w-3 h-3" />
+              <span>Mobil Sürüm: Doğa & Lo-Fi Direkt Ses Akışları</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
+              <Sparkles className="w-3 h-3 text-[#1ed760]" />
+              <span>Masaüstü Koleksiyonu: Doğa, Lo-Fi & Efsanevi Sinema Müzikleri</span>
+            </div>
+          )}
+        </div>
+
         {/* Horizontal Sound Shelves */}
         <div className="space-y-7">
-          {ALL_SOUND_SHELVES.map((shelf) => {
+          {displayedShelves.map((shelf) => {
             const ShelfIcon = getShelfIcon(shelf.iconName);
             const isCurrentActiveShelf = activePlaylistShelfId === shelf.id;
             const activeTrackInShelf = shelf.tracks.find(t => {

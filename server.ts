@@ -4225,6 +4225,11 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
     </footer>
   `;
 
+  // Dynamically update Canonical URL for SEO
+  const cleanCanonicalPath = reqPath.split('?')[0];
+  const canonicalUrl = cleanCanonicalPath === '/' ? 'https://voxozet.com/' : `https://voxozet.com${cleanCanonicalPath}`;
+  modifiedTemplate = modifiedTemplate.replace(/<link rel="canonical" href=".*?" \/>/, `<link rel="canonical" href="${canonicalUrl}" />`);
+
   // Inject semantic SSR HTML into <div id="root">
   // When React starts on client-side, ReactDOM.createRoot will hydrate/replace this instantly.
   // Google AdSense bot, Mediapartners-Google, and SEO crawlers will read this full rich semantic content!
