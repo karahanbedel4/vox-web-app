@@ -273,11 +273,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   return (
-    <div className={`p-4 md:p-8 max-w-5xl mx-auto space-y-6 transition-colors duration-300 ${
+    <div className={`p-3.5 sm:p-5 md:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-5 transition-colors duration-300 ${
       theme === 'light' ? 'text-slate-800' : 'text-gray-200'
     }`}>
       {/* HEADER TITLE BAR WITH COMPACT SEARCH & REFRESH */}
-      <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b ${
+      <div className={`flex flex-col md:flex-row md:items-center justify-between gap-3.5 pb-3.5 border-b ${
         theme === 'light' ? 'border-slate-200' : 'border-white/5'
       }`}>
         <div className="flex items-center gap-3">
@@ -427,7 +427,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* SKELETON LOADER WITH LIVE RADAR SCANNER */}
       {isLoading || isSearchingGoogle ? (
-        <div className="space-y-4">
+        <div className="space-y-3.5">
           <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
             theme === 'light'
               ? 'bg-slate-50 border-slate-200 text-slate-800'
@@ -448,22 +448,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <RefreshCw className="w-4 h-4 text-zinc-400 animate-spin shrink-0" />
           </div>
 
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className={`p-4 rounded-2xl flex gap-4 items-center animate-pulse ${
-              theme === 'light' ? 'bg-white border border-slate-200' : 'bg-[#141715] border border-white/5'
-            }`}>
-              <div className={`w-24 h-24 rounded-xl shrink-0 ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
-              <div className="flex-1 space-y-2">
-                <div className={`h-3 w-28 rounded ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
-                <div className={`h-5 w-3/4 rounded ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
-                <div className={`h-3.5 w-full rounded ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
-                <div className="pt-2 flex justify-between">
-                  <div className={`h-8 w-24 rounded-xl ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
-                  <div className={`h-8 w-36 rounded-xl ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className={`p-4 sm:p-4.5 rounded-2xl flex flex-col justify-between gap-3.5 animate-pulse ${
+                theme === 'light' ? 'bg-white border border-slate-200' : 'bg-[#141715] border border-white/5'
+              }`}>
+                <div className={`w-full aspect-[16/10] rounded-xl shrink-0 ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`} />
+                <div className="space-y-2.5">
+                  <div className={`h-3 w-28 rounded ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`} />
+                  <div className={`h-5 w-4/5 rounded ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`} />
+                  <div className={`h-3.5 w-full rounded ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`} />
+                </div>
+                <div className="pt-3 border-t border-white/5 flex justify-between items-center">
+                  <div className={`h-8 w-24 rounded-xl ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`} />
+                  <div className={`h-8 w-24 rounded-xl ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'}`} />
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : displayList.length === 0 ? (
         <div className={`text-center py-16 rounded-3xl space-y-3 ${
@@ -476,177 +478,184 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
       ) : (
-        /* NEWS LIST VIEW WITH PROGRESSIVE INFINITE SCROLL & NATIVE ADS */
+        /* NEWS COHESIVE GRID VIEW WITH PROGRESSIVE INFINITE SCROLL & NATIVE ADS */
         <div className="space-y-4">
-          {visibleArticles.map((article, index) => {
-            const isBookmarked = bookmarkedIds.includes(article.id);
-            const readingTime = calculateReadingTime(article);
-            // Native AdCard inserted every 4 articles for organic monetization
-            const isFeedReady = !isLoading && !isSearchingGoogle && displayList.length > 0;
-            const showAd = isFeedReady && (index + 1) % 4 === 0;
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+            {visibleArticles.map((article, index) => {
+              const isBookmarked = bookmarkedIds.includes(article.id);
+              const readingTime = calculateReadingTime(article);
+              // Native AdCard inserted every 6 articles for organic monetization
+              const isFeedReady = !isLoading && !isSearchingGoogle && displayList.length > 0;
+              const showAd = isFeedReady && (index + 1) % 6 === 0;
 
-            return (
-              <React.Fragment key={article.id}>
-                <div
-                  className={`p-4 md:p-5 rounded-2xl flex flex-col md:flex-row gap-4 md:items-center justify-between transition-all group ${
-                    theme === 'light'
-                      ? 'bg-white border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md'
-                      : 'bg-[#141715] border border-white/5 hover:border-white/15 shadow-sm'
-                  }`}
-                >
-                  {/* Thumbnail Image */}
+              return (
+                <React.Fragment key={article.id}>
                   <div
-                    onClick={() => handleArticleCardClick(article)}
-                    className="relative w-full md:w-36 h-36 md:h-28 rounded-xl overflow-hidden shrink-0 bg-slate-900 border border-white/5 cursor-pointer group-hover:scale-[1.01] transition-transform"
+                    className={`p-4 sm:p-4.5 rounded-2xl flex flex-col justify-between gap-3.5 transition-all duration-200 group border shadow-sm hover:shadow-md ${
+                      theme === 'light'
+                        ? 'bg-white border-slate-200/90 hover:border-slate-300'
+                        : 'bg-[#141715] border-white/5 hover:border-white/15'
+                    }`}
                   >
-                    <img
-                      src={sanitizeImageUrl(article.imageUrl) || getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
-                      alt={article.title}
-                      className="w-full h-full object-cover opacity-95 transition-opacity duration-300"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
-                        if (target.src !== fallback) {
-                          target.src = fallback;
-                        }
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-                    {article.sourceType === 'twitter' && (
-                      <span className="absolute top-2 right-2 text-[10px] font-bold text-white bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/15 shadow-sm">
-                        <XLogoIcon className="w-2.5 h-2.5 text-zinc-300" />
-                        <span>𝕏</span>
-                      </span>
-                    )}
-                    {article.sourceType === 'telegram' && (
-                      <span className="absolute top-2 right-2 text-[10px] font-bold text-white bg-[#229ED9]/90 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/20 shadow-sm">
-                        <Send className="w-2.5 h-2.5 text-white" />
-                        <span>TG</span>
-                      </span>
-                    )}
-                    <span className="absolute bottom-2 left-2 text-[10px] font-semibold text-white bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/15 shadow-sm">
-                      <Clock className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
-                      <span>{readingTime} dk okuma</span>
-                    </span>
-                  </div>
+                    {/* Enlarged Editorial Thumbnail Image */}
+                    <div
+                      onClick={() => handleArticleCardClick(article)}
+                      className="relative w-full aspect-[16/10] rounded-xl overflow-hidden shrink-0 bg-slate-900 border border-white/5 cursor-pointer group-hover:scale-[1.01] transition-transform"
+                    >
+                      <img
+                        src={sanitizeImageUrl(article.imageUrl) || getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
+                        alt={article.title}
+                        className="w-full h-full object-cover opacity-95 group-hover:opacity-100 transition-all duration-300"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                          if (target.src !== fallback) {
+                            target.src = fallback;
+                          }
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
 
-                  {/* News Details */}
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                          theme === 'light'
-                            ? 'bg-slate-100 text-slate-700 border-slate-200'
-                            : 'bg-white/5 text-zinc-300 border-white/10'
-                        }`}>
+                      {/* Top Badges */}
+                      <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/15 shadow-sm">
                           {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : article.sourceType === 'telegram' ? 'Telegram Canlı' : (article.category || activeCategory)}
                         </span>
 
-                        {/* Reading Time Badge */}
-                        <span
-                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${
-                            theme === 'light'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200/80'
-                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          }`}
-                          title={`Tahmini okuma süresi: ${readingTime} dakika`}
-                        >
-                          <Clock className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
-                          <span>{readingTime} dk okuma</span>
-                        </span>
-
-                        {article.sourceType === 'twitter' ? (
-                          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                            theme === 'light' ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white/5 border-white/10 text-zinc-300'
-                          }`}>
-                            <XLogoIcon className="w-3 h-3 text-zinc-400" />
-                            <span>{formatTwitterAuthor(article.author)}</span>
+                        {article.sourceType === 'twitter' && (
+                          <span className="text-[10px] font-bold text-white bg-black/85 backdrop-blur-md px-2 py-1 rounded-lg flex items-center gap-1 border border-white/15 shadow-sm">
+                            <XLogoIcon className="w-2.5 h-2.5 text-zinc-300" />
+                            <span>𝕏</span>
                           </span>
-                        ) : article.sourceType === 'telegram' ? (
-                          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                            theme === 'light' ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-[#229ED9]/10 border-[#229ED9]/20 text-[#229ED9]'
-                          }`}>
-                            <Send className="w-3 h-3 text-[#229ED9]" />
-                            <span>{article.author}</span>
-                          </span>
-                        ) : (
-                          <span className={`text-xs font-medium ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>
-                            {article.author || 'Anadolu Ajansı'}
+                        )}
+                        {article.sourceType === 'telegram' && (
+                          <span className="text-[10px] font-bold text-white bg-[#229ED9]/90 backdrop-blur-md px-2 py-1 rounded-lg flex items-center gap-1 border border-white/20 shadow-sm">
+                            <Send className="w-2.5 h-2.5 text-white" />
+                            <span>TG</span>
                           </span>
                         )}
                       </div>
 
-                      <button
-                        onClick={() => onOpenPaywall('limit_reached')}
-                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                          isBookmarked 
-                            ? 'text-amber-500 bg-amber-500/10' 
-                            : theme === 'light' ? 'text-slate-400 hover:text-slate-700' : 'text-gray-500 hover:text-gray-300'
-                        }`}
-                        title="Haberleri kaydetmek için VOX iOS uygulamasını indirin"
-                      >
-                        <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-amber-500' : ''}`} />
-                      </button>
+                      {/* Bottom Badges */}
+                      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+                        <span className="text-[10px] font-semibold text-white bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1 border border-white/15 shadow-sm">
+                          <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <span>{readingTime} dk okuma</span>
+                        </span>
+
+                        {isHotNews(article.createdAt) && (
+                          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/85 backdrop-blur-md px-2 py-1 rounded-lg flex items-center gap-1 border border-emerald-500/30 shadow-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>Son Dakika</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <h3
-                      onClick={() => handleArticleCardClick(article)}
-                      className={`font-display text-base md:text-lg font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors cursor-pointer leading-snug ${
-                        theme === 'light' ? 'text-slate-900' : 'text-white'
-                      }`}
-                    >
-                      {article.title}
-                    </h3>
+                    {/* News Details */}
+                    <div className="flex-1 flex flex-col justify-between space-y-3 min-w-0">
+                      <div className="space-y-2">
+                        {/* Author & Bookmark */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            {article.sourceType === 'twitter' ? (
+                              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border truncate ${
+                                theme === 'light' ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white/5 border-white/10 text-zinc-300'
+                              }`}>
+                                <XLogoIcon className="w-3 h-3 text-zinc-400 shrink-0" />
+                                <span className="truncate">{formatTwitterAuthor(article.author)}</span>
+                              </span>
+                            ) : article.sourceType === 'telegram' ? (
+                              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border truncate ${
+                                theme === 'light' ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-[#229ED9]/10 border-[#229ED9]/20 text-[#229ED9]'
+                              }`}>
+                                <Send className="w-3 h-3 text-[#229ED9] shrink-0" />
+                                <span className="truncate">{article.author}</span>
+                              </span>
+                            ) : (
+                              <span className={`text-xs font-medium truncate block ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>
+                                {article.author || 'Anadolu Ajansı'}
+                              </span>
+                            )}
+                          </div>
 
-                    {/* Strictly constrained to 1 line summary */}
-                    <p className={`text-xs line-clamp-1 leading-relaxed ${
-                      theme === 'light' ? 'text-slate-600' : 'text-gray-400'
-                    }`}>
-                      {article.summary}
-                    </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenPaywall('limit_reached');
+                            }}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ${
+                              isBookmarked 
+                                ? 'text-amber-500 bg-amber-500/10' 
+                                : theme === 'light' ? 'text-slate-400 hover:text-slate-700' : 'text-gray-500 hover:text-gray-300'
+                            }`}
+                            title="Haberleri kaydetmek için VOX uygulamasını indirin"
+                          >
+                            <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-amber-500' : ''}`} />
+                          </button>
+                        </div>
 
-                    {/* Buttons Row */}
-                    <div className={`pt-2 flex flex-wrap items-center justify-between gap-3 border-t ${
-                      theme === 'light' ? 'border-slate-100' : 'border-white/5'
-                    }`}>
-                      {/* Read Text Button -> Navigates to /haber/:slug */}
-                      <button
-                        onClick={() => handleArticleCardClick(article)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                          theme === 'light'
-                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
-                            : 'bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10'
-                        }`}
-                      >
-                        <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Haberi Oku</span>
-                        <span className={`text-[10px] font-normal ${theme === 'light' ? 'text-slate-500' : 'text-zinc-400'}`}>
-                          ({readingTime} dk)
-                        </span>
-                      </button>
+                        {/* Article Headline */}
+                        <h3
+                          onClick={() => handleArticleCardClick(article)}
+                          className={`font-display text-base sm:text-lg font-bold group-hover:text-emerald-500 transition-colors cursor-pointer leading-snug line-clamp-2 ${
+                            theme === 'light' ? 'text-slate-900' : 'text-white'
+                          }`}
+                        >
+                          {article.title}
+                        </h3>
 
-                      {/* ELEGANT APPLE-STYLE CTA BUTTON */}
-                      <button
-                        onClick={() => onOpenPaywall('limit_reached')}
-                        className={`font-semibold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer border ${
-                          theme === 'light'
-                            ? 'bg-slate-900 hover:bg-slate-800 text-white border-slate-800'
-                            : 'bg-white hover:bg-zinc-100 text-slate-950 border-white'
-                        }`}
-                        title="Sesli dinlemek için iOS uygulamasını indirin"
-                      >
-                        <span> Uygulamada Dinle</span>
-                        <Lock className="w-3 h-3 opacity-80" />
-                      </button>
+                        {/* Article Summary */}
+                        <p className={`text-xs sm:text-[13px] line-clamp-2 leading-relaxed ${
+                          theme === 'light' ? 'text-slate-600' : 'text-gray-400'
+                        }`}>
+                          {article.summary}
+                        </p>
+                      </div>
+
+                      {/* Card Action Buttons Row */}
+                      <div className={`pt-3 flex items-center justify-between gap-2 border-t ${
+                        theme === 'light' ? 'border-slate-100' : 'border-white/5'
+                      }`}>
+                        <button
+                          onClick={() => handleArticleCardClick(article)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                            theme === 'light'
+                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
+                              : 'bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10'
+                          }`}
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Haberi Oku</span>
+                        </button>
+
+                        <button
+                          onClick={() => onOpenPaywall('limit_reached')}
+                          className={`font-semibold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer border ${
+                            theme === 'light'
+                              ? 'bg-slate-900 hover:bg-slate-800 text-white border-slate-800'
+                              : 'bg-white hover:bg-zinc-100 text-slate-950 border-white'
+                          }`}
+                          title="Sesli dinlemek için iOS uygulamasını indirin"
+                        >
+                          <span> Dinle</span>
+                          <Lock className="w-3 h-3 opacity-80" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* In-Feed Native Ad every 4 articles */}
-                {showAd && <NativeAdCard key={`ad-feed-${article.id}-${index}`} variant="feed" />}
-              </React.Fragment>
-            );
-          })}
+                  {/* In-Feed Native Ad spanning both columns in grid */}
+                  {showAd && (
+                    <div className="col-span-1 sm:col-span-2">
+                      <NativeAdCard key={`ad-feed-${article.id}-${index}`} variant="feed" />
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
 
           {/* INFINITE SCROLL SENTINEL & LOAD MORE BUTTON */}
           <div ref={observerTarget} className="py-6 text-center">

@@ -21,13 +21,30 @@ import {
   ChevronDown,
   ShieldCheck,
   Info,
-  Trophy
+  Trophy,
+  Smartphone,
+  Play,
+  ArrowUpRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../lib/ThemeContext';
 import { LIVE_TV_CHANNELS, LIVE_TV_CATEGORIES, LiveTvChannel } from '../data/liveTvData';
+import { liveTvBackgroundAudio } from '../lib/liveTvBackgroundAudio';
+import { triggerHapticImpact } from '../lib/haptics';
 
 type ViewMode = 'grid' | 'focus';
+
+// Animated Sound Wave Equalizer for indicating active audio on cards & floating docks
+function LiveAudioEqualizer({ active = true, className = '' }: { active?: boolean; className?: string }) {
+  return (
+    <div className={`flex items-end gap-0.5 h-3.5 ${className}`} aria-label="Canlı Ses Dalgaları">
+      <span className={`w-0.5 rounded-full transition-all ${active ? 'bg-emerald-400 animate-pulse h-3.5' : 'bg-zinc-500 h-1'}`} />
+      <span className={`w-0.5 rounded-full transition-all ${active ? 'bg-emerald-400 animate-bounce h-2.5' : 'bg-zinc-500 h-2'}`} />
+      <span className={`w-0.5 rounded-full transition-all ${active ? 'bg-emerald-400 animate-pulse h-3' : 'bg-zinc-500 h-1.5'}`} />
+      <span className={`w-0.5 rounded-full transition-all ${active ? 'bg-emerald-400 animate-bounce h-2' : 'bg-zinc-500 h-1'}`} />
+    </div>
+  );
+}
 
 export function LiveTvPage() {
   const { theme } = useTheme();
@@ -80,6 +97,13 @@ export function LiveTvPage() {
 
   // Audio Coordination: Which channel currently has audio unmuted? (null = ALL MUTED)
   const [unmutedChannelId, setUnmutedChannelId] = useState<string | null>(null);
+
+  // Active audio notification toast (when user minimizes and returns to browser tab)
+  const [showResumeNotice, setShowResumeNotice] = useState<boolean>(false);
+  const resumeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Smooth scroll highlighted channel (when clicked from floating dock or notice)
+  const [highlightedChannelId, setHighlightedChannelId] = useState<string | null>(null);
 
   // Cinema Mode (Hide Left Sidebar for Full-Screen news viewing)
   const [isCinemaMode, setIsCinemaMode] = useState<boolean>(false);
@@ -190,11 +214,22 @@ export function LiveTvPage() {
     }
   };
 
-  // Comprehensive SEO & GEO Optimization for Google Search & Google Gemini
+  // Comprehensive SEO & GEO Optimization for Google Search & Google Gemini + Dynamic Audio Title
   useEffect(() => {
     const activeCategoryInfo = LIVE_TV_CATEGORIES.find(c => c.name === selectedCategory) || LIVE_TV_CATEGORIES[0];
     const prevTitle = document.title;
-    document.title = activeCategoryInfo.seoTitle;
+    
+    // Dynamic Tab Title: If a channel is unmuted, indicate audio is playing in the tab switcher!
+    if (unmutedChannelId) {
+      const activeCh = allChannels.find(c => c.id === unmutedChannelId);
+      if (activeCh) {
+        document.title = `🔊 ${activeCh.name} (Canlı Ses Açık) | VOX Canlı TV`;
+      } else {
+        document.title = activeCategoryInfo.seoTitle;
+      }
+    } else {
+      document.title = activeCategoryInfo.seoTitle;
+    }
 
     // Update meta description
     let metaDesc = document.querySelector('meta[name="description"]');
@@ -331,7 +366,7 @@ export function LiveTvPage() {
         existing.remove();
       }
     };
-  }, [selectedCategory, allChannels]);
+  }, [selectedCategory, allChannels, unmutedChannelId]);
 
   // Filter channels based on category and search
   const filteredChannels = allChannels.filter(ch => {
@@ -343,7 +378,7 @@ export function LiveTvPage() {
   });
 
   // Helper to send postMessage commands to YouTube iframes
-  const sendIframeCommand = useCallback((channelId: string, func: 'mute' | 'unMute' | 'setVolume', args: any[] = []) => {
+  const sendIframeCommand = useCallback((channelId: string, func: 'mute' | 'unMute' | 'setVolume' | 'playVideo' | 'pauseVideo', args: any[] = []) => {
     try {
       const iframe = document.getElementById(`yt-live-${channelId}`) as HTMLIFrameElement;
       if (iframe && iframe.contentWindow) {
@@ -374,6 +409,8 @@ export function LiveTvPage() {
       // Mute this channel
       sendIframeCommand(channelId, 'mute');
       setUnmutedChannelId(null);
+      liveTvBackgroundAudio.stopSession();
+      triggerHapticImpact('light');
     } else {
       // Mute all other channels first to prevent audio clash
       allChannels.forEach(ch => {
@@ -382,10 +419,32 @@ export function LiveTvPage() {
         }
       });
 
-      // Unmute and set volume to 100 on the selected channel
+      // Unmute, set volume to 100 and ensure play command on the selected channel
       sendIframeCommand(channelId, 'unMute');
       sendIframeCommand(channelId, 'setVolume', [100]);
+      sendIframeCommand(channelId, 'playVideo');
       setUnmutedChannelId(channelId);
+      triggerHapticImpact('medium');
+
+      const targetCh = allChannels.find(c => c.id === channelId);
+      if (targetCh) {
+        // Register with MediaSession and background audio keep-alive for Safari & Chrome
+        liveTvBackgroundAudio.startSession({
+          channelId: targetCh.id,
+          channelName: targetCh.name,
+          category: targetCh.category,
+          brandColor: targetCh.brandColor,
+          onPlay: () => {
+            sendIframeCommand(channelId, 'unMute');
+            sendIframeCommand(channelId, 'setVolume', [100]);
+            sendIframeCommand(channelId, 'playVideo');
+          },
+          onPause: () => {
+            sendIframeCommand(channelId, 'mute');
+            setUnmutedChannelId(null);
+          }
+        });
+      }
     }
   }, [unmutedChannelId, sendIframeCommand, allChannels]);
 
@@ -395,7 +454,56 @@ export function LiveTvPage() {
       sendIframeCommand(ch.id, 'mute');
     });
     setUnmutedChannelId(null);
+    liveTvBackgroundAudio.stopSession();
+    triggerHapticImpact('light');
   }, [sendIframeCommand, allChannels]);
+
+  // Scroll smoothly to channel card and pulse highlight
+  const scrollToChannel = useCallback((channelId: string) => {
+    if (viewMode === 'focus') {
+      setFocusedChannelId(channelId);
+    }
+    const cardEl = document.getElementById(`channel-card-${channelId}`);
+    if (cardEl) {
+      cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedChannelId(channelId);
+      setTimeout(() => {
+        setHighlightedChannelId(null);
+      }, 2500);
+    }
+  }, [viewMode]);
+
+  // Mobile Background & Tab Resumption Listener (Safari on iOS & Chrome on Android)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && unmutedChannelId) {
+        // Re-assert play & unMute so that even if the mobile OS throttled the video stream, it continues seamlessly
+        sendIframeCommand(unmutedChannelId, 'playVideo');
+        sendIframeCommand(unmutedChannelId, 'unMute');
+        sendIframeCommand(unmutedChannelId, 'setVolume', [100]);
+
+        // Show floating notification so user knows which channel is active
+        setShowResumeNotice(true);
+        if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = setTimeout(() => {
+          setShowResumeNotice(false);
+        }, 7500);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [unmutedChannelId, sendIframeCommand]);
+
+  // Clean up audio session on unmount
+  useEffect(() => {
+    return () => {
+      liveTvBackgroundAudio.stopSession();
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    };
+  }, []);
 
   // Handle entering full screen
   const handleEnterFullscreen = useCallback((channelId: string) => {
@@ -460,6 +568,64 @@ export function LiveTvPage() {
     <div className={`min-h-screen px-3 sm:px-6 lg:px-8 py-5 md:py-8 transition-colors ${
       theme === 'light' ? 'bg-[#f4f6f8] text-slate-900' : 'bg-[#0a0d0b] text-white'
     }`}>
+      {/* ACTIVE AUDIO RESUME NOTIFICATION TOAST (Shows on returning to browser if audio is playing) */}
+      <AnimatePresence>
+        {showResumeNotice && currentUnmutedChannel && (
+          <motion.div
+            initial={{ opacity: 0, y: -25, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 24, stiffness: 280 }}
+            className="fixed top-16 md:top-6 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-md z-50 p-3 rounded-2xl bg-[#0e1712]/95 border border-emerald-500/60 text-white shadow-2xl backdrop-blur-2xl flex items-center justify-between gap-3 select-none"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div 
+                className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs text-white shadow-sm shrink-0"
+                style={{ backgroundColor: currentUnmutedChannel.brandColor }}
+              >
+                {currentUnmutedChannel.shortName}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <LiveAudioEqualizer active={true} />
+                  <p className="text-xs font-black truncate text-white">
+                    {currentUnmutedChannel.name}
+                  </p>
+                </div>
+                <p className="text-[11px] text-emerald-300/85 truncate">
+                  Yayın sesi açık • Arka planda devam etti
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => scrollToChannel(currentUnmutedChannel.id)}
+                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[11px] font-bold transition-all cursor-pointer"
+              >
+                Kanala Git
+              </button>
+              <button
+                onClick={() => {
+                  handleToggleSound(currentUnmutedChannel.id);
+                  setShowResumeNotice(false);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-[11px] font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+              >
+                <VolumeX className="w-3.5 h-3.5" />
+                <span>Sesi Kapat</span>
+              </button>
+              <button
+                onClick={() => setShowResumeNotice(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                title="Bildirimi Kapat"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* SEAMLESS CORNERLESS FULLSCREEN OVERLAY ("köşesiz tüm sayfaya yayılan görüntü") */}
       <AnimatePresence>
         {fullscreenChannelId && activeFsChannel && (
@@ -658,19 +824,24 @@ export function LiveTvPage() {
 
             {/* Master Sound & Layout Controls */}
             <div className="flex flex-wrap items-center gap-2.5 pt-2 lg:pt-0">
-              {/* Sound Status Banner / Quick Mute All */}
+              {/* Sound Status Banner / Quick Mute All / Mobile Indicator */}
               {unmutedChannelId ? (
-                <div className="flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-bold">
-                  <Volume2 className="w-4 h-4 animate-bounce" />
-                  <span className="truncate max-w-[150px]">
-                    {currentUnmutedChannel?.name || 'Ses Açık'}
-                  </span>
+                <div className="flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
+                  <LiveAudioEqualizer active={true} />
+                  <button
+                    onClick={() => scrollToChannel(unmutedChannelId)}
+                    className="truncate max-w-[150px] sm:max-w-[200px] text-left hover:underline cursor-pointer flex items-center gap-1"
+                    title="Kanala odaklan"
+                  >
+                    <span>{currentUnmutedChannel?.name || 'Ses Açık'}</span>
+                    <ArrowUpRight className="w-3 h-3 shrink-0 opacity-70" />
+                  </button>
                   <button
                     onClick={handleMuteAll}
-                    className="ml-1 text-[11px] underline hover:text-white transition-colors cursor-pointer"
+                    className="ml-1 px-2 py-0.5 rounded-md bg-red-600/90 hover:bg-red-500 text-white text-[10px] font-black transition-colors cursor-pointer shadow-sm"
                     title="Tümünü Sessize Al"
                   >
-                    Sessize Al
+                    Sesi Kapat
                   </button>
                 </div>
               ) : (
@@ -927,16 +1098,19 @@ export function LiveTvPage() {
               return (
                 <motion.div
                   key={channel.id}
+                  id={`channel-card-${channel.id}`}
                   layout
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, delay: index * 0.03 }}
-                  className={`flex flex-col rounded-xl border overflow-hidden transition-all duration-200 group ${
-                    isUnmuted
-                      ? 'ring-2 ring-emerald-500 border-emerald-500/80 shadow-lg'
-                      : theme === 'light'
-                        ? 'bg-white border-slate-200 shadow-sm hover:border-slate-300'
-                        : 'bg-[#101712] border-white/10 hover:border-white/20 shadow-md'
+                  className={`flex flex-col rounded-xl border overflow-hidden transition-all duration-300 group scroll-mt-24 ${
+                    highlightedChannelId === channel.id
+                      ? 'ring-4 ring-emerald-400 border-emerald-400 scale-[1.01] shadow-2xl'
+                      : isUnmuted
+                        ? 'ring-2 ring-emerald-500 border-emerald-500/90 shadow-xl shadow-emerald-950/30'
+                        : theme === 'light'
+                          ? 'bg-white border-slate-200 shadow-sm hover:border-slate-300'
+                          : 'bg-[#101712] border-white/10 hover:border-white/20 shadow-md'
                   }`}
                 >
                   {/* Clean Channel Header: Minimalist & Uncluttered */}
@@ -958,27 +1132,40 @@ export function LiveTvPage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                         <span className="hidden xs:inline">Canlı</span>
                       </span>
+
+                      {isUnmuted && (
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 text-[10px] font-black shrink-0 border border-emerald-500/40">
+                          <LiveAudioEqualizer active={true} />
+                          <span className="hidden sm:inline">SES AÇIK</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Right: Only 2 Essential Controls (Sleek Icon Buttons) */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {/* Sound Toggle Icon Button */}
+                    {/* Right: Sound Toggle (Clear touch target) & Fullscreen */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Sound Toggle Button */}
                       <button
                         onClick={() => handleToggleSound(channel.id)}
-                        className={`w-7 h-7 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                        className={`h-7 px-2.5 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-xs font-bold ${
                           isUnmuted
-                            ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-500'
+                            ? 'bg-red-600 hover:bg-red-500 text-white shadow-sm active:scale-95'
                             : theme === 'light'
                               ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                              : 'bg-white/5 hover:bg-white/15 text-zinc-300'
+                              : 'bg-white/5 hover:bg-white/15 text-zinc-300 hover:text-white'
                         }`}
-                        title={isUnmuted ? 'Sesi Kapat' : 'Sesi Aç'}
+                        title={isUnmuted ? 'Sesi Kapat' : 'Sesi Aç (Arka planda çalar)'}
                         aria-label={isUnmuted ? 'Sesi Kapat' : 'Sesi Aç'}
                       >
                         {isUnmuted ? (
-                          <Volume2 className="w-3.5 h-3.5 animate-pulse text-emerald-200" />
+                          <>
+                            <VolumeX className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Kapat</span>
+                          </>
                         ) : (
-                          <VolumeX className="w-3.5 h-3.5 text-zinc-400" />
+                          <>
+                            <Volume2 className="w-3.5 h-3.5 text-zinc-400" />
+                            <span className="text-[11px] hidden xs:inline">Sesi Aç</span>
+                          </>
                         )}
                       </button>
 
@@ -1009,11 +1196,18 @@ export function LiveTvPage() {
                       className="w-full h-full border-0"
                     />
 
-                    {/* Subtle floating sound badge if unmuted */}
+                    {/* Interactive floating sound badge if unmuted */}
                     {isUnmuted && (
-                      <div className="absolute top-2 left-2 z-10 pointer-events-none bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md backdrop-blur-sm">
-                        <Volume2 className="w-3 h-3" />
-                        <span>Ses Aktif</span>
+                      <div className="absolute top-2 left-2 z-10 bg-black/85 border border-emerald-500/60 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-2 shadow-xl backdrop-blur-md select-none">
+                        <LiveAudioEqualizer active={true} />
+                        <span className="text-emerald-400 text-[10px] font-black">SES AKTİF</span>
+                        <button
+                          onClick={() => handleToggleSound(channel.id)}
+                          className="px-2 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white text-[10px] font-black cursor-pointer active:scale-95 transition-all shadow"
+                          title="Sesi Kapat"
+                        >
+                          Kapat
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1095,6 +1289,10 @@ export function LiveTvPage() {
               {
                 q: "Yayınların sesi neden başta kapalı ve ses nasıl açılır?",
                 a: "Aynı anda birden fazla kanalın sesinin birbirine girmesini önlemek ve tarayıcı ses politikalarına uymak için tüm yayınlar varsayılan olarak sessiz başlar. Takip etmek istediğiniz kanalın kutucuğundaki 'Sesi Aç' butonuna basarak anında net ses alabilirsiniz."
+              },
+              {
+                q: "Safari veya Chrome'u aşağı aldığımda (arka plana attığımda) yayın sesi çalmaya devam eder mi?",
+                a: "Evet! VOX Canlı TV, iOS (Safari/Chrome) ve Android (Chrome/Edge/Samsung Internet) sistemleri için MediaSession ve arka plan ses koruması desteği sunar. Bir kanalın sesini açtıktan sonra tarayıcıyı alta alsanız veya ekranı kilitleseniz dahi yayın sesi kesilmeden devam eder. Ayrıca kilit ekranındaki veya bildirim çekmecesindeki medya denetimlerinden yayını durdurabilir, sayfaya döndüğünüzde açılır bildirimden hangi kanalın sesinin açık olduğunu anında görebilirsiniz."
               }
             ].map((faq, idx) => {
               const isOpen = openFaqIndex === idx;
@@ -1144,6 +1342,80 @@ export function LiveTvPage() {
         </div>
 
       </div>
+
+      {/* PERSISTENT FLOATING LIVE TV AUDIO DOCK (Sticky Mini-Bar for Mobile & Desktop) */}
+      <AnimatePresence>
+        {unmutedChannelId && currentUnmutedChannel && (
+          <motion.div
+            initial={{ opacity: 0, y: 35, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 25, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 26, stiffness: 280 }}
+            className={`fixed bottom-20 md:bottom-6 left-3 right-3 sm:left-auto sm:right-6 sm:w-auto sm:min-w-[360px] sm:max-w-md z-40 p-3 rounded-2xl border shadow-2xl backdrop-blur-2xl flex items-center justify-between gap-3 select-none transition-colors ${
+              theme === 'light'
+                ? 'bg-white/95 border-emerald-500/50 text-slate-900 shadow-emerald-950/15'
+                : 'bg-[#0f1712]/95 border-emerald-500/50 text-white shadow-black/80'
+            }`}
+          >
+            {/* Left: Channel Brand Icon & Equalizer & Name */}
+            <div 
+              onClick={() => scrollToChannel(currentUnmutedChannel.id)}
+              className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group"
+              title="Kanala gitmek için tıklayın"
+            >
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs text-white shadow-sm shrink-0 group-hover:scale-105 transition-transform"
+                style={{ backgroundColor: currentUnmutedChannel.brandColor }}
+              >
+                {currentUnmutedChannel.shortName}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <LiveAudioEqualizer active={true} />
+                  <span className="text-xs font-black truncate group-hover:text-emerald-400 transition-colors">
+                    {currentUnmutedChannel.name}
+                  </span>
+                </div>
+                <p className="text-[10px] text-emerald-500 font-semibold truncate flex items-center gap-1">
+                  <span>Sesi Açık</span>
+                  <span>•</span>
+                  <span>Safari/Chrome arka planda çalar</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => scrollToChannel(currentUnmutedChannel.id)}
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                  theme === 'light' ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/10 hover:bg-white/20 text-zinc-200'
+                }`}
+                title="Kanala Kaydır"
+              >
+                Kanala Git
+              </button>
+              <button
+                onClick={() => handleToggleSound(currentUnmutedChannel.id)}
+                className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-[11px] font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+                title="Sesi Kapat"
+              >
+                <VolumeX className="w-3.5 h-3.5" />
+                <span>Sesi Kapat</span>
+              </button>
+              <button
+                onClick={() => handleEnterFullscreen(currentUnmutedChannel.id)}
+                className={`p-1.5 rounded-xl transition-all cursor-pointer ${
+                  theme === 'light' ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/10 hover:bg-white/20 text-zinc-200'
+                }`}
+                title="Tam Ekran"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
