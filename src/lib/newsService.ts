@@ -1164,18 +1164,22 @@ export async function enrichArticleWithAI(article: Article): Promise<Article> {
     if (res.ok) {
       const data = await res.json();
       if (data && data.success && data.article) {
+        const fullArt: Article = {
+          ...data.article,
+          imageUrl: article.imageUrl || data.article.imageUrl
+        };
         // Cache enriched article in localStorage for instant access
         try {
           const cachedRaw = localStorage.getItem('vox_cached_articles');
           if (cachedRaw) {
             const list: Article[] = JSON.parse(cachedRaw);
-            const idx = list.findIndex(a => a.id === data.article.id || a.title === data.article.title);
-            if (idx >= 0) list[idx] = data.article;
-            else list.unshift(data.article);
+            const idx = list.findIndex(a => a.id === fullArt.id || a.title === fullArt.title);
+            if (idx >= 0) list[idx] = fullArt;
+            else list.unshift(fullArt);
             localStorage.setItem('vox_cached_articles', JSON.stringify(list.slice(0, 150)));
           }
         } catch (e) {}
-        return data.article;
+        return fullArt;
       }
     }
   } catch (e) {
@@ -1193,7 +1197,8 @@ export async function fetchArticleByIdOrSlug(
   sourceUrl?: string,
   title?: string,
   category?: string,
-  author?: string
+  author?: string,
+  imageUrl?: string
 ): Promise<Article | null> {
   if (!idOrSlug) return null;
   try {
@@ -1202,22 +1207,27 @@ export async function fetchArticleByIdOrSlug(
     if (title) url += `&title=${encodeURIComponent(title)}`;
     if (category) url += `&category=${encodeURIComponent(category)}`;
     if (author) url += `&author=${encodeURIComponent(author)}`;
+    if (imageUrl) url += `&imageUrl=${encodeURIComponent(imageUrl)}`;
 
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
       if (data && data.success && data.article) {
+        const fullArt: Article = {
+          ...data.article,
+          imageUrl: imageUrl || data.article.imageUrl
+        };
         try {
           const cachedRaw = localStorage.getItem('vox_cached_articles');
           if (cachedRaw) {
             const list: Article[] = JSON.parse(cachedRaw);
-            const idx = list.findIndex(a => a.id === data.article.id || a.title === data.article.title);
-            if (idx >= 0) list[idx] = data.article;
-            else list.unshift(data.article);
+            const idx = list.findIndex(a => a.id === fullArt.id || a.title === fullArt.title);
+            if (idx >= 0) list[idx] = fullArt;
+            else list.unshift(fullArt);
             localStorage.setItem('vox_cached_articles', JSON.stringify(list.slice(0, 150)));
           }
         } catch (e) {}
-        return data.article;
+        return fullArt;
       }
     }
   } catch (e) {}

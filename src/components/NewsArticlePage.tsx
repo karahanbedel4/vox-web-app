@@ -41,7 +41,6 @@ import {
 } from '../lib/newsService';
 import { NativeAdCard } from './NativeAdCard';
 import { VoxLogo } from './VoxLogo';
-import { ArticleImagePlaceholder } from './ArticleImagePlaceholder';
 import { ShareModal } from './ShareModal';
 import { INITIAL_ARTICLES } from '../data/defaultArticles';
 import { incrementUserArticlesRead } from '../lib/firebase';
@@ -253,14 +252,20 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
 
       if (isShortContent || hasRoboticFiller || !found.summary) {
         setIsLoadingFullContent(true);
-        fetchArticleByIdOrSlug(found.id || cleanSlug, found.sourceUrl, found.title, found.category, found.author)
+        fetchArticleByIdOrSlug(found.id || cleanSlug, found.sourceUrl, found.title, found.category, found.author, found.imageUrl)
           .then(fullArt => {
             if (fullArt && fullArt.content && fullArt.content.length >= (found.content?.length || 0)) {
-              setArticle(fullArt);
+              setArticle({
+                ...fullArt,
+                imageUrl: found.imageUrl || fullArt.imageUrl
+              });
             } else {
               return enrichArticleWithAI(found).then(enr => {
                 if (enr && (enr.content !== found.content || enr.summary !== found.summary || enr.imageUrl !== found.imageUrl)) {
-                  setArticle(enr);
+                  setArticle({
+                    ...enr,
+                    imageUrl: found.imageUrl || enr.imageUrl
+                  });
                 }
               });
             }
@@ -535,14 +540,31 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             );
           })()}
 
-          {/* Cover Hero Image with Dynamic Contextual & Dominant Color Placeholder */}
-          <ArticleImagePlaceholder
-            src={cleanImg}
-            alt={article.title}
-            category={article.category}
-            title={article.title}
-            author={sanitizeNewsText(article.author) || 'VOX Akıllı Haber'}
-          />
+          {/* Cover Hero Image (İlk versiyondaki çalışan ve güvenilir görsel yapısı) */}
+          <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 shadow-lg bg-surface-container">
+            <img
+              src={cleanImg}
+              alt={article.title}
+              referrerPolicy="no-referrer"
+              loading="eager"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.currentTarget;
+                const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                if (target.src !== fallback) {
+                  target.src = fallback;
+                }
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
+            
+            {/* Publisher Watermark Badge */}
+            {article.author && (
+              <div className="absolute bottom-3 left-3 z-10 px-3 py-1 rounded-lg bg-black/75 backdrop-blur-md text-xs font-bold text-white border border-white/20 shadow-md">
+                {sanitizeNewsText(article.author) || 'VOX Akıllı Haber'}
+              </div>
+            )}
+          </div>
 
           {/* Haberin Tamamı Section (Aşağıda Haberin Tamamı - Asla Kısaltılmamış) */}
           <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-4">

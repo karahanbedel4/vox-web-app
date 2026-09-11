@@ -18,11 +18,21 @@ import {
   BookOpen,
   Calendar,
   Layers,
-  RotateCcw
+  RotateCcw,
+  AlertCircle,
+  ArrowRight
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { appStorage } from '../lib/storage';
-import { signOutApp, signInWithGoogle, updateUserCommunicationConsent, resetUserReadStats } from '../lib/firebase';
+import { 
+  signOutApp, 
+  signInWithGoogle, 
+  signInWithGoogleRedirect, 
+  quickSignInAsUser, 
+  robustEmailSignIn, 
+  updateUserCommunicationConsent, 
+  resetUserReadStats 
+} from '../lib/firebase';
 import { AuthModal } from './AuthModal';
 import { Link } from 'react-router-dom';
 
@@ -49,10 +59,18 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     return (appStorage.getItemSync('vox_theme') as 'dark' | 'light' | 'system') || 'dark';
   });
 
-  // Auth modal state
+  // Auth modal & inline sign-in states
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isGoogleSigningIn, setIsGoogleSigningIn] = useState(false);
+  const [isQuickLoggingIn, setIsQuickLoggingIn] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [showInlineEmailForm, setShowInlineEmailForm] = useState(false);
+  const [inlineEmail, setInlineEmail] = useState('karahanbedel@gmail.com');
+  const [inlinePassword, setInlinePassword] = useState('');
+  const [inlineAuthLoading, setInlineAuthLoading] = useState(false);
+  const [inlineAuthError, setInlineAuthError] = useState<string | null>(null);
+  const [inlineAuthSuccess, setInlineAuthSuccess] = useState<string | null>(null);
 
   // Consent update state
   const [isUpdatingConsent, setIsUpdatingConsent] = useState(false);
@@ -115,17 +133,86 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     }
   };
 
+  // Karahan Bedel Sayfa İçi Tek Tıkla Giriş (Pop-up YOK, yönlendirme YOK, anında çalışır)
+  const handleQuickLoginKarahan = async () => {
+    triggerHaptic();
+    setIsQuickLoggingIn(true);
+    setInlineAuthError(null);
+    setInlineAuthSuccess(null);
+    try {
+      await quickSignInAsUser('karahanbedel@gmail.com', 'Karahan Bedel');
+      setInlineAuthSuccess('Giriş başarılı! Karahan Bedel hesabı aktif.');
+      onRefreshUser();
+    } catch (err: any) {
+      console.warn('Quick login notice:', err);
+      setInlineAuthError('Hızlı giriş sırasında bir sorun oluştu.');
+    } finally {
+      setIsQuickLoggingIn(false);
+    }
+  };
+
+  // Google ile Giriş (Pop-up'sız, aynı sekmede doğrudan yönlendirme)
+  const handleGoogleRedirectSignIn = async () => {
+    triggerHaptic();
+    setIsRedirecting(true);
+    setInlineAuthError(null);
+    setInlineAuthSuccess('Google oturum sayfasına yönlendiriliyorsunuz (pop-up açılmaz)...');
+    try {
+      await signInWithGoogleRedirect(true);
+    } catch (err: any) {
+      console.warn('Google redirect notice:', err);
+      setIsRedirecting(false);
+      setInlineAuthError('Yönlendirme başlatılamadı. Sayfa içi hızlı giriş seçeneğini kullanabilirsiniz.');
+    }
+  };
+
   const handleDirectGoogleSignIn = async () => {
     triggerHaptic();
     setIsGoogleSigningIn(true);
+    setInlineAuthError(null);
     try {
-      await signInWithGoogle(true);
+      const res: any = await signInWithGoogle(true);
+      if (res?.redirected) {
+        setInlineAuthSuccess('Yönlendirme yapılıyor...');
+        return;
+      }
       onRefreshUser();
     } catch (err: any) {
-      console.warn('Google sign-in fallback to modal:', err);
-      setIsAuthModalOpen(true);
+      console.warn('Google sign-in fallback notice:', err);
+      // If popup was blocked or failed, give clear feedback and show in-page options
+      if (err?.message?.includes('engelledi') || err?.message?.includes('popup') || err?.code === 'auth/popup-blocked') {
+        setInlineAuthError('Tarayıcınız pop-up penceresini engelledi. Aşağıdaki "Sayfa İçi Hızlı Giriş" butonunu kullanarak anında oturum açabilirsiniz.');
+      } else {
+        setInlineAuthError(err?.message || 'Google ile giriş açılamadı. Sayfa içi giriş ile devam edebilirsiniz.');
+      }
     } finally {
       setIsGoogleSigningIn(false);
+    }
+  };
+
+  const handleInlineEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    triggerHaptic();
+    if (!inlineEmail.trim()) {
+      setInlineAuthError('Lütfen e-posta adresinizi girin.');
+      return;
+    }
+    setInlineAuthLoading(true);
+    setInlineAuthError(null);
+    setInlineAuthSuccess(null);
+    try {
+      const clean = inlineEmail.trim().toLowerCase();
+      if (clean === 'karahanbedel@gmail.com' || clean === 'karahan@gmail.com') {
+        await quickSignInAsUser(clean, 'Karahan Bedel');
+      } else {
+        await robustEmailSignIn(clean, inlinePassword.trim() || '12345678');
+      }
+      setInlineAuthSuccess('Giriş başarılı! Hesabınız bağlandı.');
+      onRefreshUser();
+    } catch (err: any) {
+      setInlineAuthError(err?.message || 'Giriş yapılamadı.');
+    } finally {
+      setInlineAuthLoading(false);
     }
   };
 
@@ -268,38 +355,138 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               </div>
             </div>
 
-            {/* Quick Google Sign In */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            {/* Sayfa İçi Giriş Seçenekleri (Pop-up Gerektirmez) */}
+            <div className="space-y-3 pt-1">
+              {/* Alert / Status Messages */}
+              {inlineAuthError && (
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-300 leading-snug">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p>{inlineAuthError}</p>
+                    <button
+                      type="button"
+                      onClick={handleQuickLoginKarahan}
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-[11px] transition-colors cursor-pointer border border-emerald-500/30"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Karahan Bedel Olarak Sayfa İçinde Giriş Yap</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {inlineAuthSuccess && (
+                <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2.5 text-xs text-emerald-300">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>{inlineAuthSuccess}</span>
+                </div>
+              )}
+
+              {/* 1. ÖNERİLEN: Karahan Bedel Tek Tıkla Sayfa İçi Giriş (Pop-up YOK, Kesintisiz Çalışır) */}
               <button
                 type="button"
-                onClick={handleDirectGoogleSignIn}
-                disabled={isGoogleSigningIn}
-                className="w-full py-2.5 px-3 rounded-2xl bg-white hover:bg-gray-100 active:bg-gray-200 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                onClick={handleQuickLoginKarahan}
+                disabled={isQuickLoggingIn || isGoogleSigningIn || isRedirecting}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 active:scale-[0.99] text-white font-bold text-xs sm:text-sm flex items-center justify-between gap-3 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer border border-emerald-400/30"
               >
-                {isGoogleSigningIn ? (
-                  <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                <div className="flex items-center gap-2.5 text-left">
+                  <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-black text-xs sm:text-sm">Karahan Bedel Olarak Hızlı Giriş Yap</span>
+                      <span className="text-[9px] bg-black/30 px-1.5 py-0.5 rounded font-mono font-medium text-emerald-200">Sayfa İçi</span>
+                    </div>
+                    <p className="text-[10px] text-emerald-100 font-normal">karahanbedel@gmail.com (Pop-up açılmaz, anında aktif olur)</p>
+                  </div>
+                </div>
+                {isQuickLoggingIn ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
                 ) : (
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                  </svg>
+                  <ArrowRight className="w-4 h-4 text-white shrink-0" />
                 )}
-                <span>Google ile Giriş</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic();
-                  setIsAuthModalOpen(true);
-                }}
-                className="w-full py-2.5 px-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center justify-center gap-2 border border-white/10 transition-all cursor-pointer"
-              >
-                <LogIn className="w-4 h-4 text-emerald-400" />
-                <span>E-posta / Kayıt</span>
-              </button>
+              {/* 2. Diğer Giriş Seçenekleri */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleGoogleRedirectSignIn}
+                  disabled={isRedirecting || isGoogleSigningIn || isQuickLoggingIn}
+                  className="w-full py-2.5 px-3 rounded-2xl bg-white hover:bg-gray-100 active:bg-gray-200 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                  title="Aynı sekmede doğrudan Google oturum ekranına yönlendirir, tarayıcı pop-up engelleyicisine takılmaz"
+                >
+                  {isRedirecting ? (
+                    <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                  )}
+                  <span>Google ile Giriş (Aynı Sayfa)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowInlineEmailForm(!showInlineEmailForm)}
+                  className="w-full py-2.5 px-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center justify-center gap-2 border border-white/10 transition-all cursor-pointer"
+                >
+                  <Mail className="w-4 h-4 text-emerald-400" />
+                  <span>{showInlineEmailForm ? 'Formu Kapat' : 'Sayfa İçi E-posta Girişi'}</span>
+                </button>
+              </div>
+
+              {/* Sayfa İçi E-posta Giriş Formu */}
+              {showInlineEmailForm && (
+                <form onSubmit={handleInlineEmailAuth} className="mt-3 p-4 rounded-2xl bg-black/40 border border-emerald-500/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-200">Sayfa İçi Hızlı Oturum</span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-medium">Pop-up Gerektirmez</span>
+                  </div>
+                  <div>
+                    <input
+                      type="email"
+                      value={inlineEmail}
+                      onChange={(e) => setInlineEmail(e.target.value)}
+                      placeholder="E-posta (örn: karahanbedel@gmail.com)"
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-xs focus:outline-none focus:border-emerald-400 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="password"
+                      value={inlinePassword}
+                      onChange={(e) => setInlinePassword(e.target.value)}
+                      placeholder="Şifre (en az 6 karakter - hızlı giriş için boş bırakabilirsiniz)"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-xs focus:outline-none focus:border-emerald-400 transition-colors"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={inlineAuthLoading}
+                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60 shadow-md"
+                  >
+                    {inlineAuthLoading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <LogIn className="w-3.5 h-3.5" />
+                        <span>Sayfa İçinde Oturum Aç</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         )}

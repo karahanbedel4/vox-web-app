@@ -2291,7 +2291,7 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
 
     const $ = cheerio.load(html);
 
-    // 1. Scrape High-Res Original Image
+    // 1. Scrape High-Res Original Meta Image (og:image / twitter:image only - do not scrape inside article)
     let imageUrl = 
       $('meta[property="og:image:secure_url"]').attr('content') ||
       $('meta[property="og:image"]').attr('content') ||
@@ -2300,14 +2300,6 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
       $('meta[itemprop="image"]').attr('content') ||
       $('link[rel="image_src"]').attr('href') ||
       '';
-
-    // If meta image is missing or a generic favicon/logo, check lead article image
-    if (!imageUrl || imageUrl.includes('favicon') || imageUrl.includes('manifest') || imageUrl.includes('logo-')) {
-      const candidateImg = $('article figure img, .news-content img, .content-text img, .lead-image img, article img').first().attr('src');
-      if (candidateImg && candidateImg.startsWith('http')) {
-        imageUrl = candidateImg;
-      }
-    }
 
     if (imageUrl) {
       if (imageUrl.startsWith('//')) imageUrl = 'https:' + imageUrl;
@@ -2465,13 +2457,14 @@ async function enrichNewsArticle(article: CachedNewsArticle): Promise<CachedNews
     }
   }
 
-  // 1. Try real web scraping from sourceUrl first to get genuine, FULL article text and original photo
+  // 1. Try real web scraping from sourceUrl first to get genuine, FULL article text
   let scraped: ScrapedArticleDetails | null = null;
   if (article.sourceUrl && article.sourceUrl.startsWith('http')) {
     scraped = await scrapeArticleDetails(article.sourceUrl);
   }
 
-  const realImageUrl = scraped?.imageUrl || article.imageUrl;
+  // Preserve article's original thumbnail as highest priority
+  const realImageUrl = article.imageUrl || scraped?.imageUrl || '';
   
   // The full article content MUST BE preserved completely without truncation
   let fullArticleContent = (scraped && scraped.paragraphs.length >= 1)
@@ -2996,8 +2989,17 @@ app.get('/api/news/article/:idOrSlug', async (req, res) => {
     }
 
     if (found) {
+      if (req.query.imageUrl && !found.imageUrl) {
+        found.imageUrl = req.query.imageUrl as string;
+        found.hasRealImage = true;
+      }
       // Automatically enrich with scraping and Gemini AI / clean structure
       const enriched = await enrichNewsArticle(found);
+      // Ensure image is never wiped out
+      if (!enriched.imageUrl && found.imageUrl) {
+        enriched.imageUrl = found.imageUrl;
+        enriched.hasRealImage = true;
+      }
       return res.json({ success: true, article: enriched });
     }
 
