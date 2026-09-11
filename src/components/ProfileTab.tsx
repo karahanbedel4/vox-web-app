@@ -2,39 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   Headphones, 
-  Sliders, 
   Volume2,
   Sparkles,
   Smartphone,
   ChevronRight,
-  BarChart2,
   RefreshCw,
   Trash2,
   ShieldCheck,
-  Server,
-  Database,
-  Cloud,
-  Cpu,
-  Info,
   User,
   LogIn,
   LogOut,
-  CheckCircle2
+  CheckCircle2,
+  Mail,
+  Bell,
+  BookOpen,
+  Calendar,
+  Layers,
+  RotateCcw
 } from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip as RechartsTooltip, 
-  ResponsiveContainer, 
-  Cell 
-} from 'recharts';
 import { UserProfile } from '../types';
 import { appStorage } from '../lib/storage';
-import { quotaMonitor, CloudQuotaReport } from '../lib/quotaMonitor';
-import { signOutApp } from '../lib/firebase';
+import { signOutApp, signInWithGoogle, updateUserCommunicationConsent, resetUserReadStats } from '../lib/firebase';
 import { AuthModal } from './AuthModal';
+import { Link } from 'react-router-dom';
 
 interface ProfileTabProps {
   user: UserProfile | null;
@@ -62,15 +52,55 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isGoogleSigningIn, setIsGoogleSigningIn] = useState(false);
+
+  // Consent update state
+  const [isUpdatingConsent, setIsUpdatingConsent] = useState(false);
+  const [consentMsg, setConsentMsg] = useState<string | null>(null);
+
+  // Reset read stats state
+  const [isResettingStats, setIsResettingStats] = useState(false);
 
   // Clear Cache state
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [cacheClearedMsg, setCacheClearedMsg] = useState<string | null>(null);
 
-  // Cloud Quota Report state
-  const [quotaReport, setQuotaReport] = useState<CloudQuotaReport>(() => quotaMonitor.getReport());
-
   const isLoggedIn = Boolean(user && user.authProvider !== 'guest' && user.email);
+
+  // Read Count Tracking State (Synced with Firestore & local)
+  const [articlesReadCount, setArticlesReadCount] = useState<number>(() => {
+    if (user?.totalArticlesRead !== undefined) return user.totalArticlesRead;
+    try {
+      const s = appStorage.getItemSync('vox_user_stats');
+      if (s) {
+        const parsed = JSON.parse(s);
+        return parsed.totalArticlesRead || 0;
+      }
+    } catch (e) {}
+    return 0;
+  });
+
+  useEffect(() => {
+    if (user?.totalArticlesRead !== undefined) {
+      setArticlesReadCount(user.totalArticlesRead);
+    }
+  }, [user?.totalArticlesRead]);
+
+  useEffect(() => {
+    const handleAuthChange = (e: any) => {
+      if (e.detail?.totalArticlesRead !== undefined) {
+        setArticlesReadCount(e.detail.totalArticlesRead);
+      }
+    };
+    window.addEventListener('vox_auth_changed', handleAuthChange);
+    return () => window.removeEventListener('vox_auth_changed', handleAuthChange);
+  }, []);
+
+  const triggerHaptic = () => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+  };
 
   const handleSignOut = async () => {
     triggerHaptic();
@@ -85,29 +115,50 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     }
   };
 
-  useEffect(() => {
-    setQuotaReport(quotaMonitor.getReport());
-  }, []);
-
-  useEffect(() => {
-    if (themeMode === 'light') {
-      document.documentElement.classList.add('light');
-    } else if (themeMode === 'dark') {
-      document.documentElement.classList.remove('light');
-    } else {
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-        document.documentElement.classList.add('light');
-      } else {
-        document.documentElement.classList.remove('light');
-      }
+  const handleDirectGoogleSignIn = async () => {
+    triggerHaptic();
+    setIsGoogleSigningIn(true);
+    try {
+      await signInWithGoogle(true);
+      onRefreshUser();
+    } catch (err: any) {
+      console.warn('Google sign-in fallback to modal:', err);
+      setIsAuthModalOpen(true);
+    } finally {
+      setIsGoogleSigningIn(false);
     }
-    appStorage.setItem('vox_theme', themeMode);
-    window.dispatchEvent(new CustomEvent('vox_theme_changed', { detail: themeMode }));
-  }, [themeMode]);
+  };
 
-  const triggerHaptic = () => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(10);
+  const handleToggleConsent = async () => {
+    triggerHaptic();
+    const nextConsent = !(user?.communicationConsent ?? true);
+    setIsUpdatingConsent(true);
+    try {
+      if (user?.uid) {
+        await updateUserCommunicationConsent(user.uid, nextConsent);
+      }
+      onRefreshUser();
+      setConsentMsg(nextConsent ? 'E-posta iletişim izni açıldı.' : 'İletişim izni tercihi güncellendi.');
+      setTimeout(() => setConsentMsg(null), 3000);
+    } catch (err) {
+      console.warn('Consent update warning:', err);
+    } finally {
+      setIsUpdatingConsent(false);
+    }
+  };
+
+  const handleResetStats = async () => {
+    triggerHaptic();
+    if (!window.confirm('Okuma sayacını sıfırlamak istediğinize emin misiniz?')) return;
+    setIsResettingStats(true);
+    try {
+      await resetUserReadStats(user?.uid);
+      setArticlesReadCount(0);
+      onRefreshUser();
+    } catch (err) {
+      console.warn('Reset read stats error:', err);
+    } finally {
+      setIsResettingStats(false);
     }
   };
 
@@ -127,25 +178,30 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     }
   };
 
-  // Focus Statistics - Mock calculation fallback
-  const focusScore = user?.focusScore || 85;
-  const weeklyMinutes = user?.weeklyMinutes || 45;
-  const weeklyHours = (weeklyMinutes / 60).toFixed(1);
+  useEffect(() => {
+    if (themeMode === 'light') {
+      document.documentElement.classList.add('light');
+    } else if (themeMode === 'dark') {
+      document.documentElement.classList.remove('light');
+    } else {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+      }
+    }
+    appStorage.setItem('vox_theme', themeMode);
+    window.dispatchEvent(new CustomEvent('vox_theme_changed', { detail: themeMode }));
+  }, [themeMode]);
 
-  const weeklyChartData = [
-    { gun: 'Pzt', dakika: 15 },
-    { gun: 'Sal', dakika: 25 },
-    { gun: 'Çar', dakika: 40 },
-    { gun: 'Per', dakika: 20 },
-    { gun: 'Cum', dakika: 35 },
-    { gun: 'Cmt', dakika: 10 },
-    { gun: 'Paz', dakika: 30 }
-  ];
+  const totalListenedMins = user?.totalListenedMinutes || (user?.weeklyMinutes || 0);
+  const focusScore = user?.focusScore || 92;
+  const hasConsent = user?.communicationConsent ?? true;
 
   return (
-    <div className="pt-20 pb-28 px-4 max-w-md mx-auto space-y-6 text-on-surface">
-      {/* User Account Card (Logged-in vs Guest) */}
-      <section className="bg-surface-container/90 border border-white/10 p-5 rounded-3xl shadow-lg space-y-4">
+    <div className="pt-20 pb-28 px-4 max-w-lg mx-auto space-y-6 text-on-surface">
+      {/* 1. KULLANICI PROFİL KARTI */}
+      <section className="bg-surface-container/90 border border-white/10 p-5 rounded-3xl shadow-xl backdrop-blur-md space-y-4">
         {isLoggedIn ? (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3.5 min-w-0">
@@ -153,10 +209,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 <img
                   src={user.photoURL}
                   alt={user.displayName || 'Kullanıcı'}
-                  className="w-12 h-12 rounded-2xl object-cover border border-emerald-500/40 shrink-0"
+                  referrerPolicy="no-referrer"
+                  className="w-14 h-14 rounded-2xl object-cover border-2 border-emerald-500/40 shadow-md shrink-0"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-black text-lg shrink-0">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 border border-emerald-500/40 flex items-center justify-center text-white font-black text-xl shadow-md shrink-0">
                   {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
                 </div>
               )}
@@ -165,343 +222,267 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                   <h2 className="text-base font-bold text-white truncate">
                     {user?.displayName || 'VOX Kullanıcısı'}
                   </h2>
-                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
-                    <CheckCircle2 className="w-2.5 h-2.5" />
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                     {user?.authProvider === 'google' ? 'Google' : 'E-posta'}
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 truncate mt-0.5">{user?.email}</p>
-                <p className="text-[10px] text-emerald-400/90 font-mono mt-0.5">Bulut Senkronizasyonu Aktif</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] text-emerald-400/90 font-medium">Bulut Hesabı Aktif</span>
+                </div>
               </div>
             </div>
 
             <button
               onClick={handleSignOut}
               disabled={isSigningOut}
-              className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/15 text-gray-400 hover:text-red-300 border border-white/10 hover:border-red-500/30 transition-all flex items-center gap-1 text-xs font-bold shrink-0 cursor-pointer"
-              title="Çıkış Yap"
+              className="p-2.5 rounded-2xl bg-white/5 hover:bg-red-500/15 text-gray-400 hover:text-red-300 border border-white/10 hover:border-red-500/30 transition-all flex items-center gap-1.5 text-xs font-bold shrink-0 cursor-pointer"
+              title="Oturumu Kapat"
             >
               {isSigningOut ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <RefreshCw className="w-4 h-4 animate-spin text-red-400" />
               ) : (
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-4 h-4" />
               )}
               <span className="hidden sm:inline">Çıkış</span>
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 shrink-0">
-                <User className="w-5 h-5" />
+          <div className="space-y-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 shrink-0">
+                <User className="w-7 h-7" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-bold text-white">Misafir Kullanıcı</h2>
-                  <span className="text-[9px] font-medium text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
-                    Giriş Yapılmadı
+                  <h2 className="text-base font-bold text-white">Misafir Kullanıcı</h2>
+                  <span className="text-[10px] font-medium text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+                    Yerel Oturum
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5 leading-snug">
-                  Cihazlar arası eşitleme için hesabınızı bağlayabilirsiniz (isteğe bağlı).
+                <p className="text-xs text-gray-400 mt-1 leading-snug">
+                  Okuma istatistiklerinizi ve favorilerinizi bulutta saklamak için tek tıkla giriş yapın.
                 </p>
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                triggerHaptic();
-                setIsAuthModalOpen(true);
-              }}
-              className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 transition-all cursor-pointer"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Giriş Yap / Hesap Bağla (Opsiyonel)</span>
-            </button>
+            {/* Quick Google Sign In */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleDirectGoogleSignIn}
+                disabled={isGoogleSigningIn}
+                className="w-full py-2.5 px-3 rounded-2xl bg-white hover:bg-gray-100 active:bg-gray-200 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+              >
+                {isGoogleSigningIn ? (
+                  <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                )}
+                <span>Google ile Giriş</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic();
+                  setIsAuthModalOpen(true);
+                }}
+                className="w-full py-2.5 px-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center justify-center gap-2 border border-white/10 transition-all cursor-pointer"
+              >
+                <LogIn className="w-4 h-4 text-emerald-400" />
+                <span>E-posta / Kayıt</span>
+              </button>
+            </div>
           </div>
         )}
       </section>
 
-      {/* Lead Magnet Banner: VOX iOS App */}
-      <section 
-        onClick={() => { triggerHaptic(); if (onOpenPaywall) onOpenPaywall(); }}
-        className="bg-gradient-to-r from-emerald-950/80 via-[#121814] to-emerald-900/40 border-2 border-emerald-500/40 hover:border-emerald-500/80 p-5 rounded-3xl flex items-center justify-between shadow-xl cursor-pointer hover:scale-[1.02] active:scale-95 transition-all group"
-      >
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shrink-0 shadow-lg">
-            <div className="w-full h-full bg-black rounded-[14px] flex items-center justify-center text-emerald-400">
-              <Sparkles className="w-7 h-7 fill-emerald-400" />
-            </div>
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h1 className="font-display text-lg font-black text-white">VOX Premium</h1>
-              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm">
-                YAKINDA!
-              </span>
-            </div>
-            <p className="text-xs text-emerald-300 font-medium">Sınırsız Sesli Deneyim</p>
-            <p className="text-[10px] text-gray-400 mt-0.5 truncate">iOS & Android Uygulamasını Keşfedin</p>
-          </div>
-        </div>
-
-        <button
-          className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-black text-xs px-3.5 py-2.5 rounded-2xl flex items-center gap-1 shadow-lg shrink-0 group-hover:scale-105 transition-transform"
-        >
-          <Smartphone className="w-3.5 h-3.5" />
-          <span>İndir</span>
-        </button>
-      </section>
-
-      {/* Focus Statistics Bento Grid */}
-      <section className="grid grid-cols-2 gap-3">
-        <div className="col-span-2 bg-surface-container/80 border border-white/10 p-5 rounded-3xl flex items-center justify-between shadow-lg">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block">
-              HAFTALIK ODAK SÜRESİ
-            </span>
-            <p className="font-display text-2xl font-bold text-primary">
-              {weeklyHours} Saat
-            </p>
-            <p className="text-emerald-400 text-[10px] flex items-center gap-1 font-bold">
-              <TrendingUp className="w-3 h-3" />
-              <span>{isLoggedIn ? 'Kullanıcı Hesabı Bağlı' : 'Misafir Oturumu Aktif'}</span>
-            </p>
-          </div>
-
-          <div className="relative w-16 h-16 flex items-center justify-center">
-            <svg className="w-full h-full -rotate-90">
-              <circle className="text-white/10" cx="32" cy="32" r="26" fill="transparent" stroke="currentColor" strokeWidth="5" />
-              <circle className="text-primary" cx="32" cy="32" r="26" fill="transparent" stroke="currentColor" strokeWidth="5" strokeDasharray="163" strokeDashoffset={163 - (focusScore * 1.63)} />
-            </svg>
-            <span className="absolute text-xs font-bold text-primary">{focusScore}%</span>
-          </div>
-        </div>
-
-        {/* Weekly Mini Chart */}
-        <div className="col-span-2 bg-surface-container/80 border border-white/10 p-4 rounded-3xl shadow-lg space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
-              <BarChart2 className="w-3.5 h-3.5 text-primary" />
-              Haftalık İlerleme Grafiği
-            </span>
-            <span className="text-[10px] font-mono text-primary font-bold">
-              {weeklyMinutes} dk toplam
-            </span>
-          </div>
-
-          <div className="h-28 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyChartData}>
-                <XAxis dataKey="gun" stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis hide domain={[0, 60]} />
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: '#121814',
-                    borderColor: '#22c55e',
-                    borderRadius: '12px',
-                    fontSize: '11px',
-                    color: '#fff'
-                  }}
-                  cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
-                />
-                <Bar dataKey="dakika" radius={[6, 6, 0, 0]}>
-                  {weeklyChartData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.dakika > 30 ? '#10b981' : entry.dakika > 15 ? '#3b82f6' : '#64748b'} 
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </section>
-
-      {/* Voice & Sound Settings */}
-      <section className="bg-surface-container/80 border border-white/10 p-5 rounded-3xl space-y-4 shadow-lg">
-        <h2 className="font-display text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
-          <Sliders className="w-4 h-4 text-primary" />
-          SES VE SESLENDİRME AYARLARI
-        </h2>
-
-        <div className="space-y-3">
-          {/* HD Audio Lead Magnet */}
-          <div 
-            onClick={() => { triggerHaptic(); if (onOpenPaywall) onOpenPaywall(); }}
-            className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-500/40 transition-all cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <Headphones className="w-4 h-4 text-primary" />
-              <div>
-                <p className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <span>Gemini HD Studio Seslendirme</span>
-                  <span className="text-[8px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded font-black">iOS</span>
-                </p>
-                <p className="text-[10px] text-gray-400">Yapay zeka stüdyo sesleri mobilde</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </div>
-
-          {/* Web Voice engine */}
-          <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10">
-            <div className="flex items-center gap-3">
-              <Volume2 className="w-4 h-4 text-primary" />
-              <div>
-                <p className="text-xs font-bold text-white">Tarayıcı TTS Motoru</p>
-                <p className="text-[10px] text-gray-400">Hızlı web anlatım motoru</p>
-              </div>
-            </div>
-            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-              AKTİF
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* Firebase & Google Cloud Free Tier Protection Guard */}
-      <section className="bg-surface-container/80 border border-emerald-500/20 p-5 rounded-3xl space-y-4 shadow-lg">
+      {/* 2. HAFİF OKUMA & DİNLEME İSTATİSTİKLERİ (Detay yok, minimal ve net) */}
+      <section className="bg-surface-container/90 border border-white/10 p-5 rounded-3xl shadow-xl space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-widest">
-              BULUT VE KOTA KORUMA SİSTEMİ
+            <BookOpen className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+              Okuma & Odak İstatistikleri
             </h3>
           </div>
-          <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
-            %100 GÜVENLİ
-          </span>
+          {articlesReadCount > 0 && (
+            <button
+              onClick={handleResetStats}
+              disabled={isResettingStats}
+              className="text-[11px] text-gray-400 hover:text-gray-200 flex items-center gap-1 transition-colors cursor-pointer"
+              title="İstatistikleri Sıfırla"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Sıfırla</span>
+            </button>
+          )}
         </div>
 
-        <p className="text-xs text-gray-400 leading-relaxed">
-          Google Cloud ve Firebase ücretsiz kullanım limitlerinin (Free-Tier) aşılmaması için optimize edilmiş bellek ve CDN mimarisi.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-          {/* Firestore Reads */}
-          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
-            <div className="flex items-center justify-between text-gray-300">
-              <span className="flex items-center gap-1.5 text-[11px] font-bold">
-                <Database className="w-3.5 h-3.5 text-emerald-400" />
-                Firestore Okuma
-              </span>
-              <span className="text-[10px] font-mono text-emerald-400">
-                {quotaReport.firestoreReads.usagePercent}%
-              </span>
-            </div>
-            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-              <div 
-                className="bg-emerald-400 h-full rounded-full transition-all" 
-                style={{ width: `${Math.max(2, quotaReport.firestoreReads.usagePercent)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] text-gray-400 font-mono">
-              <span>{quotaReport.firestoreReads.current.toLocaleString()} okuma</span>
-              <span>Limit: 50.000 / gün</span>
-            </div>
+        <div className="grid grid-cols-3 gap-2.5">
+          {/* Okunan Haber Sayısı */}
+          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
+            <span className="text-2xl font-black text-white font-display">
+              {articlesReadCount}
+            </span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+              Okunan Haber
+            </span>
           </div>
 
-          {/* Firestore Writes */}
-          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
-            <div className="flex items-center justify-between text-gray-300">
-              <span className="flex items-center gap-1.5 text-[11px] font-bold">
-                <Server className="w-3.5 h-3.5 text-emerald-400" />
-                Firestore Yazma
-              </span>
-              <span className="text-[10px] font-mono text-emerald-400">
-                {quotaReport.firestoreWrites.usagePercent}%
-              </span>
-            </div>
-            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-              <div 
-                className="bg-emerald-400 h-full rounded-full transition-all" 
-                style={{ width: `${Math.max(2, quotaReport.firestoreWrites.usagePercent)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] text-gray-400 font-mono">
-              <span>{quotaReport.firestoreWrites.current.toLocaleString()} yazma</span>
-              <span>Limit: 20.000 / gün</span>
-            </div>
+          {/* Dinleme Süresi */}
+          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
+            <span className="text-2xl font-black text-emerald-400 font-display">
+              {totalListenedMins}
+              <span className="text-xs font-medium text-emerald-400/80 ml-0.5">dk</span>
+            </span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+              Dinleme Süresi
+            </span>
           </div>
 
-          {/* Storage Safety */}
-          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
-            <div className="flex items-center justify-between text-gray-300">
-              <span className="flex items-center gap-1.5 text-[11px] font-bold">
-                <Cloud className="w-3.5 h-3.5 text-emerald-400" />
-                Firebase Depolama
-              </span>
-              <span className="text-[10px] font-mono text-emerald-400">0 MB (%0)</span>
-            </div>
-            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-emerald-400 h-full rounded-full w-0" />
-            </div>
-            <div className="flex justify-between text-[10px] text-gray-400 font-mono">
-              <span>0 MB (CDN URL korumalı)</span>
-              <span>Limit: 5 GB</span>
-            </div>
-          </div>
-
-          {/* AI Quota */}
-          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
-            <div className="flex items-center justify-between text-gray-300">
-              <span className="flex items-center gap-1.5 text-[11px] font-bold">
-                <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-                Gemini AI İstekleri
-              </span>
-              <span className="text-[10px] font-mono text-emerald-400">
-                {quotaReport.geminiRequests.usagePercent}%
-              </span>
-            </div>
-            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-              <div 
-                className="bg-emerald-400 h-full rounded-full transition-all" 
-                style={{ width: `${Math.max(2, quotaReport.geminiRequests.usagePercent)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] text-gray-400 font-mono">
-              <span>{quotaReport.geminiRequests.current.toLocaleString()} istek</span>
-              <span>Limit: 1.500 / gün</span>
-            </div>
+          {/* Odak Skoru */}
+          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
+            <span className="text-2xl font-black text-teal-300 font-display">
+              %{focusScore}
+            </span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+              Odak Skoru
+            </span>
           </div>
         </div>
 
-        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] flex items-start gap-2">
-          <Info className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-          <span>
-            Haber görselleri Firebase Storage'a yüklenmek yerine doğrudan yayıncı HTTPS CDN URL'leri üzerinden çekilir. Böylece depolama kotası harcanmaz ve sunucu maliyeti 0₺ kalır.
+        <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between text-xs">
+          <span className="text-gray-300 text-[11px]">
+            Haber okudukça veya dinledikçe sayacınız otomatik güncellenir.
           </span>
+          <Link 
+            to="/kitaplik"
+            className="text-emerald-400 hover:text-emerald-300 font-bold text-[11px] flex items-center gap-1 shrink-0 ml-2"
+          >
+            <span>Kitaplık</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </section>
 
-      {/* App Cache & Data Management */}
-      <section className="bg-surface-container/80 border border-white/10 p-5 rounded-3xl space-y-3 shadow-lg">
-        <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest px-1">
-          VERİ VE ÖNBELLEK
-        </h3>
+      {/* 3. E-POSTA İLETİŞİM VE HABER BİLDİRİM İZNİ */}
+      <section className="bg-surface-container/90 border border-white/10 p-5 rounded-3xl shadow-xl space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+              İletişim ve Bülten Tercihi
+            </h3>
+          </div>
+          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+            hasConsent 
+              ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' 
+              : 'text-gray-400 bg-white/5 border-white/10'
+          }`}>
+            {hasConsent ? 'İzin Verildi' : 'Pasif'}
+          </span>
+        </div>
 
-        <div className="space-y-2">
+        <p className="text-xs text-gray-300 leading-relaxed">
+          VOX gündem bültenleri, yeni araçlar ve sesli haber özetleri hakkında e-posta ile bildirim almayı kontrol edebilirsiniz.
+        </p>
+
+        {/* Toggle Switch Card */}
+        <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-white flex items-center gap-1.5">
+              <Bell className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Haber & Araç Bildirimleri</span>
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              {hasConsent ? 'Haftalık özetler ve bildirimler e-postanıza gönderilebilir.' : 'Şu anda e-posta gönderimi kapalı.'}
+            </p>
+          </div>
+
           <button
-            onClick={handleClearCache}
-            disabled={isClearingCache}
-            className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-3.5 rounded-2xl text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer"
+            type="button"
+            onClick={handleToggleConsent}
+            disabled={isUpdatingConsent}
+            className={`w-12 h-7 rounded-full p-1 transition-colors relative cursor-pointer shrink-0 ${
+              hasConsent ? 'bg-emerald-500' : 'bg-gray-700'
+            }`}
+            title="İletişim İznini Değiştir"
           >
-            {isClearingCache ? <RefreshCw className="w-4 h-4 animate-spin text-primary" /> : <Trash2 className="w-4 h-4 text-gray-400" />}
-            <span>Önbelleği Temizle</span>
+            <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
+              hasConsent ? 'translate-x-5' : 'translate-x-0'
+            }`} />
           </button>
         </div>
 
+        {consentMsg && (
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-1.5 animate-fade-in">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>{consentMsg}</span>
+          </div>
+        )}
+      </section>
+
+      {/* 4. GÖRÜNÜM & TEMA SEÇİMİ */}
+      <section className="bg-surface-container/90 border border-white/10 p-5 rounded-3xl shadow-xl space-y-3">
+        <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+          Görünüm Teması
+        </h3>
+        <div className="grid grid-cols-3 gap-2">
+          {(['dark', 'light', 'system'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => {
+                triggerHaptic();
+                setThemeMode(mode);
+              }}
+              className={`py-2 px-3 rounded-2xl text-xs font-bold capitalize transition-all cursor-pointer border ${
+                themeMode === mode
+                  ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md'
+                  : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              {mode === 'dark' ? 'Koyu' : mode === 'light' ? 'Açık' : 'Sistem'}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* 5. VERİ VE ÖNBELLEK YÖNETİMİ */}
+      <section className="bg-surface-container/90 border border-white/10 p-5 rounded-3xl space-y-3 shadow-xl">
+        <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+          Veri ve Önbellek
+        </h3>
+
+        <button
+          onClick={handleClearCache}
+          disabled={isClearingCache}
+          className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer"
+        >
+          {isClearingCache ? (
+            <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+          ) : (
+            <Trash2 className="w-4 h-4 text-gray-400" />
+          )}
+          <span>Tarayıcı Önbelleğini Temizle</span>
+        </button>
+
         {cacheClearedMsg && (
-          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3 rounded-2xl text-xs font-bold text-center animate-fade-in">
+          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-2.5 rounded-xl text-xs font-bold text-center">
             {cacheClearedMsg}
           </div>
         )}
       </section>
 
-      {/* Optional Auth Modal */}
+      {/* Auth Modal for Email / Google */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}

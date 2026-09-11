@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown, Send, Radio, Zap } from 'lucide-react';
+import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown, Send, Radio, Zap, Clock } from 'lucide-react';
 import { Article } from '../types';
-import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl, sanitizeNewsText, isDummyArticle } from '../lib/newsService';
+import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl, sanitizeNewsText, isDummyArticle, calculateReadingTime } from '../lib/newsService';
 import { getArticlesPaginated } from '../lib/firebase';
 import { cacheTop3Articles } from '../lib/offlineService';
 import { useTheme } from '../lib/ThemeContext';
@@ -480,6 +480,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="space-y-4">
           {visibleArticles.map((article, index) => {
             const isBookmarked = bookmarkedIds.includes(article.id);
+            const readingTime = calculateReadingTime(article);
             // Native AdCard inserted every 4 articles for organic monetization
             const isFeedReady = !isLoading && !isSearchingGoogle && displayList.length > 0;
             const showAd = isFeedReady && (index + 1) % 4 === 0;
@@ -523,15 +524,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <span>TG</span>
                       </span>
                     )}
-                    <span className="absolute bottom-2 left-2 text-[10px] font-mono text-zinc-300 bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded font-medium border border-white/10">
-                      {Math.floor((article.durationSeconds || 90) / 60)} dk
+                    <span className="absolute bottom-2 left-2 text-[10px] font-semibold text-white bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/15 shadow-sm">
+                      <Clock className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                      <span>{readingTime} dk okuma</span>
                     </span>
                   </div>
 
                   {/* News Details */}
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
                           theme === 'light'
                             ? 'bg-slate-100 text-slate-700 border-slate-200'
@@ -539,6 +541,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         }`}>
                           {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : article.sourceType === 'telegram' ? 'Telegram Canlı' : (article.category || activeCategory)}
                         </span>
+
+                        {/* Reading Time Badge */}
+                        <span
+                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${
+                            theme === 'light'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200/80'
+                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          }`}
+                          title={`Tahmini okuma süresi: ${readingTime} dakika`}
+                        >
+                          <Clock className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                          <span>{readingTime} dk okuma</span>
+                        </span>
+
                         {article.sourceType === 'twitter' ? (
                           <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
                             theme === 'light' ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white/5 border-white/10 text-zinc-300'
@@ -602,8 +618,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             : 'bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10'
                         }`}
                       >
-                        <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
+                        <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
                         <span>Haberi Oku</span>
+                        <span className={`text-[10px] font-normal ${theme === 'light' ? 'text-slate-500' : 'text-zinc-400'}`}>
+                          ({readingTime} dk)
+                        </span>
                       </button>
 
                       {/* ELEGANT APPLE-STYLE CTA BUTTON */}

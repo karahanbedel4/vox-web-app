@@ -2,7 +2,7 @@
   "entities": {
     "users": {
       "title": "User Profiles",
-      "description": "User profile information, subscription state, focus score, and streak",
+      "description": "User profile information, subscription state, focus score, read count, and communication consent",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
@@ -13,6 +13,11 @@
         "focusScore": { "type": "number" },
         "streakCount": { "type": "number" },
         "weeklyMinutes": { "type": "number" },
+        "totalArticlesRead": { "type": "number" },
+        "totalListenedMinutes": { "type": "number" },
+        "communicationConsent": { "type": "boolean" },
+        "communicationConsentDate": { "type": "string" },
+        "authProvider": { "type": "string" },
         "createdAt": { "type": "string" }
       },
       "required": ["uid"]

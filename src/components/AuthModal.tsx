@@ -30,6 +30,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [communicationConsent, setCommunicationConsent] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,11 +42,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMessage(null);
     setIsGoogleLoading(true);
     try {
-      const res = await signInWithGoogle();
-      if (res?.user) {
+      const res: any = await signInWithGoogle(communicationConsent);
+      if (res?.user || res?.profile) {
         setSuccessMessage('Google ile başarıyla giriş yapıldı.');
         if (onSuccess) {
-          onSuccess({
+          const prof = res.profile || {
             uid: res.user.uid,
             displayName: res.user.displayName || 'Google Kullanıcısı',
             email: res.user.email || '',
@@ -57,12 +58,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             weeklyMinutes: 15,
             totalArticlesRead: 1,
             totalListenedMinutes: 5,
+            communicationConsent,
+            communicationConsentDate: new Date().toISOString(),
             createdAt: new Date().toISOString()
-          });
+          };
+          onSuccess(prof);
         }
         setTimeout(() => {
           onClose();
-        }, 1200);
+        }, 1000);
       }
     } catch (err: any) {
       console.warn('Google sign-in notice:', err);
@@ -94,13 +98,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       const profile = await robustEmailSignIn(email, password);
+      profile.communicationConsent = communicationConsent;
+      profile.communicationConsentDate = new Date().toISOString();
       setSuccessMessage(mode === 'signin' ? 'Başarıyla giriş yapıldı!' : 'Hesabınız başarıyla oluşturuldu!');
       if (onSuccess) {
         onSuccess(profile);
       }
       setTimeout(() => {
         onClose();
-      }, 1200);
+      }, 1000);
     } catch (err: any) {
       console.warn('Email auth notice:', err);
       let msg = 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.';
@@ -185,6 +191,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <span>{successMessage}</span>
           </div>
         )}
+
+        {/* Communication & Newsletter Consent Checkbox */}
+        <div className="mb-4">
+          <label 
+            htmlFor="communication-consent-checkbox"
+            className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-colors cursor-pointer select-none group"
+          >
+            <input
+              type="checkbox"
+              id="communication-consent-checkbox"
+              checked={communicationConsent}
+              onChange={(e) => setCommunicationConsent(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-gray-600 text-emerald-500 focus:ring-emerald-400 accent-emerald-500 cursor-pointer shrink-0"
+            />
+            <span className="text-[11px] text-gray-300 group-hover:text-white leading-snug transition-colors">
+              Haber bülteni, özet paylaşımlar ve yeni araç bilgilendirmeleri için e-posta ile iletişime izin veriyorum.
+            </span>
+          </label>
+        </div>
 
         {/* Google One-Click Sign In Button */}
         <button

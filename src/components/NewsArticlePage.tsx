@@ -41,7 +41,11 @@ import {
 } from '../lib/newsService';
 import { NativeAdCard } from './NativeAdCard';
 import { VoxLogo } from './VoxLogo';
+import { ArticleImagePlaceholder } from './ArticleImagePlaceholder';
+import { ShareModal } from './ShareModal';
 import { INITIAL_ARTICLES } from '../data/defaultArticles';
+import { incrementUserArticlesRead } from '../lib/firebase';
+import { appStorage } from '../lib/storage';
 
 interface NewsArticlePageProps {
   articles: Article[];
@@ -69,6 +73,7 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isInAppViewerOpen, setIsInAppViewerOpen] = useState<boolean>(false);
   const [isLoadingFullContent, setIsLoadingFullContent] = useState<boolean>(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
 
   // Sync TTS playback status
   useEffect(() => {
@@ -84,6 +89,20 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
     const interval = setInterval(checkState, 500);
     return () => clearInterval(interval);
   }, [article]);
+
+  // Track article read count when article page is visited (avoiding session duplication)
+  useEffect(() => {
+    if (!article?.id) return;
+    try {
+      const readKey = `vox_read_${article.id}`;
+      if (!sessionStorage.getItem(readKey)) {
+        sessionStorage.setItem(readKey, '1');
+        const userRaw = appStorage.getItemSync('vox_local_email_user') || appStorage.getItemSync('vox_local_guest_user');
+        const userId = userRaw ? JSON.parse(userRaw)?.uid : undefined;
+        incrementUserArticlesRead(userId);
+      }
+    } catch (e) {}
+  }, [article?.id]);
 
   // Update document title, meta tags, and JSON-LD for SEO on client-side
   useEffect(() => {
@@ -234,13 +253,13 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
 
       if (isShortContent || hasRoboticFiller || !found.summary) {
         setIsLoadingFullContent(true);
-        fetchArticleByIdOrSlug(found.id || cleanSlug)
+        fetchArticleByIdOrSlug(found.id || cleanSlug, found.sourceUrl, found.title, found.category, found.author)
           .then(fullArt => {
             if (fullArt && fullArt.content && fullArt.content.length >= (found.content?.length || 0)) {
               setArticle(fullArt);
             } else {
               return enrichArticleWithAI(found).then(enr => {
-                if (enr && (enr.content !== found.content || enr.summary !== found.summary)) {
+                if (enr && (enr.content !== found.content || enr.summary !== found.summary || enr.imageUrl !== found.imageUrl)) {
                   setArticle(enr);
                 }
               });
@@ -268,28 +287,8 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
     }
   };
 
-  const handleShare = async () => {
-    if (!article) return;
-    const shareUrl = window.location.href;
-    const shareTitle = `${article.title} - VOX Özet`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: article.summary,
-          url: shareUrl
-        });
-      } catch (err) {
-        // User cancelled share or failed
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2500);
-      } catch (err) {}
-    }
+  const handleShare = () => {
+    setIsShareModalOpen(true);
   };
 
   const isBookmarked = article ? bookmarkedIds.includes(article.id) : false;
@@ -427,17 +426,8 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             }`}
             title="Haberi Paylaş"
           >
-            {isCopied ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-emerald-500 font-bold">Kopyalandı</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Paylaş</span>
-              </>
-            )}
+            <Share2 className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Paylaş</span>
           </button>
         </div>
       </div>
@@ -545,25 +535,14 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             );
           })()}
 
-          {/* Cover Hero Image */}
-          <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/10 border border-black/10 dark:border-white/10 shadow-lg">
-            <img
-              src={cleanImg}
-              alt={article.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const target = e.currentTarget;
-                const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
-                if (target.src !== fallback) {
-                  target.src = fallback;
-                }
-              }}
-            />
-            {/* Publisher Watermark / Tag */}
-            <div className="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/70 backdrop-blur-md text-[11px] font-bold text-white border border-white/20">
-              {sanitizeNewsText(article.author) || 'VOX Akıllı Haber'}
-            </div>
-          </div>
+          {/* Cover Hero Image with Dynamic Contextual & Dominant Color Placeholder */}
+          <ArticleImagePlaceholder
+            src={cleanImg}
+            alt={article.title}
+            category={article.category}
+            title={article.title}
+            author={sanitizeNewsText(article.author) || 'VOX Akıllı Haber'}
+          />
 
           {/* Haberin Tamamı Section (Aşağıda Haberin Tamamı - Asla Kısaltılmamış) */}
           <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-4">
@@ -652,6 +631,35 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                 })()}
               </span>
             )}
+          </div>
+
+          {/* Article Bottom Share Callout Banner */}
+          <div className={`mt-6 p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+            theme === 'light'
+              ? 'bg-slate-50 border-slate-200'
+              : 'bg-white/5 border-white/10'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-500 shrink-0">
+                <Share2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className={`text-sm font-bold leading-snug ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                  Bu Haberi Paylaşın
+                </h4>
+                <p className={`text-xs mt-0.5 ${theme === 'light' ? 'text-slate-500' : 'text-zinc-400'}`}>
+                  Sosyal ağlar, WhatsApp veya doğrudan bağlantı kopyalayarak çevrenize ulaştırın.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-black transition-all cursor-pointer shadow-sm active:scale-95 shrink-0"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Haberi Paylaş</span>
+            </button>
           </div>
 
           {/* Mobile In-Article Ad Container */}
@@ -909,6 +917,13 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
           </div>
         );
       })()}
+
+      {/* Share Modal Dialog */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        article={article}
+      />
     </div>
   );
 };

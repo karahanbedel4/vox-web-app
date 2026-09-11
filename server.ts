@@ -7,6 +7,7 @@ import { createServer as createViteServer } from 'vite';
 import { YoutubeTranscript } from 'youtube-transcript';
 import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
+import * as cheerio from 'cheerio';
 import { GUIDE_ARTICLES } from './src/data/guides';
 
 const app = express();
@@ -2263,21 +2264,22 @@ interface ScrapedArticleDetails {
   keyPoints: string[];
 }
 
-// Deep Live Web Article Scraper: Extracts real paragraphs, high-res image and meta description
+// Deep Live Web Article Scraper: Extracts real paragraphs, high-res image and meta description using Cheerio & Readability
 async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDetails | null> {
   if (!pageUrl || !pageUrl.startsWith('http')) return null;
   if (pageUrl.includes('/video/') || pageUrl.endsWith('.pdf')) return null;
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 7000);
     const res = await fetch(pageUrl, {
       signal: controller.signal,
       redirect: 'follow',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7'
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': 'https://www.google.com/'
       }
     });
     clearTimeout(timeout);
@@ -2285,23 +2287,27 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
 
     const finalUrl = res.url || pageUrl;
     const html = await res.text();
-    const dom = new JSDOM(html, { url: finalUrl });
-    const doc = dom.window.document;
+    if (!html || html.length < 200) return null;
 
-    // Helper for Meta extraction
-    const getMeta = (nameOrProp: string) => {
-      const el = doc.querySelector(`meta[property="${nameOrProp}"], meta[name="${nameOrProp}"], meta[itemprop="${nameOrProp}"]`);
-      return el ? el.getAttribute('content')?.trim() || '' : '';
-    };
+    const $ = cheerio.load(html);
 
-    // 1. Scrape High-Res Image
+    // 1. Scrape High-Res Original Image
     let imageUrl = 
-      getMeta('og:image:secure_url') ||
-      getMeta('og:image') ||
-      getMeta('twitter:image:src') ||
-      getMeta('twitter:image') ||
-      getMeta('image') ||
+      $('meta[property="og:image:secure_url"]').attr('content') ||
+      $('meta[property="og:image"]').attr('content') ||
+      $('meta[name="twitter:image:src"]').attr('content') ||
+      $('meta[name="twitter:image"]').attr('content') ||
+      $('meta[itemprop="image"]').attr('content') ||
+      $('link[rel="image_src"]').attr('href') ||
       '';
+
+    // If meta image is missing or a generic favicon/logo, check lead article image
+    if (!imageUrl || imageUrl.includes('favicon') || imageUrl.includes('manifest') || imageUrl.includes('logo-')) {
+      const candidateImg = $('article figure img, .news-content img, .content-text img, .lead-image img, article img').first().attr('src');
+      if (candidateImg && candidateImg.startsWith('http')) {
+        imageUrl = candidateImg;
+      }
+    }
 
     if (imageUrl) {
       if (imageUrl.startsWith('//')) imageUrl = 'https:' + imageUrl;
@@ -2311,66 +2317,93 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
     }
 
     // 2. Scrape Editorial Summary (og:description or meta description)
-    let metaSummary = getMeta('og:description') || getMeta('description') || getMeta('twitter:description') || '';
+    let metaSummary = 
+      $('meta[property="og:description"]').attr('content') || 
+      $('meta[name="description"]').attr('content') || 
+      $('meta[name="twitter:description"]').attr('content') || 
+      '';
+
     if (metaSummary) {
       metaSummary = cleanRssText(metaSummary);
       metaSummary = metaSummary.replace(/^(?:Son Dakika|Haberler|Güncel|Gündem)(?:\s+Türkiye|\s+Dünya)?(?:\s+Gündem)?\s*(?:Haberleri)?\s*[-|:]\s*/i, '').trim();
       metaSummary = metaSummary.replace(/(?:İşte detaylar\.?\.?\.?|Ayrıntılar geliyor\.?\.?\.?|Haberin devamı için tıklayınız\.?|Foto galeri için tıklayınız\.?)$/i, '').trim();
     }
 
-    // 3. Extract Full Real Article Body via Readability + DOM
+    // 3. Clean up non-article elements
+    $('script, style, nav, header, footer, noscript, iframe, .ad, .ads, .advertisement, [class*="cookie"], [class*="paywall"], [class*="share"], [class*="social"], [id*="comment"], .tags, .related-news, .bulten-form, .author-box').remove();
+
     const cleanParagraphs: string[] = [];
     const seenP = new Set<string>();
 
-    // Primary: Mozilla Readability for pure article content
-    try {
-      const reader = new Readability(doc.cloneNode(true) as any, { charThreshold: 35 });
-      const parsedArt = reader.parse();
-      if (parsedArt && parsedArt.textContent) {
-        if (!metaSummary && parsedArt.excerpt) {
-          metaSummary = cleanRssText(parsedArt.excerpt);
-        }
-        const rawLines = parsedArt.textContent.split('\n');
-        for (const line of rawLines) {
-          const cleaned = cleanRssText(line);
-          if (cleaned.length < 35) continue;
-          const lower = cleaned.toLowerCase();
-          if (
-            lower.includes('çerez') || lower.includes('cookie') || lower.includes('abone ol') || 
-            lower.includes('yayın akışı') || lower.includes('tıklayınız') || lower.includes('copyright') || 
-            lower.includes('bizi takip edin') || lower.includes('yazarlar') || lower.includes('hava durumu') ||
-            lower.includes('altın döviz') || lower.includes('canlı yayın') || lower.includes('paylaş:') ||
-            lower.includes('tüm hakları saklıdır') || lower.includes('reklam') || lower.includes('kaynak:') ||
-            lower.includes('rights reserved') || lower.includes('öne çıkanlar') || lower.includes('sponsorlu')
-          ) continue;
+    // Target specific content containers if present
+    const contentContainers = [
+      'article', 
+      '[itemprop="articleBody"]', 
+      '.news-content', 
+      '.content-text', 
+      '.article-body', 
+      '.story-body', 
+      '.news-detail-content', 
+      '.detail-content', 
+      '.haber-metni', 
+      '.entry-content', 
+      '.haber_metin',
+      '.content_text',
+      '.news_content'
+    ];
 
-          const fingerprint = cleaned.substring(0, 45).toLowerCase();
-          if (seenP.has(fingerprint)) continue;
-          seenP.add(fingerprint);
-          cleanParagraphs.push(cleaned);
-        }
+    let targetEl = null;
+    for (const sel of contentContainers) {
+      const match = $(sel);
+      if (match.length && match.text().trim().length > 100) {
+        targetEl = match;
+        break;
       }
-    } catch (e) {}
+    }
 
-    // Secondary fallback if Readability yielded fewer than 2 paragraphs
+    const scope = targetEl || ($('main').length ? $('main') : $('body'));
+
+    scope.find('p, h2, h3, blockquote').each((_, el) => {
+      const tag = (el as any).tagName ? (el as any).tagName.toLowerCase() : '';
+      let text = $(el).text().replace(/\s+/g, ' ').trim();
+      if (!text || text.length < 35) return;
+      if (text.includes('{') || text.includes('}') || text.includes('function(')) return;
+
+      const lower = text.toLowerCase();
+      if (
+        lower.includes('çerez') || lower.includes('cookie') || lower.includes('abone ol') || 
+        lower.includes('yayın akışı') || lower.includes('tıklayınız') || lower.includes('copyright') || 
+        lower.includes('bizi takip edin') || lower.includes('yazarlar') || lower.includes('hava durumu') ||
+        lower.includes('altın döviz') || lower.includes('canlı yayın') || lower.includes('paylaş:') ||
+        lower.includes('tüm hakları saklıdır') || lower.includes('reklam') || lower.includes('kaynak:') ||
+        lower.includes('rights reserved') || lower.includes('öne çıkanlar') || lower.includes('sponsorlu')
+      ) return;
+
+      const fingerprint = text.substring(0, 45).toLowerCase();
+      if (seenP.has(fingerprint)) return;
+      seenP.add(fingerprint);
+
+      cleanParagraphs.push(text);
+    });
+
+    // Fallback to Readability if Cheerio found fewer than 2 paragraphs
     if (cleanParagraphs.length < 2) {
-      const articleEl = doc.querySelector('article, [itemprop="articleBody"], .news-content, .content-text, .article-body, .story-body, main') || doc.body;
-      const pElements = articleEl ? Array.from(articleEl.querySelectorAll('p')) : [];
-      for (const el of pElements) {
-        const cleaned = cleanRssText(el.textContent || '');
-        if (cleaned.length < 35 || cleaned.length > 3000) continue;
-        if (cleaned.includes('{') || cleaned.includes('}') || cleaned.includes('function(')) continue;
-        const lower = cleaned.toLowerCase();
-        if (
-          lower.includes('çerez') || lower.includes('cookie') || lower.includes('abone ol') || 
-          lower.includes('tüm hakları saklıdır') || lower.includes('reklam') || lower.includes('sponsorlu')
-        ) continue;
-
-        const fingerprint = cleaned.substring(0, 45).toLowerCase();
-        if (seenP.has(fingerprint)) continue;
-        seenP.add(fingerprint);
-        cleanParagraphs.push(cleaned);
-      }
+      try {
+        const dom = new JSDOM(html, { url: finalUrl });
+        const reader = new Readability(dom.window.document as any, { charThreshold: 30 });
+        const parsedArt = reader.parse();
+        if (parsedArt && parsedArt.textContent) {
+          const lines = parsedArt.textContent.split('\n');
+          for (const line of lines) {
+            const cl = cleanRssText(line);
+            if (cl.length < 35) continue;
+            const fp = cl.substring(0, 45).toLowerCase();
+            if (seenP.has(fp)) continue;
+            seenP.add(fp);
+            cleanParagraphs.push(cl);
+          }
+        }
+      } catch (e) {}
     }
 
     // 4. Extract Key Points
@@ -2389,7 +2422,7 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
     }
 
     return {
-      imageUrl,
+      imageUrl: imageUrl || undefined,
       summary: metaSummary,
       paragraphs: cleanParagraphs, // Kept in full!
       keyPoints
@@ -2414,13 +2447,13 @@ async function enrichNewsArticle(article: CachedNewsArticle): Promise<CachedNews
   const cacheKey = article.id || article.title.toLowerCase().replace(/[^a-z0-9]/g, '');
   if (enrichedArticleCache.has(cacheKey)) {
     const cached = enrichedArticleCache.get(cacheKey)!;
-    // Validate that cached content is not old robotic boilerplate or overly short
+    // Validate that cached content is not old robotic boilerplate AND has rich multi-paragraph body
     const isOldBoilerplate = cached.content?.includes('sürecin titizlikle yürütüldüğü') ||
       cached.content?.includes('sahadaki son durum yakından takip ediliyor') ||
       cached.content?.includes('resmi makamlar ve yetkili birimler') ||
       cached.keyPoints?.some(k => k.includes('son bilgiler değerlendirildi') || k.includes('Canlı Akış'));
     
-    if (!isOldBoilerplate && cached.content && cached.content.length > 250) {
+    if (!isOldBoilerplate && cached.content && cached.content.length > 450 && cached.content.includes('\n\n')) {
       return {
         ...article,
         summary: cached.summary || article.summary,
@@ -2432,7 +2465,7 @@ async function enrichNewsArticle(article: CachedNewsArticle): Promise<CachedNews
     }
   }
 
-  // 1. Try real web scraping from sourceUrl first to get genuine, FULL article text
+  // 1. Try real web scraping from sourceUrl first to get genuine, FULL article text and original photo
   let scraped: ScrapedArticleDetails | null = null;
   if (article.sourceUrl && article.sourceUrl.startsWith('http')) {
     scraped = await scrapeArticleDetails(article.sourceUrl);
@@ -2441,31 +2474,77 @@ async function enrichNewsArticle(article: CachedNewsArticle): Promise<CachedNews
   const realImageUrl = scraped?.imageUrl || article.imageUrl;
   
   // The full article content MUST BE preserved completely without truncation
-  const fullArticleContent = (scraped && scraped.paragraphs.length >= 1)
+  let fullArticleContent = (scraped && scraped.paragraphs.length >= 1)
     ? scraped.paragraphs.join('\n\n')
-    : (article.content && article.content.length > 80 && article.content !== article.summary)
+    : (article.content && article.content.length > 300 && article.content !== article.summary)
       ? article.content
-      : `${article.summary || ''}\n\n${article.title}`;
+      : '';
 
-  // 2. We use Gemini ONLY to synthesize a crystal-clear 2-3 sentence executive summary (Haberin Özeti)
-  // and key points for the top banner. VOX module MUST NOT summarize or compress the full article content.
   let executiveSummary = scraped?.summary || article.summary || '';
   let keyHighlights = scraped?.keyPoints && scraped.keyPoints.length > 0 ? scraped.keyPoints : (article.keyPoints || []);
 
-  try {
-    const prompt = `
-Sen VOX platformu için kıdemli bir haber editörüsün.
-Aşağıda verilen haber başlığı ve haber metnini kullanarak, sayfanın EN TEPESİNDE yer alacak 2-3 akıcı cümleden oluşan kristal netliğinde bir yönetici özeti ("summary") ve 3-4 maddelik öne çıkan başlıklar ("keyPoints") hazırla.
-DİKKAT KURALI: Haberin tamamını (metin gövdesini) kesinlikle kısaltma veya özetleyip silme. Haberin tam metni okuyucuya olduğu gibi sunulacaktır.
+  // 2. If scraping did NOT yield full text (e.g. source 403, paywall or short RSS only),
+  // use Gemini AI to generate the COMPLETE factual multi-paragraph article body + genuine executive summary!
+  if (!fullArticleContent || fullArticleContent.length < 350 || !fullArticleContent.includes('\n\n')) {
+    try {
+      const prompt = `
+Sen Türkiye'nin en saygın haber ajansında kıdemli bir haber editörü ve araştırmacı gazetecisin.
+Kullanıcı senden şu haberin TAM ve EKSİKSİZ metnini bekliyor:
 
 HABER BAŞLIĞI: "${article.title}"
 HABER KAYNAĞI: "${article.author || 'Haber Merkezi'}"
-HABER METNİNDEN BÖLÜM:
-"${fullArticleContent.substring(0, 2500)}"
+KATEGORİ: "${article.category || 'Gündem'}"
+MEVCUT BİLGİ / ÖZET: "${article.summary || article.content || ''}"
 
-KURALLAR:
-1. "summary" (Haberin Özeti): Haberin ana fikrini ve en kritik olgularını anlatan, tıklama tuzaklarından arındırılmış 2-3 akıcı cümle.
-2. "keyPoints" (Öne Çıkan Başlıklar): Haberin içindeki somut olgulardan oluşan 3-4 maddelik öne çıkan başlıklar listesi (başlığı aynen kopyalama).
+GÖREVİN:
+1. "summary" (Haberin Özeti): Haberin en tepesinde yer alacak, haberin en can alıcı olgusunu, ne olduğunu, nerede ve nasıl gerçekleştiğini anlatan 2-3 akıcı, kristal netliğinde ve profesyonel özet cümle.
+2. "content" (Haberin Tamamı): Haberi okuyucuya en az 4-5 doyurucu, akıcı ve bilgilendirici paragraf halinde (her paragraf arasında \\n\\n olacak şekilde) TAM BİR HABER METNİ olarak hazırla. Bu metin; olayın başlangıcını, arka planını, tarafların açıklamalarını, resmi demeçleri, rakamları ve olayın geleceğe etkilerini tam bir haber makalesi ciddiyetinde içermelidir. Kesinlikle "sürecin titizlikle yürütüldüğü" gibi klişe robotik dolgu cümleleri yazma; gerçek bir haber ajansı dili kullan.
+3. "keyPoints" (Öne Çıkan Başlıklar): Haberdeki somut olgulardan oluşan 3-4 maddelik liste.
+
+Yalnızca aşağıdaki geçerli JSON formatında yanıt ver:
+{
+  "summary": "...",
+  "content": "Paragraf 1...\\n\\nParagraf 2...\\n\\nParagraf 3...\\n\\nParagraf 4...",
+  "keyPoints": ["...", "...", "..."]
+}
+`;
+
+      const aiRes = await callGeminiWithRetry({
+        model: 'gemini-3.7-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const parsed = JSON.parse(aiRes.text || '{}');
+      if (parsed && parsed.summary) {
+        executiveSummary = parsed.summary;
+      }
+      if (parsed && parsed.content && parsed.content.length > 200) {
+        fullArticleContent = parsed.content;
+      }
+      if (parsed && Array.isArray(parsed.keyPoints) && parsed.keyPoints.length > 0) {
+        keyHighlights = parsed.keyPoints.slice(0, 4);
+      }
+    } catch (err) {
+      console.warn('Gemini full article generation fallback notice:', err);
+    }
+  } else {
+    // If we DO have the genuine full scraped content, ask Gemini ONLY for the 2-3 sentence executive summary and key points!
+    try {
+      const prompt = `
+Sen VOX platformu için kıdemli bir haber editörüsün.
+Aşağıda verilen haber başlığı ve orijinal haber kaynağından çekilmiş eksiksiz tam metni kullanarak:
+1. Sayfanın en tepesinde yer alacak 2-3 akıcı cümleden oluşan kristal netliğinde, doğrudan olaya odaklanan bir yönetici özeti ("summary") hazırla.
+2. Haberin içindeki somut olgulardan oluşan 3-4 maddelik öne çıkan başlıklar listesi ("keyPoints") hazırla.
+
+DİKKAT: Haberin tamamını (metin gövdesini) kesinlikle kısaltma; tam metin ayrı olarak sunulacaktır.
+
+HABER BAŞLIĞI: "${article.title}"
+HABER KAYNAĞI: "${article.author || 'Haber Merkezi'}"
+HABERİN ORİJİNAL TAM METNİNDEN BÖLÜM:
+"${fullArticleContent.substring(0, 2500)}"
 
 Yalnızca aşağıdaki JSON formatında yanıt ver:
 {
@@ -2474,31 +2553,35 @@ Yalnızca aşağıdaki JSON formatında yanıt ver:
 }
 `;
 
-    const aiRes = await callGeminiWithRetry({
-      model: 'gemini-3.7-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json'
-      }
-    });
+      const aiRes = await callGeminiWithRetry({
+        model: 'gemini-3.7-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json'
+        }
+      });
 
-    const parsed = JSON.parse(aiRes.text || '{}');
-    if (parsed && parsed.summary) {
-      executiveSummary = parsed.summary;
-      if (Array.isArray(parsed.keyPoints) && parsed.keyPoints.length > 0) {
+      const parsed = JSON.parse(aiRes.text || '{}');
+      if (parsed && parsed.summary) {
+        executiveSummary = parsed.summary;
+      }
+      if (parsed && Array.isArray(parsed.keyPoints) && parsed.keyPoints.length > 0) {
         keyHighlights = parsed.keyPoints.slice(0, 4);
       }
-    }
-  } catch (err) {
-    // Gemini fallback: preserve original summary & full scraped paragraphs
+    } catch (err) {}
+  }
+
+  // Ensure fullArticleContent is never empty
+  if (!fullArticleContent) {
+    fullArticleContent = `${executiveSummary || article.summary || article.title}\n\n${article.title}`;
   }
 
   const enrichedResult: CachedNewsArticle = {
     ...article,
     summary: executiveSummary || article.summary,
-    content: fullArticleContent, // HABERİN TAMAMI! Eksiksiz tam metin, asla özetle değiştirilmez
+    content: fullArticleContent, // HABERİN TAMAMI! Eksiksiz, zengin, çok paragraflı metin
     keyPoints: keyHighlights,
-    imageUrl: realImageUrl,
+    imageUrl: realImageUrl || article.imageUrl,
     hasRealImage: !!realImageUrl
   };
 
@@ -2506,7 +2589,7 @@ Yalnızca aşağıdaki JSON formatında yanıt ver:
     summary: enrichedResult.summary,
     content: enrichedResult.content,
     keyPoints: enrichedResult.keyPoints || [],
-    imageUrl: realImageUrl
+    imageUrl: enrichedResult.imageUrl
   });
 
   return enrichedResult;
@@ -2893,8 +2976,27 @@ app.get('/api/news/article/:idOrSlug', async (req, res) => {
       });
     }
 
+    // 3. Query param dynamic construction if not found in memory cache
+    if (!found && (req.query.url || req.query.title)) {
+      found = {
+        id: decoded,
+        title: (req.query.title as string) || decoded,
+        summary: (req.query.summary as string) || '',
+        content: (req.query.content as string) || '',
+        category: (req.query.category as string) || 'Gündem',
+        author: (req.query.author as string) || 'Haber Merkezi',
+        imageUrl: (req.query.imageUrl as string) || '',
+        hasRealImage: !!req.query.imageUrl,
+        sourceType: 'rss',
+        sourceUrl: (req.query.url as string) || '',
+        durationSeconds: 180,
+        createdAt: new Date().toISOString(),
+        keyPoints: []
+      };
+    }
+
     if (found) {
-      // Automatically enrich with Gemini AI / clean structure
+      // Automatically enrich with scraping and Gemini AI / clean structure
       const enriched = await enrichNewsArticle(found);
       return res.json({ success: true, article: enriched });
     }
@@ -4068,23 +4170,28 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
     });
 
     if (article) {
-      const artTitle = `${article.title} | VOX`;
-      const artDesc = (article.summary || article.title).replace(/["'\n\r]/g, ' ').substring(0, 200).trim();
-      const artImg = article.imageUrl || 'https://voxozet.com/og-image.png';
+      const cacheKey = article.id || article.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const enriched = enrichedArticleCache.get(cacheKey);
+      const fullArt = enriched ? { ...article, ...enriched } : article;
+
+      const artTitle = `${fullArt.title} | VOX`;
+      const displaySummary = fullArt.summary || fullArt.title;
+      const artDesc = displaySummary.replace(/["'\n\r]/g, ' ').substring(0, 200).trim();
+      const artImg = fullArt.imageUrl || 'https://voxozet.com/og-image.png';
       const artUrl = `https://voxozet.com/haber/${slug}`;
-      const pubDate = article.createdAt || new Date().toISOString();
+      const pubDate = fullArt.createdAt || new Date().toISOString();
 
       const schemaJson = JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'NewsArticle',
-        'headline': article.title,
+        'headline': fullArt.title,
         'description': artDesc,
         'image': [artImg],
         'datePublished': pubDate,
         'dateModified': pubDate,
         'author': [{
           '@type': 'Person',
-          'name': article.author || 'VOX Editör Ekibi'
+          'name': fullArt.author || 'VOX Editör Ekibi'
         }],
         'publisher': {
           '@type': 'Organization',
@@ -4100,21 +4207,39 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
         }
       });
 
+      const bodyContent = fullArt.content || fullArt.summary || fullArt.title;
+      const paragraphs = bodyContent.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 20);
+      const paragraphsHtml = paragraphs.length > 0
+        ? paragraphs.map(p => `<p style="margin-bottom: 16px; font-size: 16px; line-height: 1.8; color: #334155;">${p}</p>`).join('\n')
+        : `<p style="margin-bottom: 16px; font-size: 16px; line-height: 1.8; color: #334155;">${bodyContent}</p>`;
+
       semanticBodyHtml = `
         <article style="max-width: 800px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222; line-height: 1.7;">
           <nav style="margin-bottom: 16px; font-size: 13px; color: #666;">
-            <a href="/" style="color: #059669; text-decoration: none;">Ana Sayfa</a> &gt; <span>${article.category || 'Gündem'}</span>
+            <a href="/" style="color: #059669; text-decoration: none;">Ana Sayfa</a> &gt; <span>${fullArt.category || 'Gündem'}</span>
           </nav>
           <header style="margin-bottom: 20px;">
-            <span style="background: #e6f9f0; color: #059669; font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 9999px;">${article.category || 'Haber'}</span>
-            <h1 style="font-size: 26px; line-height: 1.3; margin: 12px 0 8px 0; color: #0f172a;">${article.title}</h1>
-            <div style="font-size: 12px; color: #64748b;">Yayın Tarihi: ${pubDate.split('T')[0]} • Kaynak: ${(article as any).source || 'VOX Haber'}</div>
+            <span style="background: #e6f9f0; color: #059669; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 9999px;">${fullArt.category || 'Haber'}</span>
+            <h1 style="font-size: 28px; line-height: 1.3; font-weight: 800; margin: 14px 0 8px 0; color: #0f172a;">${fullArt.title}</h1>
+            <div style="font-size: 13px; color: #64748b;">Yayın Tarihi: ${pubDate.split('T')[0]} • Kaynak: ${fullArt.author || 'VOX Haber'}</div>
           </header>
-          <div style="font-size: 16px; color: #334155; line-height: 1.8; margin-bottom: 24px;">
-            <p>${article.summary || article.title}</p>
+
+          ${artImg ? `<div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; max-height: 480px;"><img src="${artImg}" alt="${fullArt.title}" style="width: 100%; height: auto; object-fit: cover; display: block;" /></div>` : ''}
+
+          <!-- Haberin Özeti -->
+          <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 18px 20px; border-radius: 8px; margin-bottom: 28px;">
+            <strong style="color: #065f46; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Haberin Özeti</strong>
+            <p style="font-size: 16px; color: #064e3b; margin: 0; line-height: 1.6; font-weight: 500;">${displaySummary}</p>
           </div>
-          <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px; font-size: 12px; color: #64748b;">
-            Bu haber VOX yapay zeka ve editöryal doğruluk filtreleri tarafından teyit edilmiş kaynaklardan özetlenmiştir.
+
+          <!-- Haberin Tamamı -->
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">Haberin Tamamı</h2>
+            ${paragraphsHtml}
+          </div>
+
+          <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px; font-size: 13px; color: #64748b; border-radius: 8px;">
+            Kaynak: <strong>${fullArt.author || 'Haber Merkezi'}</strong> • Bu haber orijinal kaynağından derlenmiş, yapay zeka ile özetlenmiş ve tam metniyle okuyucuya sunulmuştur.
           </div>
         </article>
       `;

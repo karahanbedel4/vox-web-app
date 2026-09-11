@@ -16,6 +16,8 @@ export interface UserProfile {
   weeklyMinutes: number;
   totalArticlesRead: number;
   totalListenedMinutes: number;
+  communicationConsent?: boolean;
+  communicationConsentDate?: string;
   createdAt?: string;
 }
 

@@ -29,7 +29,8 @@ import {
   limit,
   startAfter,
   QueryDocumentSnapshot,
-  onSnapshot
+  onSnapshot,
+  increment
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { Article, UserProfile, BookmarkItem, UserHistoryItem } from '../types';
@@ -74,20 +75,104 @@ if (auth) {
     });
 }
 
-// Unified Google Sign In Helper (Web Firebase Auth Popup)
-export async function signInWithGoogle() {
+// Unified Google Sign In Helper (Web Firebase Auth Popup with GIS Token Client Fallback)
+export async function signInWithGoogle(communicationConsent: boolean = true) {
+  const consentDate = new Date().toISOString();
   try {
     const res = await signInWithPopup(auth, googleProvider);
     if (res?.user) {
-       await syncUserProfile(res.user);
-       window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: res.user }));
+      const profile = await syncUserProfile(res.user, {
+        communicationConsent,
+        communicationConsentDate: consentDate
+      });
+      appStorage.setItemSync('vox_local_email_user', JSON.stringify(profile));
+      window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: profile }));
+      return { user: res.user, profile };
     }
     return res;
   } catch (err: any) {
-    console.warn('signInWithPopup failed on Web, trying signInWithRedirect:', err);
+    console.warn('signInWithPopup notice on Web, testing secondary provider or GIS:', err?.message || err);
+
+    // Fallback: Google Identity Services (GIS) / Token Client with oAuthClientId
+    const gAccounts = (window as any).google?.accounts;
+    if (gAccounts?.oauth2 && firebaseConfig.oAuthClientId) {
+      try {
+        const gisProfile = await new Promise<{ user: any; profile: UserProfile }>((resolve, reject) => {
+          const client = gAccounts.oauth2.initTokenClient({
+            client_id: firebaseConfig.oAuthClientId,
+            scope: 'email profile openid',
+            callback: async (tokenResponse: any) => {
+              if (tokenResponse?.error) {
+                reject(new Error(tokenResponse.error_description || tokenResponse.error));
+                return;
+              }
+              if (tokenResponse?.access_token) {
+                try {
+                  const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                  });
+                  const userInfo = await userInfoRes.json();
+                  const googleUid = `google_${userInfo.sub || Date.now()}`;
+                  
+                  let localStats = { totalListenedSeconds: 0, totalArticlesRead: 0 };
+                  try {
+                    const s = appStorage.getItemSync('vox_user_stats');
+                    if (s) localStats = JSON.parse(s);
+                  } catch (e) {}
+
+                  const googleProfile: UserProfile = {
+                    uid: googleUid,
+                    displayName: userInfo.name || userInfo.email?.split('@')[0] || 'Google Kullanıcısı',
+                    email: userInfo.email || '',
+                    photoURL: userInfo.picture || '',
+                    authProvider: 'google',
+                    isPremium: false,
+                    subscriptionTier: 'free',
+                    dailyQuotaUsed: 0,
+                    lastQuotaResetDate: new Date().toISOString().split('T')[0],
+                    focusScore: 95,
+                    streakCount: 1,
+                    weeklyMinutes: 20,
+                    totalArticlesRead: localStats.totalArticlesRead || 0,
+                    totalListenedMinutes: 10,
+                    communicationConsent,
+                    communicationConsentDate: consentDate,
+                    createdAt: new Date().toISOString()
+                  };
+
+                  try {
+                    const userRef = doc(db, 'users', googleUid);
+                    await setDoc(userRef, googleProfile, { merge: true });
+                  } catch (e) {
+                    console.warn('GIS Firestore doc sync warning:', e);
+                  }
+
+                  appStorage.setItemSync('vox_local_email_user', JSON.stringify(googleProfile));
+                  window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: googleProfile }));
+                  resolve({ user: { uid: googleUid, ...googleProfile }, profile: googleProfile });
+                } catch (fetchErr) {
+                  reject(fetchErr);
+                }
+              } else {
+                reject(new Error('Google hesabı yetkilendirmesi alınamadı.'));
+              }
+            }
+          });
+          client.requestAccessToken({ prompt: 'select_account' });
+        });
+
+        return gisProfile;
+      } catch (gisError) {
+        console.warn('GIS Token client fallback also failed:', gisError);
+      }
+    }
+
     if (err?.code === 'auth/popup-blocked') {
-      await signInWithRedirect(auth, googleProvider);
-      return null;
+      throw new Error('Tarayıcınız açılır pencereyi (popup) engelledi. Lütfen açılır pencerelere izin verip tekrar deneyin veya uygulamayı yeni sekmede açın.');
+    } else if (err?.code === 'auth/unauthorized-domain') {
+      throw new Error('Mevcut alan adı Firebase yetkili alan adları (Authorized Domains) listesine eklenmemiş olabilir. Lütfen Firebase Console ayarlarından alan adını ekleyin.');
+    } else if (err?.code === 'auth/popup-closed-by-user') {
+      throw new Error('Giriş penceresi kullanıcı tarafından kapatıldı.');
     }
     throw err;
   }
@@ -347,7 +432,7 @@ export async function signInAsGuest(): Promise<UserProfile> {
 }
 
 // User Profile Sync
-export async function syncUserProfile(user: FirebaseUser): Promise<UserProfile> {
+export async function syncUserProfile(user: FirebaseUser, additionalData?: Partial<UserProfile>): Promise<UserProfile> {
   let localStats = { totalListenedSeconds: 0, totalArticlesRead: 0 };
   try {
     const s = appStorage.getItemSync('vox_user_stats');
@@ -380,7 +465,10 @@ export async function syncUserProfile(user: FirebaseUser): Promise<UserProfile> 
     weeklyMinutes: listenedMins,
     totalArticlesRead: localStats.totalArticlesRead || 0,
     totalListenedMinutes: listenedMins,
-    createdAt: new Date().toISOString()
+    communicationConsent: additionalData?.communicationConsent ?? true,
+    communicationConsentDate: additionalData?.communicationConsentDate || new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    ...additionalData
   };
 
   try {
@@ -401,13 +489,15 @@ export async function syncUserProfile(user: FirebaseUser): Promise<UserProfile> 
         authProvider: isGoogle ? 'google' : (isGuest ? 'guest' : data.authProvider || 'email'),
         dailyQuotaUsed,
         lastQuotaResetDate,
+        totalArticlesRead: data.totalArticlesRead ?? localStats.totalArticlesRead ?? 0,
         totalListenedMinutes: (data.totalListenedMinutes || 0) + listenedMins,
         weeklyMinutes: (data.weeklyMinutes || 0) + listenedMins,
-        focusScore: Math.min(100, Math.round(((data.weeklyMinutes || 0) + listenedMins) * 0.5))
+        focusScore: Math.min(100, Math.round(((data.weeklyMinutes || 0) + listenedMins) * 0.5)),
+        ...additionalData
       };
 
       try {
-        await updateDoc(userRef, {
+        const updatePayload: Record<string, any> = {
           displayName: updatedProfile.displayName,
           email: updatedProfile.email,
           photoURL: updatedProfile.photoURL,
@@ -415,8 +505,16 @@ export async function syncUserProfile(user: FirebaseUser): Promise<UserProfile> 
           dailyQuotaUsed: updatedProfile.dailyQuotaUsed,
           lastQuotaResetDate: updatedProfile.lastQuotaResetDate,
           weeklyMinutes: updatedProfile.weeklyMinutes,
-          focusScore: updatedProfile.focusScore
-        });
+          focusScore: updatedProfile.focusScore,
+          totalArticlesRead: updatedProfile.totalArticlesRead
+        };
+
+        if (additionalData?.communicationConsent !== undefined) {
+          updatePayload.communicationConsent = additionalData.communicationConsent;
+          updatePayload.communicationConsentDate = additionalData.communicationConsentDate || new Date().toISOString();
+        }
+
+        await updateDoc(userRef, updatePayload);
       } catch (err) {
         console.warn('Error updating profile in Firestore (offline mode active):', err);
       }
@@ -510,6 +608,117 @@ export async function addFocusMinutes(userId: string, minutes: number = 5): Prom
   }
 
   return { weeklyMinutes, focusScore };
+}
+
+// Increment User Total Articles Read (Lightweight counter - avoiding data bloat)
+export async function incrementUserArticlesRead(userId?: string): Promise<number> {
+  let localStats = { totalListenedSeconds: 0, totalArticlesRead: 0 };
+  try {
+    const s = appStorage.getItemSync('vox_user_stats');
+    if (s) localStats = JSON.parse(s);
+  } catch (e) {}
+
+  localStats.totalArticlesRead = (localStats.totalArticlesRead || 0) + 1;
+  try {
+    appStorage.setItemSync('vox_user_stats', JSON.stringify(localStats));
+  } catch (e) {}
+
+  // Update in Firestore if user is authenticated and not a generic guest
+  if (userId && !userId.startsWith('guest_')) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        totalArticlesRead: increment(1)
+      });
+    } catch (e) {
+      console.warn('Firestore article read increment notice:', e);
+    }
+  }
+
+  // Update cached local profile
+  try {
+    const raw = appStorage.getItemSync('vox_local_email_user') || appStorage.getItemSync('vox_local_guest_user');
+    if (raw) {
+      const parsed: UserProfile = JSON.parse(raw);
+      parsed.totalArticlesRead = localStats.totalArticlesRead;
+      if (parsed.authProvider !== 'guest') {
+        appStorage.setItemSync('vox_local_email_user', JSON.stringify(parsed));
+      } else {
+        appStorage.setItemSync('vox_local_guest_user', JSON.stringify(parsed));
+      }
+      window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: parsed }));
+    }
+  } catch (e) {}
+
+  return localStats.totalArticlesRead;
+}
+
+// Update User Communication & Newsletter Consent
+export async function updateUserCommunicationConsent(userId: string, consent: boolean): Promise<boolean> {
+  const dateStr = new Date().toISOString();
+  if (userId && !userId.startsWith('guest_')) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        communicationConsent: consent,
+        communicationConsentDate: dateStr
+      });
+    } catch (e) {
+      console.warn('Firestore consent update notice:', e);
+    }
+  }
+
+  // Update cached local profile
+  try {
+    const raw = appStorage.getItemSync('vox_local_email_user') || appStorage.getItemSync('vox_local_guest_user');
+    if (raw) {
+      const parsed: UserProfile = JSON.parse(raw);
+      parsed.communicationConsent = consent;
+      parsed.communicationConsentDate = dateStr;
+      if (parsed.authProvider !== 'guest') {
+        appStorage.setItemSync('vox_local_email_user', JSON.stringify(parsed));
+      } else {
+        appStorage.setItemSync('vox_local_guest_user', JSON.stringify(parsed));
+      }
+      window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: parsed }));
+    }
+  } catch (e) {}
+
+  return consent;
+}
+
+// Reset User Read Stats (Lightweight reset)
+export async function resetUserReadStats(userId?: string): Promise<void> {
+  try {
+    const s = appStorage.getItemSync('vox_user_stats');
+    let localStats = { totalListenedSeconds: 0, totalArticlesRead: 0 };
+    if (s) localStats = JSON.parse(s);
+    localStats.totalArticlesRead = 0;
+    appStorage.setItemSync('vox_user_stats', JSON.stringify(localStats));
+  } catch (e) {}
+
+  if (userId && !userId.startsWith('guest_')) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, { totalArticlesRead: 0 });
+    } catch (e) {
+      console.warn('Reset read stats notice:', e);
+    }
+  }
+
+  try {
+    const raw = appStorage.getItemSync('vox_local_email_user') || appStorage.getItemSync('vox_local_guest_user');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      parsed.totalArticlesRead = 0;
+      if (parsed.authProvider !== 'guest') {
+        appStorage.setItemSync('vox_local_email_user', JSON.stringify(parsed));
+      } else {
+        appStorage.setItemSync('vox_local_guest_user', JSON.stringify(parsed));
+      }
+      window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: parsed }));
+    }
+  } catch (e) {}
 }
 
 // Default Seed Articles if Firestore is empty (imported from ../data/defaultArticles)

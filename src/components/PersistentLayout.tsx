@@ -50,6 +50,7 @@ import { AuthModal } from './AuthModal';
 import { VoxLogo } from './VoxLogo';
 import { XLogoIcon } from './XLogoIcon';
 import { appStorage, getCookie, setCookie } from '../lib/storage';
+import { incrementUserArticlesRead } from '../lib/firebase';
 
 const DEFAULT_FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e1217'/%3E%3Cpolygon points='8,8 16,24 24,8' fill='%231ed760'/%3E%3C/svg%3E";
 const PLAYING_FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e1217'/%3E%3Crect x='5' y='11' width='3.5' height='10' rx='1.75' fill='%231ed760'/%3E%3Crect x='11' y='6' width='3.5' height='20' rx='1.75' fill='%231ed760'/%3E%3Crect x='17' y='9' width='3.5' height='14' rx='1.75' fill='%231ed760'/%3E%3Crect x='23' y='13' width='3.5' height='6' rx='1.75' fill='%231ed760'/%3E%3C/svg%3E";
@@ -174,6 +175,18 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
     window.addEventListener('vox_open_auth_modal', handleOpenAuthModal);
     return () => window.removeEventListener('vox_open_auth_modal', handleOpenAuthModal);
   }, []);
+
+  // Track article read count when an article modal is opened (avoiding session duplication)
+  useEffect(() => {
+    if (!readingArticle?.id) return;
+    try {
+      const readKey = `vox_read_${readingArticle.id}`;
+      if (!sessionStorage.getItem(readKey)) {
+        sessionStorage.setItem(readKey, '1');
+        incrementUserArticlesRead(user?.uid);
+      }
+    } catch (e) {}
+  }, [readingArticle?.id, user?.uid]);
 
   // Scroll to top, close mobile drawer, and track page view on route change
   useEffect(() => {

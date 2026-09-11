@@ -1144,8 +1144,9 @@ export async function enrichArticleWithAI(article: Article): Promise<Article> {
   if (
     !hasRoboticFiller &&
     article.content && 
-    article.content.length > 250 && 
+    article.content.length > 500 && 
     article.content.includes('\n\n') && 
+    article.content !== article.summary &&
     article.keyPoints && 
     article.keyPoints.length >= 3 && 
     !article.keyPoints.some(k => k.includes('Canlı Akış') || k.includes('Kategori:'))
@@ -1163,6 +1164,17 @@ export async function enrichArticleWithAI(article: Article): Promise<Article> {
     if (res.ok) {
       const data = await res.json();
       if (data && data.success && data.article) {
+        // Cache enriched article in localStorage for instant access
+        try {
+          const cachedRaw = localStorage.getItem('vox_cached_articles');
+          if (cachedRaw) {
+            const list: Article[] = JSON.parse(cachedRaw);
+            const idx = list.findIndex(a => a.id === data.article.id || a.title === data.article.title);
+            if (idx >= 0) list[idx] = data.article;
+            else list.unshift(data.article);
+            localStorage.setItem('vox_cached_articles', JSON.stringify(list.slice(0, 150)));
+          }
+        } catch (e) {}
         return data.article;
       }
     }
@@ -1174,15 +1186,37 @@ export async function enrichArticleWithAI(article: Article): Promise<Article> {
 }
 
 /**
- * Fetch a single article by ID or slug from server API
+ * Fetch a single article by ID or slug from server API with query fallback
  */
-export async function fetchArticleByIdOrSlug(idOrSlug: string): Promise<Article | null> {
+export async function fetchArticleByIdOrSlug(
+  idOrSlug: string,
+  sourceUrl?: string,
+  title?: string,
+  category?: string,
+  author?: string
+): Promise<Article | null> {
   if (!idOrSlug) return null;
   try {
-    const res = await fetch(`/api/news/article/${encodeURIComponent(idOrSlug)}?_t=${Date.now()}`);
+    let url = `/api/news/article/${encodeURIComponent(idOrSlug)}?_t=${Date.now()}`;
+    if (sourceUrl) url += `&url=${encodeURIComponent(sourceUrl)}`;
+    if (title) url += `&title=${encodeURIComponent(title)}`;
+    if (category) url += `&category=${encodeURIComponent(category)}`;
+    if (author) url += `&author=${encodeURIComponent(author)}`;
+
+    const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
       if (data && data.success && data.article) {
+        try {
+          const cachedRaw = localStorage.getItem('vox_cached_articles');
+          if (cachedRaw) {
+            const list: Article[] = JSON.parse(cachedRaw);
+            const idx = list.findIndex(a => a.id === data.article.id || a.title === data.article.title);
+            if (idx >= 0) list[idx] = data.article;
+            else list.unshift(data.article);
+            localStorage.setItem('vox_cached_articles', JSON.stringify(list.slice(0, 150)));
+          }
+        } catch (e) {}
         return data.article;
       }
     }
@@ -1346,6 +1380,37 @@ export function trackOutboundClick(
   } catch (err) {
     console.warn('Track outbound error:', err);
   }
+}
+
+/**
+ * Calculates estimated reading time in minutes based on article content, summary, and word count.
+ * Standard Turkish silent reading speed is ~180-200 words per minute.
+ */
+export function calculateReadingTime(article?: {
+  content?: string;
+  summary?: string;
+  title?: string;
+  durationSeconds?: number;
+} | null): number {
+  if (!article) return 1;
+
+  const fullText = [article.content, article.summary, article.title]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
+  const words = fullText.split(/\s+/).filter(w => w.length > 0).length;
+
+  if (words >= 40) {
+    return Math.max(1, Math.ceil(words / 180));
+  }
+
+  if (article.durationSeconds && article.durationSeconds > 45) {
+    return Math.max(1, Math.round(article.durationSeconds / 60));
+  }
+
+  if (fullText.length > 300) return 2;
+  return 1;
 }
 
 
