@@ -9,8 +9,6 @@ import {
   Layout, 
   Radio, 
   Sparkles, 
-  ChevronRight, 
-  ExternalLink,
   Search,
   Check,
   RotateCcw,
@@ -465,8 +463,8 @@ export function LiveTvPage() {
       </AnimatePresence>
 
       {/* MAIN CONTAINER */}
-      <div className={`transition-all duration-300 space-y-6 ${
-        isCinemaMode ? 'w-full px-2 sm:px-4 md:px-6' : 'max-w-7xl mx-auto'
+      <div className={`transition-all duration-300 space-y-4 sm:space-y-5 ${
+        isCinemaMode ? 'w-full px-2 sm:px-4 md:px-6' : 'w-full max-w-[1720px] mx-auto px-2 sm:px-4 md:px-6'
       }`}>
         
         {/* TOP HEADER & CONTROLS */}
@@ -747,9 +745,9 @@ export function LiveTvPage() {
           );
         })()}
 
-        {/* 3X3 GRID MODE (KUTU KUTU SAYFAYI KAPLAYACAK ŞEKİLDE) */}
+        {/* 3X3 GRID MODE (BÜYÜK, BİRBİRİNE YAKIN VE SADELEŞTİRİLMİŞ BÜTÜNSEL VİDEO DUVARI) */}
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
             {filteredChannels.map((channel, index) => {
               const isUnmuted = unmutedChannelId === channel.id;
 
@@ -759,75 +757,67 @@ export function LiveTvPage() {
                   layout
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, delay: index * 0.04 }}
-                  className={`flex flex-col rounded-2xl border overflow-hidden transition-all duration-300 hover:shadow-xl group ${
+                  transition={{ duration: 0.25, delay: index * 0.03 }}
+                  className={`flex flex-col rounded-xl border overflow-hidden transition-all duration-200 group ${
                     isUnmuted
-                      ? 'ring-2 ring-emerald-500 border-emerald-500/50'
+                      ? 'ring-2 ring-emerald-500 border-emerald-500/80 shadow-lg'
                       : theme === 'light'
                         ? 'bg-white border-slate-200 shadow-sm hover:border-slate-300'
                         : 'bg-[#101712] border-white/10 hover:border-white/20 shadow-md'
                   }`}
                 >
-                  {/* Channel Header */}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b border-white/10">
-                    {/* Left: Channel Brand Icon & Name */}
-                    <div className="flex items-center gap-2.5 min-w-0">
+                  {/* Clean Channel Header: Minimalist & Uncluttered */}
+                  <div className="px-3 py-2 flex items-center justify-between gap-2 border-b border-white/5 select-none">
+                    {/* Left: Channel Brand Icon, Full Name & Subtle Live Dot */}
+                    <div className="flex items-center gap-2 min-w-0">
                       <div 
-                        className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-[11px] text-white shadow-sm shrink-0"
+                        className="w-6 h-6 rounded-md flex items-center justify-center font-black text-[10px] text-white shadow-sm shrink-0"
                         style={{ backgroundColor: channel.brandColor }}
                       >
                         {channel.shortName}
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <h3 className="text-xs sm:text-sm font-black truncate tracking-wide">
-                            {channel.name}
-                          </h3>
-                          <span className="flex items-center gap-1 bg-red-600 text-white text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full tracking-wider shrink-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                            CANLI
-                          </span>
-                        </div>
-                      </div>
+                      <h3 className={`text-xs sm:text-sm font-bold truncate tracking-tight ${
+                        theme === 'light' ? 'text-slate-900' : 'text-white'
+                      }`}>
+                        {channel.name}
+                      </h3>
+                      <span className="flex items-center gap-1 text-red-500 text-[10px] font-semibold shrink-0 ml-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                        <span className="hidden xs:inline">Canlı</span>
+                      </span>
                     </div>
 
-                    {/* Right: Quick Action Controls */}
+                    {/* Right: Only 2 Essential Controls (Sleek Icon Buttons) */}
                     <div className="flex items-center gap-1 shrink-0">
-                      {/* Sound Toggle Button */}
+                      {/* Sound Toggle Icon Button */}
                       <button
                         onClick={() => handleToggleSound(channel.id)}
-                        className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                        className={`w-7 h-7 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
                           isUnmuted
                             ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-500'
                             : theme === 'light'
                               ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                               : 'bg-white/5 hover:bg-white/15 text-zinc-300'
                         }`}
-                        title={isUnmuted ? 'Sesi Kapat' : 'Sesi Aç (Diğerlerini Sessize Alır)'}
+                        title={isUnmuted ? 'Sesi Kapat' : 'Sesi Aç'}
                         aria-label={isUnmuted ? 'Sesi Kapat' : 'Sesi Aç'}
                       >
                         {isUnmuted ? (
-                          <>
-                            <Volume2 className="w-3.5 h-3.5 animate-pulse text-emerald-200" />
-                            <span className="text-[10px] hidden sm:inline">Ses Açık</span>
-                          </>
+                          <Volume2 className="w-3.5 h-3.5 animate-pulse text-emerald-200" />
                         ) : (
-                          <>
-                            <VolumeX className="w-3.5 h-3.5" />
-                            <span className="text-[10px] hidden sm:inline">Sessiz</span>
-                          </>
+                          <VolumeX className="w-3.5 h-3.5 text-zinc-400" />
                         )}
                       </button>
 
-                      {/* Fullscreen Button */}
+                      {/* Fullscreen Icon Button */}
                       <button
                         onClick={() => handleEnterFullscreen(channel.id)}
-                        className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        className={`w-7 h-7 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
                           theme === 'light'
                             ? 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600'
                             : 'bg-white/5 hover:bg-white/15 text-zinc-300 hover:text-white'
                         }`}
-                        title="Köşesiz Tam Ekran İzle"
+                        title="Tam Ekran İzle"
                         aria-label="Tam Ekran"
                       >
                         <Maximize2 className="w-3.5 h-3.5" />
@@ -846,41 +836,13 @@ export function LiveTvPage() {
                       className="w-full h-full border-0"
                     />
 
-                    {/* Bottom floating sound pill if unmuted */}
+                    {/* Subtle floating sound badge if unmuted */}
                     {isUnmuted && (
-                      <div className="absolute top-2 left-2 z-10 pointer-events-none bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
+                      <div className="absolute top-2 left-2 z-10 pointer-events-none bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md backdrop-blur-sm">
                         <Volume2 className="w-3 h-3" />
                         <span>Ses Aktif</span>
                       </div>
                     )}
-                  </div>
-
-                  {/* Card Footer: Info & Links */}
-                  <div className="p-3 flex items-center justify-between text-[11px] border-t border-white/10">
-                    <span className={`truncate max-w-[180px] font-medium ${
-                      theme === 'light' ? 'text-slate-500' : 'text-zinc-400'
-                    }`}>
-                      {channel.description}
-                    </span>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleEnterFullscreen(channel.id)}
-                        className="text-[11px] font-bold text-red-500 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>Genişlet</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
-                      <a
-                        href={channel.youtubeUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-zinc-400 hover:text-white p-1 rounded transition-colors"
-                        title="YouTube'da Aç"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
                   </div>
                 </motion.div>
               );

@@ -2270,9 +2270,10 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3500);
+    const timeout = setTimeout(() => controller.abort(), 6000);
     const res = await fetch(pageUrl, {
       signal: controller.signal,
+      redirect: 'follow',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -2282,63 +2283,97 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
     clearTimeout(timeout);
     if (!res.ok) return null;
 
+    const finalUrl = res.url || pageUrl;
     const html = await res.text();
+    const dom = new JSDOM(html, { url: finalUrl });
+    const doc = dom.window.document;
+
+    // Helper for Meta extraction
+    const getMeta = (nameOrProp: string) => {
+      const el = doc.querySelector(`meta[property="${nameOrProp}"], meta[name="${nameOrProp}"], meta[itemprop="${nameOrProp}"]`);
+      return el ? el.getAttribute('content')?.trim() || '' : '';
+    };
 
     // 1. Scrape High-Res Image
-    let imageUrl = '';
-    const ogImgMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
-      || html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
-    if (ogImgMatch && ogImgMatch[1] && ogImgMatch[1].startsWith('http')) {
-      imageUrl = ogImgMatch[1].trim();
+    let imageUrl = 
+      getMeta('og:image:secure_url') ||
+      getMeta('og:image') ||
+      getMeta('twitter:image:src') ||
+      getMeta('twitter:image') ||
+      getMeta('image') ||
+      '';
+
+    if (imageUrl) {
+      if (imageUrl.startsWith('//')) imageUrl = 'https:' + imageUrl;
+      else if (imageUrl.startsWith('/') || !imageUrl.startsWith('http')) {
+        try { imageUrl = new URL(imageUrl, finalUrl).href; } catch {}
+      }
     }
 
     // 2. Scrape Editorial Summary (og:description or meta description)
-    let metaSummary = '';
-    const ogDescMatch = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i);
-    if (ogDescMatch && ogDescMatch[1]) {
-      metaSummary = cleanRssText(ogDescMatch[1]);
+    let metaSummary = getMeta('og:description') || getMeta('description') || getMeta('twitter:description') || '';
+    if (metaSummary) {
+      metaSummary = cleanRssText(metaSummary);
       metaSummary = metaSummary.replace(/^(?:Son Dakika|Haberler|Güncel|Gündem)(?:\s+Türkiye|\s+Dünya)?(?:\s+Gündem)?\s*(?:Haberleri)?\s*[-|:]\s*/i, '').trim();
       metaSummary = metaSummary.replace(/(?:İşte detaylar\.?\.?\.?|Ayrıntılar geliyor\.?\.?\.?|Haberin devamı için tıklayınız\.?|Foto galeri için tıklayınız\.?)$/i, '').trim();
     }
 
-    // 3. Extract Real Article Paragraphs
-    const rawP = html.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || [];
+    // 3. Extract Full Real Article Body via Readability + DOM
     const cleanParagraphs: string[] = [];
     const seenP = new Set<string>();
 
-    for (const p of rawP) {
-      const cleaned = cleanRssText(p);
-      if (cleaned.length < 50 || cleaned.length > 2500) continue;
-      
-      // Filter out code, ads, navigation, cookies, and boilerplate
-      if (cleaned.includes('{') || cleaned.includes('}') || cleaned.includes('function(') || cleaned.includes('var ') || cleaned.includes('let ') || cleaned.includes('const ') || cleaned.includes('==') || cleaned.includes('||')) continue;
-      
-      const lower = cleaned.toLowerCase();
-      if (
-        lower.includes('çerez') || lower.includes('cookie') || lower.includes('abone ol') || 
-        lower.includes('yayın akışı') || lower.includes('tıklayınız') || lower.includes('copyright') || 
-        lower.includes('bizi takip edin') || lower.includes('yazarlar') || lower.includes('hava durumu') ||
-        lower.includes('altın döviz') || lower.includes('canlı yayın') || lower.includes('paylaş:') ||
-        lower.includes('tüm hakları saklıdır') || lower.includes('reklam') || lower.includes('kaynak:') ||
-        lower.includes('holding') || lower.includes('rights reserved') || lower.includes('öne çıkanlar') ||
-        lower.includes('en çok okunanlar') || lower.includes('sponsorlu') || lower.includes('son dakika haberler')
-      ) {
-        continue;
+    // Primary: Mozilla Readability for pure article content
+    try {
+      const reader = new Readability(doc.cloneNode(true) as any, { charThreshold: 35 });
+      const parsedArt = reader.parse();
+      if (parsedArt && parsedArt.textContent) {
+        if (!metaSummary && parsedArt.excerpt) {
+          metaSummary = cleanRssText(parsedArt.excerpt);
+        }
+        const rawLines = parsedArt.textContent.split('\n');
+        for (const line of rawLines) {
+          const cleaned = cleanRssText(line);
+          if (cleaned.length < 35) continue;
+          const lower = cleaned.toLowerCase();
+          if (
+            lower.includes('çerez') || lower.includes('cookie') || lower.includes('abone ol') || 
+            lower.includes('yayın akışı') || lower.includes('tıklayınız') || lower.includes('copyright') || 
+            lower.includes('bizi takip edin') || lower.includes('yazarlar') || lower.includes('hava durumu') ||
+            lower.includes('altın döviz') || lower.includes('canlı yayın') || lower.includes('paylaş:') ||
+            lower.includes('tüm hakları saklıdır') || lower.includes('reklam') || lower.includes('kaynak:') ||
+            lower.includes('rights reserved') || lower.includes('öne çıkanlar') || lower.includes('sponsorlu')
+          ) continue;
+
+          const fingerprint = cleaned.substring(0, 45).toLowerCase();
+          if (seenP.has(fingerprint)) continue;
+          seenP.add(fingerprint);
+          cleanParagraphs.push(cleaned);
+        }
       }
+    } catch (e) {}
 
-      // Deduplicate similar paragraphs
-      const fingerprint = cleaned.substring(0, 40).toLowerCase();
-      if (seenP.has(fingerprint)) continue;
-      seenP.add(fingerprint);
+    // Secondary fallback if Readability yielded fewer than 2 paragraphs
+    if (cleanParagraphs.length < 2) {
+      const articleEl = doc.querySelector('article, [itemprop="articleBody"], .news-content, .content-text, .article-body, .story-body, main') || doc.body;
+      const pElements = articleEl ? Array.from(articleEl.querySelectorAll('p')) : [];
+      for (const el of pElements) {
+        const cleaned = cleanRssText(el.textContent || '');
+        if (cleaned.length < 35 || cleaned.length > 3000) continue;
+        if (cleaned.includes('{') || cleaned.includes('}') || cleaned.includes('function(')) continue;
+        const lower = cleaned.toLowerCase();
+        if (
+          lower.includes('çerez') || lower.includes('cookie') || lower.includes('abone ol') || 
+          lower.includes('tüm hakları saklıdır') || lower.includes('reklam') || lower.includes('sponsorlu')
+        ) continue;
 
-      cleanParagraphs.push(cleaned);
+        const fingerprint = cleaned.substring(0, 45).toLowerCase();
+        if (seenP.has(fingerprint)) continue;
+        seenP.add(fingerprint);
+        cleanParagraphs.push(cleaned);
+      }
     }
 
-    // 4. Extract Key Points from distinct paragraphs
+    // 4. Extract Key Points
     const keyPoints: string[] = [];
     for (const p of cleanParagraphs) {
       if (keyPoints.length >= 4) break;
@@ -2349,7 +2384,6 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
       }
     }
 
-    // If metaSummary is empty, use first paragraph as summary
     if (!metaSummary && cleanParagraphs.length > 0) {
       metaSummary = cleanParagraphs[0];
     }
@@ -2357,7 +2391,7 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
     return {
       imageUrl,
       summary: metaSummary,
-      paragraphs: cleanParagraphs.slice(0, 8),
+      paragraphs: cleanParagraphs, // Kept in full!
       keyPoints
     };
   } catch (err) {
@@ -2380,13 +2414,13 @@ async function enrichNewsArticle(article: CachedNewsArticle): Promise<CachedNews
   const cacheKey = article.id || article.title.toLowerCase().replace(/[^a-z0-9]/g, '');
   if (enrichedArticleCache.has(cacheKey)) {
     const cached = enrichedArticleCache.get(cacheKey)!;
-    // Validate that cached content is not old robotic boilerplate
+    // Validate that cached content is not old robotic boilerplate or overly short
     const isOldBoilerplate = cached.content?.includes('sürecin titizlikle yürütüldüğü') ||
       cached.content?.includes('sahadaki son durum yakından takip ediliyor') ||
       cached.content?.includes('resmi makamlar ve yetkili birimler') ||
       cached.keyPoints?.some(k => k.includes('son bilgiler değerlendirildi') || k.includes('Canlı Akış'));
     
-    if (!isOldBoilerplate) {
+    if (!isOldBoilerplate && cached.content && cached.content.length > 250) {
       return {
         ...article,
         summary: cached.summary || article.summary,
@@ -2398,43 +2432,44 @@ async function enrichNewsArticle(article: CachedNewsArticle): Promise<CachedNews
     }
   }
 
-  // 1. Try real web scraping from sourceUrl first to get genuine article text
+  // 1. Try real web scraping from sourceUrl first to get genuine, FULL article text
   let scraped: ScrapedArticleDetails | null = null;
   if (article.sourceUrl && article.sourceUrl.startsWith('http')) {
     scraped = await scrapeArticleDetails(article.sourceUrl);
   }
 
   const realImageUrl = scraped?.imageUrl || article.imageUrl;
-  let rawTextForAI = '';
+  
+  // The full article content MUST BE preserved completely without truncation
+  const fullArticleContent = (scraped && scraped.paragraphs.length >= 1)
+    ? scraped.paragraphs.join('\n\n')
+    : (article.content && article.content.length > 80 && article.content !== article.summary)
+      ? article.content
+      : `${article.summary || ''}\n\n${article.title}`;
 
-  if (scraped && scraped.paragraphs.length >= 2) {
-    rawTextForAI = scraped.paragraphs.join('\n\n');
-  } else {
-    rawTextForAI = (article.content && article.content.length > 60) ? article.content : (article.summary || article.title);
-  }
+  // 2. We use Gemini ONLY to synthesize a crystal-clear 2-3 sentence executive summary (Haberin Özeti)
+  // and key points for the top banner. VOX module MUST NOT summarize or compress the full article content.
+  let executiveSummary = scraped?.summary || article.summary || '';
+  let keyHighlights = scraped?.keyPoints && scraped.keyPoints.length > 0 ? scraped.keyPoints : (article.keyPoints || []);
 
-  // 2. Call Gemini if available to produce high-quality executive summary and takeaways
   try {
     const prompt = `
-Sen VOX platformu için kıdemli bir haber editörü ve sesli podcast metin yazarısın.
-Aşağıda verilen haber başlığı, kaynak ve haber metnini kullanarak; okuyucunun konuyu eksiksiz, net ve en doğru şekilde anlayabileceği profesyonel bir Türkçe haber özeti ve detaylı içerik hazırla.
+Sen VOX platformu için kıdemli bir haber editörüsün.
+Aşağıda verilen haber başlığı ve haber metnini kullanarak, sayfanın EN TEPESİNDE yer alacak 2-3 akıcı cümleden oluşan kristal netliğinde bir yönetici özeti ("summary") ve 3-4 maddelik öne çıkan başlıklar ("keyPoints") hazırla.
+DİKKAT KURALI: Haberin tamamını (metin gövdesini) kesinlikle kısaltma veya özetleyip silme. Haberin tam metni okuyucuya olduğu gibi sunulacaktır.
 
-HABER BİLGİLERİ:
-Başlık: "${article.title}"
-Yayıncı / Kaynak: "${article.author || 'Haber Merkezi'}"
-Kategori: "${article.category || 'Gündem'}"
-Haber Metni:
-"${rawTextForAI.substring(0, 3000)}"
+HABER BAŞLIĞI: "${article.title}"
+HABER KAYNAĞI: "${article.author || 'Haber Merkezi'}"
+HABER METNİNDEN BÖLÜM:
+"${fullArticleContent.substring(0, 2500)}"
 
 KURALLAR:
-1. "summary" (Haberin Özeti): Haberin özünü (olay nedir, nerede/ne zaman gerçekleşti, taraflar kimler) anlatan, tıklama tuzaklarından arındırılmış, 2-3 akıcı cümleden oluşan kristal netliğinde yönetici özeti.
-2. "content" (Detaylı İçerik): Olayın tüm detaylarını, arka planını ve açıklamalarını kapsayan, paragraflar arasına '\\n\\n' konulmuş 3-5 zengin paragraf. Asla "Yetkililer süreci takip ediyor", "Canlı akıştan derlendi" gibi şablon laflar yazma. Metindeki gerçek bilgileri aktar.
-3. "keyPoints" (Öne Çıkan Başlıklar): Haberin içindeki somut olgulardan oluşan 3-4 maddelik öne çıkan başlıklar listesi (kesinlikle başlığı tekrar etme, "Kaynak: X" veya "Kategori: Y" yazma).
+1. "summary" (Haberin Özeti): Haberin ana fikrini ve en kritik olgularını anlatan, tıklama tuzaklarından arındırılmış 2-3 akıcı cümle.
+2. "keyPoints" (Öne Çıkan Başlıklar): Haberin içindeki somut olgulardan oluşan 3-4 maddelik öne çıkan başlıklar listesi (başlığı aynen kopyalama).
 
 Yalnızca aşağıdaki JSON formatında yanıt ver:
 {
   "summary": "...",
-  "content": "...",
   "keyPoints": ["...", "...", "..."]
 }
 `;
@@ -2448,67 +2483,33 @@ Yalnızca aşağıdaki JSON formatında yanıt ver:
     });
 
     const parsed = JSON.parse(aiRes.text || '{}');
-    if (parsed && parsed.summary && parsed.content && Array.isArray(parsed.keyPoints) && parsed.keyPoints.length > 0) {
-      const enriched = {
-        summary: parsed.summary,
-        content: parsed.content,
-        keyPoints: parsed.keyPoints.slice(0, 4),
-        imageUrl: realImageUrl
-      };
-      enrichedArticleCache.set(cacheKey, enriched);
-      return {
-        ...article,
-        ...enriched,
-        imageUrl: realImageUrl,
-        hasRealImage: !!realImageUrl
-      };
+    if (parsed && parsed.summary) {
+      executiveSummary = parsed.summary;
+      if (Array.isArray(parsed.keyPoints) && parsed.keyPoints.length > 0) {
+        keyHighlights = parsed.keyPoints.slice(0, 4);
+      }
     }
   } catch (err) {
-    // Gemini quota or network issue - fallback to real scraped content
+    // Gemini fallback: preserve original summary & full scraped paragraphs
   }
 
-  // 3. Robust Fallback using Real Scraped Content (100% Genuine, No Fake Boilerplate)
-  let finalSummary = '';
-  let finalContent = '';
-  let finalKeyPoints: string[] = [];
-
-  if (scraped && scraped.paragraphs.length >= 2) {
-    const scrapedSummary = scraped.summary && scraped.summary.length > 35 ? scraped.summary : '';
-    const originalSummary = article.summary && article.summary.length > 30 ? cleanRssText(article.summary) : '';
-    finalSummary = originalSummary || scrapedSummary || scraped.paragraphs[0];
-    finalContent = scraped.paragraphs.join('\n\n');
-    finalKeyPoints = scraped.keyPoints.length >= 2 
-      ? scraped.keyPoints 
-      : [finalSummary];
-  } else {
-    // If not scraped, use clean raw text from RSS / Telegram
-    const rawClean = cleanRssText(article.content || article.summary || article.title);
-    finalSummary = article.summary && article.summary.length > 25 ? cleanRssText(article.summary) : rawClean;
-    finalContent = rawClean;
-    
-    // Split into sentences for real keyPoints
-    const sentences = rawClean.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 20);
-    if (sentences.length >= 2) {
-      finalKeyPoints = sentences.slice(0, 3);
-    } else {
-      finalKeyPoints = [article.title];
-    }
-  }
-
-  const enrichedFallback = {
-    summary: finalSummary,
-    content: finalContent,
-    keyPoints: finalKeyPoints,
-    imageUrl: realImageUrl
-  };
-
-  enrichedArticleCache.set(cacheKey, enrichedFallback);
-  return {
+  const enrichedResult: CachedNewsArticle = {
     ...article,
-    ...enrichedFallback,
+    summary: executiveSummary || article.summary,
+    content: fullArticleContent, // HABERİN TAMAMI! Eksiksiz tam metin, asla özetle değiştirilmez
+    keyPoints: keyHighlights,
     imageUrl: realImageUrl,
     hasRealImage: !!realImageUrl
   };
+
+  enrichedArticleCache.set(cacheKey, {
+    summary: enrichedResult.summary,
+    content: enrichedResult.content,
+    keyPoints: enrichedResult.keyPoints || [],
+    imageUrl: realImageUrl
+  });
+
+  return enrichedResult;
 }
 
 async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): Promise<CachedNewsArticle[]> {

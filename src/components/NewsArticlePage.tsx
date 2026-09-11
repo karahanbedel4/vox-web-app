@@ -35,6 +35,7 @@ import {
   fetchNewsByCategory, 
   sanitizeNewsText,
   enrichArticleWithAI,
+  fetchArticleByIdOrSlug,
   buildOutboundSourceUrl,
   trackOutboundClick 
 } from '../lib/newsService';
@@ -67,6 +68,7 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isInAppViewerOpen, setIsInAppViewerOpen] = useState<boolean>(false);
+  const [isLoadingFullContent, setIsLoadingFullContent] = useState<boolean>(false);
 
   // Sync TTS playback status
   useEffect(() => {
@@ -222,25 +224,30 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
       loadRelated(found);
       setIsLoading(false);
 
-      // Check if article needs AI summarization/expansion or cleanup of old robotic placeholders
+      // Check if article needs full scraped article body or fresh clean summary
+      const isShortContent = !found.content || found.content.length < 450 || !found.content.includes('\n\n') || found.content === found.summary;
       const hasRoboticFiller = found.content?.includes('sahadaki gelişmeler') ||
         found.content?.includes('süreç titizlikle') ||
         found.content?.includes('resmi birimler') ||
         found.content?.includes('VOX Akıllı Akış') ||
         found.content?.includes('resmi makamlar ve yetkili birimler');
 
-      if (
-        hasRoboticFiller ||
-        !found.content || 
-        found.content.length < 180 || 
-        !found.keyPoints || 
-        found.keyPoints.some(k => k.includes('Canlı Akış') || k.includes('Kategori:') || k.includes('son bilgiler değerlendirildi'))
-      ) {
-        enrichArticleWithAI(found).then(enr => {
-          if (enr && (enr.content !== found.content || enr.summary !== found.summary)) {
-            setArticle(enr);
-          }
-        }).catch(() => {});
+      if (isShortContent || hasRoboticFiller || !found.summary) {
+        setIsLoadingFullContent(true);
+        fetchArticleByIdOrSlug(found.id || cleanSlug)
+          .then(fullArt => {
+            if (fullArt && fullArt.content && fullArt.content.length >= (found.content?.length || 0)) {
+              setArticle(fullArt);
+            } else {
+              return enrichArticleWithAI(found).then(enr => {
+                if (enr && (enr.content !== found.content || enr.summary !== found.summary)) {
+                  setArticle(enr);
+                }
+              });
+            }
+          })
+          .catch(() => {})
+          .finally(() => setIsLoadingFullContent(false));
       }
     }
   }, [slug, articles]);
@@ -478,24 +485,65 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             {sanitizeNewsText(article.title)}
           </h1>
 
-          {/* Quick Summary Capsule */}
-          {article.summary && (
-            <div className={`p-4 sm:p-5 rounded-2xl border transition-colors ${
-              theme === 'light'
-                ? 'bg-slate-50 border-slate-200 text-slate-800'
-                : 'bg-white/[0.03] border-white/10 text-zinc-200'
-            }`}>
-              <div className={`flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-wider ${
-                theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
+          {/* Quick Summary Capsule (Tepede Haber Özeti) */}
+          {(() => {
+            const validKeyPoints = (article.keyPoints || []).filter(point => {
+              const cleaned = sanitizeNewsText(point).trim();
+              if (cleaned.length < 15) return false;
+              if (cleaned.includes('son bilgiler değerlendirildi') || cleaned.includes('Canlı Akış') || cleaned.includes('Kategori:')) return false;
+              if (cleaned.toLowerCase() === (article.title || '').trim().toLowerCase()) return false;
+              return true;
+            });
+
+            return (
+              <div className={`p-4 sm:p-5 rounded-2xl border transition-colors ${
+                theme === 'light'
+                  ? 'bg-emerald-50/60 border-emerald-200/80 text-slate-800'
+                  : 'bg-emerald-950/20 border-emerald-500/20 text-zinc-200'
               }`}>
-                <Sparkles className="w-4 h-4 text-emerald-500" />
-                <span>Haberin Özeti</span>
+                <div className="flex items-center justify-between gap-2 mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className={`text-xs font-bold uppercase tracking-wider ${
+                      theme === 'light' ? 'text-emerald-900' : 'text-emerald-400'
+                    }`}>
+                      Haberin Özeti
+                    </span>
+                  </div>
+                  <span className={`text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                    theme === 'light' 
+                      ? 'bg-emerald-100 text-emerald-800' 
+                      : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                  }`}>
+                    Özet Bakış
+                  </span>
+                </div>
+
+                <p className="text-sm sm:text-base leading-relaxed font-medium">
+                  {sanitizeNewsText(article.summary || article.title)}
+                </p>
+
+                {/* Öne Çıkan Başlıklar (Summary Key Points) */}
+                {validKeyPoints.length > 0 && (
+                  <div className="mt-3.5 pt-3 border-t border-emerald-500/15 space-y-2">
+                    <span className={`text-[11px] font-bold uppercase tracking-wider block ${
+                      theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
+                    }`}>
+                      Öne Çıkan Başlıklar
+                    </span>
+                    <ul className="space-y-1.5">
+                      {validKeyPoints.map((point, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm font-medium leading-relaxed">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 shrink-0" />
+                          <span>{sanitizeNewsText(point)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-              <p className="text-sm sm:text-base leading-relaxed font-medium">
-                {sanitizeNewsText(article.summary)}
-              </p>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Cover Hero Image */}
           <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/10 border border-black/10 dark:border-white/10 shadow-lg">
@@ -517,70 +565,70 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             </div>
           </div>
 
-          {/* Key Bullet Points (if available and meaningful) */}
-          {(() => {
-            const validKeyPoints = (article.keyPoints || []).filter(point => {
-              const cleaned = sanitizeNewsText(point).trim();
-              if (cleaned.length < 15) return false;
-              if (cleaned.includes('son bilgiler değerlendirildi') || cleaned.includes('Canlı Akış') || cleaned.includes('Kategori:')) return false;
-              if (cleaned.toLowerCase() === (article.title || '').trim().toLowerCase()) return false;
-              return true;
-            });
-
-            if (validKeyPoints.length === 0) return null;
-
-            return (
-              <div className={`p-4 sm:p-5 rounded-2xl border space-y-2.5 ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-white/[0.02] border-white/10'
-              }`}>
-                <h3 className={`text-xs font-black uppercase tracking-wider ${
-                  theme === 'light' ? 'text-slate-600' : 'text-gray-400'
+          {/* Haberin Tamamı Section (Aşağıda Haberin Tamamı - Asla Kısaltılmamış) */}
+          <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className={`p-1.5 rounded-lg ${
+                  theme === 'light' ? 'bg-slate-100 text-slate-700' : 'bg-white/10 text-white'
                 }`}>
-                  Öne Çıkan Başlıklar
-                </h3>
-                <ul className="space-y-2">
-                  {validKeyPoints.map((point, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm font-medium leading-relaxed">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
-                      <span>{sanitizeNewsText(point)}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <Newspaper className="w-4.5 h-4.5 text-emerald-500" />
+                </div>
+                <h2 className={`text-lg sm:text-xl font-bold tracking-tight ${
+                  theme === 'light' ? 'text-slate-900' : 'text-white'
+                }`}>
+                  Haberin Tamamı
+                </h2>
               </div>
-            );
-          })()}
+              <div className="flex items-center gap-2">
+                {isLoadingFullContent && (
+                  <span className="text-[11px] text-emerald-500 font-medium animate-pulse flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-ping" />
+                    Yükleniyor...
+                  </span>
+                )}
+                <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                  theme === 'light'
+                    ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                    : 'bg-white/5 text-zinc-300 border border-white/10'
+                }`}>
+                  Eksiksiz Metin
+                </span>
+              </div>
+            </div>
 
-          {/* Full Article Content Body */}
-          <div className={`text-base sm:text-lg leading-relaxed space-y-4 font-normal ${
-            theme === 'light' ? 'text-slate-800' : 'text-gray-200'
-          }`}>
-            {(() => {
-              const rawBody = article.content || article.summary || '';
-              const allSplits = sanitizeNewsText(rawBody).split('\n\n').map(p => p.trim()).filter(Boolean);
-              const paragraphs = allSplits.filter(p => {
-                if (p.length < 10) return false;
-                const normP = p.toLowerCase();
-                const normTitle = (article.title || '').trim().toLowerCase();
-                const normSummary = (article.summary || '').trim().toLowerCase();
-                if (normP === normTitle) return false;
-                if (allSplits.length > 1 && normP === normSummary) return false;
-                if (normP.includes('sürecin titizlikle yürütüldüğü') || normP.includes('sahadaki son durum yakından')) return false;
-                if (normP.includes('resmi makamlar ve yetkili birimler tarafından yapılan')) return false;
-                return true;
-              });
+            {/* Full Article Content Body */}
+            <div className={`text-base sm:text-lg leading-relaxed space-y-4 font-normal ${
+              theme === 'light' ? 'text-slate-800' : 'text-gray-200'
+            }`}>
+              {(() => {
+                const rawBody = article.content || article.summary || '';
+                const allSplits = sanitizeNewsText(rawBody).split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+                const paragraphs = allSplits.filter(p => {
+                  if (p.length < 10) return false;
+                  const normP = p.toLowerCase();
+                  const normTitle = (article.title || '').trim().toLowerCase();
+                  if (normP === normTitle) return false;
+                  if (normP.includes('sürecin titizlikle yürütüldüğü') || normP.includes('sahadaki son durum yakından')) return false;
+                  if (normP.includes('resmi makamlar ve yetkili birimler tarafından yapılan')) return false;
+                  return true;
+                });
 
-              if (paragraphs.length === 0) {
-                return <p className="leading-relaxed">{sanitizeNewsText(article.summary || article.title)}</p>;
-              }
+                if (paragraphs.length === 0) {
+                  return (
+                    <p className="leading-relaxed">
+                      {sanitizeNewsText(article.content || article.summary || article.title)}
+                    </p>
+                  );
+                }
 
-              return paragraphs.map((paragraph, pIdx) => (
-                <p key={pIdx} className="leading-relaxed">
-                  {paragraph}
-                </p>
-              ));
-            })()}
+                return paragraphs.map((paragraph, pIdx) => (
+                  <p key={pIdx} className="leading-relaxed">
+                    {paragraph}
+                  </p>
+                ));
+              })()}
+            </div>
           </div>
 
           {/* Subtle Clean Source Attribution */}

@@ -542,7 +542,9 @@ export class TTSService {
     this.notify();
 
     if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = 'paused';
+      try {
+        navigator.mediaSession.playbackState = 'none';
+      } catch (e) {}
     }
   }
 
@@ -561,6 +563,12 @@ export class TTSService {
     this.currentWordIndex = 0;
     this.currentChunkIndex = 0;
     this.notify();
+
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.playbackState = 'none';
+      } catch (e) {}
+    }
   }
 
   public closePlayer() {

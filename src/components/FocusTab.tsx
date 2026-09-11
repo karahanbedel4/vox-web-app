@@ -1548,7 +1548,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
       </div>
 
       {/* SPOTIFY / APPLE MUSIC STYLE HORIZONTAL ALBUM SHELVES - FULL WIDTH EXTENSION */}
-      <section className="w-full space-y-6 pt-6 border-t border-white/10 transition-all duration-300">
+      <section id="soundtracks-full-section" className="w-full space-y-6 pt-6 border-t border-white/10 transition-all duration-300">
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${
           theme === 'light' ? 'border-slate-200' : 'border-white/10'
         }`}>

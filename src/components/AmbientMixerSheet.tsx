@@ -132,10 +132,22 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
 
   // Filtered channels list according to device & selected category
   const displayedChannels = useMemo(() => {
+    // Sorting rank: 0 for Nature (top), 1 for Lo-Fi, 2 for Cinema/Series
+    const getTrackRank = (c: AmbientChannel) => {
+      const id = c.id.toLowerCase();
+      if (id.includes('nature') || id.includes('rain') || id.includes('forest') || id.includes('ocean') || id.includes('fire') || id.includes('cafe') || id.includes('thunder') || id.includes('wind') || id.includes('crickets')) {
+        return 0; // Nature at the very top
+      }
+      if (id.includes('lofi') || id.includes('september') || id.includes('sleepy') || id.includes('delight') || id.includes('cradle') || id.includes('catwalk') || id.includes('dreaming') || id.includes('valley') || id.includes('coding') || id.includes('holidays')) {
+        return 1; // Lo-Fi second
+      }
+      return 2; // Cinema / Series down below
+    };
+
     // If mobile, only include direct streams (Nature & Lo-Fi)
     let list = isMobileDevice 
       ? channels.filter(c => c.type === 'stream' || c.type === 'synth')
-      : channels;
+      : [...channels].sort((a, b) => getTrackRank(a) - getTrackRank(b));
 
     if (selectedCategoryTab === 'nature') {
       return list.filter(c => {
@@ -152,7 +164,7 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
     }
 
     if (selectedCategoryTab === 'cinema') {
-      return list.filter(c => c.type === 'youtube');
+      return isMobileDevice ? [] : list.filter(c => c.type === 'youtube');
     }
 
     return list;
@@ -236,6 +248,13 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
         }
         if (ch.active && ch.volume > 0) {
           audio.volume = ch.volume / 100;
+          // Ensure ambient background sound never claims exclusive OS MediaSession focus
+          // so existing YouTube or background music in other browser tabs or apps continues playing concurrently
+          if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+            try {
+              navigator.mediaSession.playbackState = 'none';
+            } catch (e) {}
+          }
           audio.play().catch((err) => {
             console.warn('Audio stream play catch:', err);
           });
