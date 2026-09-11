@@ -901,17 +901,6 @@ export const ReadTab: React.FC<ReadTabProps> = ({
                 })}
               </div>
             </div>
-
-            {readingArticle.keyPoints && (
-              <div className="bg-surface-container p-4 rounded-2xl space-y-2 border border-white/10">
-                <span className="text-xs font-bold text-primary uppercase tracking-wider">Öne Çıkan Başlıklar</span>
-                <ul className="list-disc list-inside space-y-1 text-xs text-on-surface-variant">
-                  {readingArticle.keyPoints.map((kp, idx) => (
-                    <li key={idx}>{kp}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
 
           <div className="pt-6 border-t border-white/10 flex gap-3 mt-6">

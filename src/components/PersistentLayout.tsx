@@ -41,7 +41,7 @@ import { AmbientMixerSheet, AmbientChannel, PlaylistInfo } from './AmbientMixerS
 import { AmbientNotificationBanner } from './AmbientControls';
 import { FocusTopBanner } from './FocusTopBanner';
 import { useFocus, formatFocusTime } from '../lib/FocusContext';
-import { getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE } from '../lib/newsService';
+import { getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, cleanNewsParagraphs, fetchFullScrapedArticle, enrichArticleWithAI } from '../lib/newsService';
 import { woodRainSynth } from '../lib/audioSynth';
 import { useTheme } from '../lib/ThemeContext';
 import { InfoModal, InfoModalType } from './InfoModal';
@@ -165,6 +165,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   const [isLegalDisclaimerOpen, setIsLegalDisclaimerOpen] = useState<boolean>(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isLoadingFullContent, setIsLoadingFullContent] = useState<boolean>(false);
   const modalScrollRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLElement>(null);
 
@@ -175,6 +176,50 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
     window.addEventListener('vox_open_auth_modal', handleOpenAuthModal);
     return () => window.removeEventListener('vox_open_auth_modal', handleOpenAuthModal);
   }, []);
+
+  // Automatically fetch full scraped article details if content is missing or short
+  useEffect(() => {
+    if (!readingArticle) return;
+    if (modalScrollRef.current) {
+      modalScrollRef.current.scrollTop = 0;
+    }
+
+    const hasRobotic = readingArticle.content?.includes('süreç titizlikle') || 
+                       readingArticle.content?.includes('sahadaki gelişmeler') ||
+                       readingArticle.content?.includes('sektör temsilcileri');
+    const isShort = !readingArticle.content || readingArticle.content.length < 320 || readingArticle.content === readingArticle.summary;
+
+    if ((isShort || hasRobotic) && readingArticle.sourceUrl && readingArticle.sourceUrl.startsWith('http')) {
+      setIsLoadingFullContent(true);
+      fetchFullScrapedArticle(readingArticle.sourceUrl)
+        .then((scraped) => {
+          if (scraped && scraped.content && scraped.content.length > 150) {
+            setReadingArticle({
+              ...readingArticle,
+              content: scraped.content,
+              summary: scraped.summary || readingArticle.summary,
+              imageUrl: readingArticle.imageUrl || scraped.imageUrl
+            });
+          } else {
+            enrichArticleWithAI(readingArticle).then((enr) => {
+              if (enr && enr.content && enr.content.length > 150) {
+                setReadingArticle(enr);
+              }
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {
+          enrichArticleWithAI(readingArticle).then((enr) => {
+            if (enr && enr.content && enr.content.length > 150) {
+              setReadingArticle(enr);
+            }
+          }).catch(() => {});
+        })
+        .finally(() => {
+          setIsLoadingFullContent(false);
+        });
+    }
+  }, [readingArticle?.id, readingArticle?.sourceUrl]);
 
   // Track article read count when an article modal is opened (avoiding session duplication)
   useEffect(() => {
@@ -1490,53 +1535,68 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                   </div>
                 </div>
 
-                {/* AI Summary Box */}
-                <div className="bg-[#1ed760]/10 border border-[#1ed760]/30 p-4 sm:p-5 rounded-2xl space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-extrabold text-[#1ed760] uppercase tracking-wider">
-                    <Sparkles className="w-4 h-4 text-[#1ed760]" />
-                    <span>{readingArticle.sourceType === 'twitter' ? '𝕏 Anlık Tweet Özeti' : 'Yapay Zeka Özeti'}</span>
-                  </div>
-                  <p className="text-xs sm:text-sm leading-relaxed text-gray-200 font-medium">
-                    {readingArticle.summary}
-                  </p>
-                </div>
+                {/* Natural, Simple, Unfragmented Reading Flow */}
+                <div className="space-y-4 pt-1 select-text">
+                  {(() => {
+                    const paragraphs = cleanNewsParagraphs(readingArticle.content, readingArticle.summary);
+                    const showSpotLead = readingArticle.summary && 
+                      readingArticle.summary.length > 25 && 
+                      paragraphs.length > 0 && 
+                      !paragraphs[0].startsWith(readingArticle.summary.substring(0, 30));
 
-                {/* Bullet Points / Key Points */}
-                {readingArticle.keyPoints && readingArticle.keyPoints.length > 0 && (
-                  <div className="bg-[#1a221d] p-4 sm:p-5 rounded-2xl space-y-3 border border-white/10">
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">Öne Çıkan Başlıklar</span>
-                    <ul className="space-y-2.5 text-xs sm:text-sm text-gray-200">
-                      {readingArticle.keyPoints.map((kp, idx) => (
-                        <li key={idx} className="flex items-start gap-2.5 leading-relaxed">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 shrink-0"></span>
-                          <span>{kp}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                    return (
+                      <>
+                        {/* Elegant spot/lead sentence without artificial labels */}
+                        {showSpotLead && (
+                          <p className="text-sm sm:text-base font-semibold leading-relaxed text-emerald-300/90 border-l-2 border-[#1ed760] pl-3.5 py-0.5">
+                            {readingArticle.summary}
+                          </p>
+                        )}
 
-                {/* Full Article Text */}
-                <div className="space-y-3 pt-2">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-white/5 pb-2">
-                    {readingArticle.sourceType === 'twitter' ? 'Haber ve Tweet Metni' : 'Tam Metin'}
-                  </h3>
-                  <div className="text-xs sm:text-sm leading-relaxed text-gray-300 space-y-3 font-sans">
-                    {readingArticle.rawHtml && (readingArticle.rawHtml.includes('<p') || readingArticle.rawHtml.includes('<li') || readingArticle.rawHtml.includes('<ol') || readingArticle.rawHtml.includes('<ul')) ? (
-                      <div 
-                        className="news-prose"
-                        dangerouslySetInnerHTML={{ __html: readingArticle.rawHtml }}
-                      />
-                    ) : readingArticle.content ? (
-                      readingArticle.content.split('\n\n').map((paragraph, idx) => (
-                        <p key={idx} className="leading-relaxed">
-                          {paragraph}
-                        </p>
-                      ))
-                    ) : (
-                      <p className="leading-relaxed">{readingArticle.summary}</p>
-                    )}
-                  </div>
+                        {/* Article body paragraphs */}
+                        <div className="text-sm sm:text-base leading-relaxed text-gray-200 space-y-4 font-sans">
+                          {readingArticle.rawHtml && (readingArticle.rawHtml.includes('<p') || readingArticle.rawHtml.includes('<li')) ? (
+                            <div 
+                              className="news-prose"
+                              dangerouslySetInnerHTML={{ __html: readingArticle.rawHtml }}
+                            />
+                          ) : paragraphs.length > 0 ? (
+                            paragraphs.map((paragraph, idx) => (
+                              <p key={idx} className="leading-relaxed">
+                                {paragraph}
+                              </p>
+                            ))
+                          ) : (
+                            <p className="leading-relaxed">{readingArticle.summary || readingArticle.title}</p>
+                          )}
+                        </div>
+
+                        {/* Subtle loading notice while fetching full original content */}
+                        {isLoadingFullContent && (
+                          <div className="flex items-center gap-2 text-xs text-emerald-400/80 font-medium pt-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                            <span>Haberin detayları yükleniyor...</span>
+                          </div>
+                        )}
+
+                        {/* Clean original source link at bottom of article */}
+                        {readingArticle.sourceUrl && (
+                          <div className="pt-5 border-t border-white/10 flex items-center justify-between text-xs text-gray-400">
+                            <span>Kaynak: <strong className="text-gray-300 font-medium">{readingArticle.author || 'Haber Merkezi'}</strong></span>
+                            <a 
+                              href={readingArticle.sourceUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 font-semibold"
+                            >
+                              <span>Orijinal Habere Git</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 

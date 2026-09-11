@@ -1130,6 +1130,49 @@ export function getArticleUrl(article: Article): string {
 }
 
 /**
+ * Clean news paragraphs by filtering out any residual robotic boilerplate or publisher disclaimers
+ */
+export function cleanNewsParagraphs(content?: string, summary?: string): string[] {
+  if (!content) return summary ? [summary] : [];
+  const rawParas = content.split('\n\n').map(p => p.trim()).filter(Boolean);
+  const filtered = rawParas.filter(p => {
+    const l = p.toLowerCase();
+    if (l.includes('süreç titizlikle yürütülüyor')) return false;
+    if (l.includes('sektör temsilcileri tarafından')) return false;
+    if (l.includes('resmi birimler ve yetkili makamlar')) return false;
+    if (l.includes('vox odak haber bültenleri üzerinden')) return false;
+    if (l.includes('telif hakkı mega ajans')) return false;
+    if (l.includes('izin alınmadan, kaynak gösterilerek')) return false;
+    if (l.includes('tüm hakları saklıdır')) return false;
+    return true;
+  });
+
+  if (filtered.length === 0 && summary) {
+    return [summary];
+  }
+  return filtered;
+}
+
+/**
+ * Fetch real, full article paragraphs scraped directly from original publisher
+ */
+export async function fetchFullScrapedArticle(sourceUrl: string): Promise<{ summary?: string; content?: string; paragraphs?: string[]; imageUrl?: string } | null> {
+  if (!sourceUrl || !sourceUrl.startsWith('http')) return null;
+  try {
+    const res = await fetch(`/api/news/scrape?url=${encodeURIComponent(sourceUrl)}&_t=${Date.now()}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && data.content) {
+        return data;
+      }
+    }
+  } catch (e) {
+    console.warn('Scraper fetch notice:', e);
+  }
+  return null;
+}
+
+/**
  * Request server-side AI enrichment with Gemini (summary, 3-4 paragraphs, key points, high-res image)
  */
 export async function enrichArticleWithAI(article: Article): Promise<Article> {

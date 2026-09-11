@@ -2446,7 +2446,9 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
         lower.includes('bizi takip edin') || lower.includes('yazarlar') || lower.includes('hava durumu') ||
         lower.includes('altın döviz') || lower.includes('canlı yayın') || lower.includes('paylaş:') ||
         lower.includes('tüm hakları saklıdır') || lower.includes('reklam') || lower.includes('kaynak:') ||
-        lower.includes('rights reserved') || lower.includes('öne çıkanlar') || lower.includes('sponsorlu')
+        lower.includes('rights reserved') || lower.includes('öne çıkanlar') || lower.includes('sponsorlu') ||
+        lower.includes('telif hakkı') || lower.includes('mega ajans') || lower.includes('izin alınmadan') ||
+        lower.includes('iktibas edilemez') || lower.includes('internet sitesinde yayınlanan')
       ) return;
 
       const fingerprint = text.substring(0, 45).toLowerCase();
@@ -3097,6 +3099,29 @@ app.post('/api/news/enrich', async (req, res) => {
 
     const enriched = await enrichNewsArticle(article);
     return res.json({ success: true, article: enriched });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+// Real Full Article Web Scraper Endpoint (Fast, clean extraction of original publisher paragraphs)
+app.get('/api/news/scrape', async (req, res) => {
+  try {
+    const url = req.query.url as string;
+    if (!url || !url.startsWith('http')) {
+      return res.status(400).json({ success: false, error: 'Valid url query param is required' });
+    }
+    const scraped = await scrapeArticleDetails(url);
+    if (!scraped || !scraped.paragraphs || scraped.paragraphs.length === 0) {
+      return res.json({ success: false, error: 'Could not extract paragraphs from page' });
+    }
+    return res.json({
+      success: true,
+      summary: scraped.summary,
+      content: scraped.paragraphs.join('\n\n'),
+      paragraphs: scraped.paragraphs,
+      imageUrl: scraped.imageUrl
+    });
   } catch (err) {
     return res.status(500).json({ success: false, error: (err as Error).message });
   }

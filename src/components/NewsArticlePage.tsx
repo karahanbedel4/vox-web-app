@@ -480,67 +480,7 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             {sanitizeNewsText(article.title)}
           </h1>
 
-          {/* Quick Summary Capsule (Tepede Haber Özeti) */}
-          {(() => {
-            const validKeyPoints = (article.keyPoints || []).filter(point => {
-              const cleaned = sanitizeNewsText(point).trim();
-              if (cleaned.length < 15) return false;
-              if (cleaned.includes('son bilgiler değerlendirildi') || cleaned.includes('Canlı Akış') || cleaned.includes('Kategori:')) return false;
-              if (cleaned.toLowerCase() === (article.title || '').trim().toLowerCase()) return false;
-              return true;
-            });
-
-            return (
-              <div className={`p-4 sm:p-5 rounded-2xl border transition-colors ${
-                theme === 'light'
-                  ? 'bg-emerald-50/60 border-emerald-200/80 text-slate-800'
-                  : 'bg-emerald-950/20 border-emerald-500/20 text-zinc-200'
-              }`}>
-                <div className="flex items-center justify-between gap-2 mb-2.5">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span className={`text-xs font-bold uppercase tracking-wider ${
-                      theme === 'light' ? 'text-emerald-900' : 'text-emerald-400'
-                    }`}>
-                      Haberin Özeti
-                    </span>
-                  </div>
-                  <span className={`text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                    theme === 'light' 
-                      ? 'bg-emerald-100 text-emerald-800' 
-                      : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
-                  }`}>
-                    Özet Bakış
-                  </span>
-                </div>
-
-                <p className="text-sm sm:text-base leading-relaxed font-medium">
-                  {sanitizeNewsText(article.summary || article.title)}
-                </p>
-
-                {/* Öne Çıkan Başlıklar (Summary Key Points) */}
-                {validKeyPoints.length > 0 && (
-                  <div className="mt-3.5 pt-3 border-t border-emerald-500/15 space-y-2">
-                    <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                      theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
-                    }`}>
-                      Öne Çıkan Başlıklar
-                    </span>
-                    <ul className="space-y-1.5">
-                      {validKeyPoints.map((point, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm font-medium leading-relaxed">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 shrink-0" />
-                          <span>{sanitizeNewsText(point)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Cover Hero Image (İlk versiyondaki çalışan ve güvenilir görsel yapısı) */}
+          {/* Cover Hero Image */}
           <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 shadow-lg bg-surface-container">
             <img
               src={cleanImg}
@@ -566,37 +506,14 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             )}
           </div>
 
-          {/* Haberin Tamamı Section (Aşağıda Haberin Tamamı - Asla Kısaltılmamış) */}
-          <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className={`p-1.5 rounded-lg ${
-                  theme === 'light' ? 'bg-slate-100 text-slate-700' : 'bg-white/10 text-white'
-                }`}>
-                  <Newspaper className="w-4.5 h-4.5 text-emerald-500" />
-                </div>
-                <h2 className={`text-lg sm:text-xl font-bold tracking-tight ${
-                  theme === 'light' ? 'text-slate-900' : 'text-white'
-                }`}>
-                  Haberin Tamamı
-                </h2>
+          {/* Article Body Content (Sade, Akıcı ve Doğal Metin) */}
+          <div className="pt-2 space-y-4">
+            {isLoadingFullContent && (
+              <div className="flex items-center gap-2 text-xs text-emerald-500 font-medium py-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                <span>Haberin detayları yükleniyor...</span>
               </div>
-              <div className="flex items-center gap-2">
-                {isLoadingFullContent && (
-                  <span className="text-[11px] text-emerald-500 font-medium animate-pulse flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-ping" />
-                    Yükleniyor...
-                  </span>
-                )}
-                <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                  theme === 'light'
-                    ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                    : 'bg-white/5 text-zinc-300 border border-white/10'
-                }`}>
-                  Eksiksiz Metin
-                </span>
-              </div>
-            </div>
+            )}
 
             {/* Full Article Content Body */}
             <div className={`text-base sm:text-lg leading-relaxed space-y-4 font-normal ${
@@ -611,23 +528,43 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                   const normTitle = (article.title || '').trim().toLowerCase();
                   if (normP === normTitle) return false;
                   if (normP.includes('sürecin titizlikle yürütüldüğü') || normP.includes('sahadaki son durum yakından')) return false;
+                  if (normP.includes('süreç titizlikle yürütülüyor') || normP.includes('sektör temsilcileri tarafından')) return false;
                   if (normP.includes('resmi makamlar ve yetkili birimler tarafından yapılan')) return false;
+                  if (normP.includes('resmi birimler ve yetkili makamlar')) return false;
+                  if (normP.includes('telif hakkı mega ajans') || normP.includes('izin alınmadan, kaynak gösterilerek')) return false;
                   return true;
                 });
 
-                if (paragraphs.length === 0) {
-                  return (
-                    <p className="leading-relaxed">
-                      {sanitizeNewsText(article.content || article.summary || article.title)}
-                    </p>
-                  );
-                }
+                const showSpotLead = article.summary && 
+                  article.summary.length > 25 && 
+                  paragraphs.length > 0 && 
+                  !paragraphs[0].startsWith(article.summary.substring(0, 30));
 
-                return paragraphs.map((paragraph, pIdx) => (
-                  <p key={pIdx} className="leading-relaxed">
-                    {paragraph}
-                  </p>
-                ));
+                return (
+                  <>
+                    {showSpotLead && (
+                      <p className={`text-base sm:text-lg font-semibold leading-relaxed border-l-2 pl-3.5 py-0.5 ${
+                        theme === 'light' 
+                          ? 'text-slate-900 border-emerald-600' 
+                          : 'text-emerald-300 border-[#1ed760]'
+                      }`}>
+                        {sanitizeNewsText(article.summary)}
+                      </p>
+                    )}
+
+                    {paragraphs.length === 0 ? (
+                      <p className="leading-relaxed">
+                        {sanitizeNewsText(article.content || article.summary || article.title)}
+                      </p>
+                    ) : (
+                      paragraphs.map((paragraph, pIdx) => (
+                        <p key={pIdx} className="leading-relaxed">
+                          {paragraph}
+                        </p>
+                      ))
+                    )}
+                  </>
+                );
               })()}
             </div>
           </div>

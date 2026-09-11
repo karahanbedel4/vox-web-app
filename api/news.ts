@@ -236,13 +236,13 @@ async function fetchFeed(feed: typeof FEED_CONFIGS[0]): Promise<NewsItem[]> {
 
       const cleanSummary = rawDesc && rawDesc.length > 25 
         ? rawDesc 
-        : `${title}. ${author} tarafından aktarılan son bilgilere göre sahadaki gelişmeler yakından takip ediliyor.`;
+        : title;
       
-      const p1 = `${title}. Konuyla ilgili resmi birimler ve yetkili makamlar tarafından yapılan ilk değerlendirmelere göre süreç titizlikle yürütülüyor.`;
-      const p2 = cleanSummary;
-      const p3 = `Gelişmeler kamuoyu ve ilgili sektör temsilcileri tarafından dikkatle izlenirken, sürecin etkileri ${author} ve VOX Odak Haber bültenleri üzerinden anlık olarak aktarılmaya devam edecek.`;
-      
-      const cleanContent = (rawContent && rawContent.length > 100) ? rawContent : `${p1}\n\n${p2}\n\n${p3}`;
+      const cleanContent = (rawContent && rawContent.length > 60) ? rawContent : cleanSummary;
+
+      // Extract natural sentences for key points, avoiding robotic boilerplate
+      const sentences = cleanSummary.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 20);
+      const cleanKeyPoints = sentences.length >= 2 ? sentences.slice(0, 3) : [title];
 
       items.push({
         id,
@@ -254,15 +254,11 @@ async function fetchFeed(feed: typeof FEED_CONFIGS[0]): Promise<NewsItem[]> {
         author: author,
         imageUrl: finalImage,
         hasRealImage: hasRealImg,
-        durationSeconds: Math.max(120, Math.min(360, (cleanSummary.length + cleanContent.length) * 2)),
+        durationSeconds: Math.max(90, Math.min(360, (cleanSummary.length + cleanContent.length) * 2)),
         createdAt: pubDateISO,
         sourceType: 'rss',
         sourceUrl,
-        keyPoints: [
-          title,
-          `${author} kaynağından aktarılan son veriler değerlendirildi`,
-          'Resmi açıklamalar ve sahadaki gelişmeler doğrultusunda süreç takip ediliyor'
-        ]
+        keyPoints: cleanKeyPoints
       });
     }
 
