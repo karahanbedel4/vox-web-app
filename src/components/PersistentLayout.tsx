@@ -1594,6 +1594,13 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                             </a>
                           </div>
                         )}
+
+                        {/* Discreet Legal & Google News API Disclaimer */}
+                        <div className="pt-3 border-t border-white/5 text-[10px] leading-relaxed text-zinc-500 select-text">
+                          <p className="opacity-75">
+                            <strong className="font-medium text-zinc-400">Yasal Bilgilendirme:</strong> Bu haber içeriği, orijinal editöryal metne müdahale edilmeksizin Google Haberler ve açık RSS akışları aracılığıyla sayfaya yansıtılmıştır. Tüm hak ve hukuki sorumluluklar ilgili kaynağa ait olup, VOX herhangi bir sorumluluk kabul etmemektedir.
+                          </p>
+                        </div>
                       </>
                     );
                   })()}

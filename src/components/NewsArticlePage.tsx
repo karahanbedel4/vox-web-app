@@ -36,6 +36,7 @@ import {
   sanitizeNewsText,
   enrichArticleWithAI,
   fetchArticleByIdOrSlug,
+  fetchFullScrapedArticle,
   buildOutboundSourceUrl,
   trackOutboundClick 
 } from '../lib/newsService';
@@ -243,31 +244,44 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
       setIsLoading(false);
 
       // Check if article needs full scraped article body or fresh clean summary
-      const isShortContent = !found.content || found.content.length < 450 || !found.content.includes('\n\n') || found.content === found.summary;
+      const isShortContent = !found.content || found.content.length < 250 || !found.content.includes('\n\n') || found.content === found.summary || found.content === found.title;
       const hasRoboticFiller = found.content?.includes('sahadaki gelişmeler') ||
         found.content?.includes('süreç titizlikle') ||
         found.content?.includes('resmi birimler') ||
         found.content?.includes('VOX Akıllı Akış') ||
         found.content?.includes('resmi makamlar ve yetkili birimler');
+      const isMissingRealSummary = !found.summary || found.summary === found.title || found.summary.includes('son dakika gelişmesi');
 
-      if (isShortContent || hasRoboticFiller || !found.summary) {
+      if (isShortContent || hasRoboticFiller || isMissingRealSummary) {
         setIsLoadingFullContent(true);
         fetchArticleByIdOrSlug(found.id || cleanSlug, found.sourceUrl, found.title, found.category, found.author, found.imageUrl)
-          .then(fullArt => {
-            if (fullArt && fullArt.content && fullArt.content.length >= (found.content?.length || 0)) {
-              setArticle({
+          .then(async (fullArt) => {
+            if (fullArt && fullArt.content && fullArt.content.length > 250 && fullArt.content !== fullArt.title) {
+              setArticle(prev => prev ? ({
+                ...prev,
                 ...fullArt,
-                imageUrl: found.imageUrl || fullArt.imageUrl
-              });
-            } else {
-              return enrichArticleWithAI(found).then(enr => {
-                if (enr && (enr.content !== found.content || enr.summary !== found.summary || enr.imageUrl !== found.imageUrl)) {
-                  setArticle({
+                imageUrl: prev.imageUrl || fullArt.imageUrl
+              }) : fullArt);
+            } else if (found.sourceUrl && found.sourceUrl.startsWith('http')) {
+              // Direct scrape fallback
+              const scraped = await fetchFullScrapedArticle(found.sourceUrl);
+              if (scraped && scraped.paragraphs && scraped.paragraphs.length > 0) {
+                setArticle(prev => prev ? ({
+                  ...prev,
+                  summary: scraped.summary || prev.summary,
+                  content: scraped.content || scraped.paragraphs!.join('\n\n'),
+                  imageUrl: prev.imageUrl || scraped.imageUrl
+                }) : null);
+              } else {
+                const enr = await enrichArticleWithAI(found);
+                if (enr && enr.content && enr.content !== found.title) {
+                  setArticle(prev => prev ? ({
+                    ...prev,
                     ...enr,
-                    imageUrl: found.imageUrl || enr.imageUrl
-                  });
+                    imageUrl: prev.imageUrl || enr.imageUrl
+                  }) : null);
                 }
-              });
+              }
             }
           })
           .catch(() => {})
@@ -480,6 +494,18 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
             {sanitizeNewsText(article.title)}
           </h1>
 
+          {/* Spot Summary (Haber Özeti / Lead text - Sözcü & Newsroom Standard) */}
+          {article.summary && 
+            article.summary.trim() !== article.title.trim() && 
+            article.summary.length > 25 && 
+            !article.summary.includes('son dakika gelişmesi') && (
+              <p className={`text-base sm:text-lg lg:text-xl font-medium leading-relaxed ${
+                theme === 'light' ? 'text-slate-600' : 'text-zinc-300'
+              }`}>
+                {sanitizeNewsText(article.summary)}
+              </p>
+          )}
+
           {/* Cover Hero Image */}
           <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 shadow-lg bg-surface-container">
             <img
@@ -520,13 +546,16 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
               theme === 'light' ? 'text-slate-800' : 'text-gray-200'
             }`}>
               {(() => {
-                const rawBody = article.content || article.summary || '';
+                const rawBody = article.content || '';
                 const allSplits = sanitizeNewsText(rawBody).split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+                const normSummary = (article.summary || '').trim().toLowerCase();
+                const normTitle = (article.title || '').trim().toLowerCase();
+
                 const paragraphs = allSplits.filter(p => {
-                  if (p.length < 10) return false;
+                  if (p.length < 8) return false;
                   const normP = p.toLowerCase();
-                  const normTitle = (article.title || '').trim().toLowerCase();
                   if (normP === normTitle) return false;
+                  if (normSummary && normSummary.length > 30 && (normP === normSummary || normP.startsWith(normSummary.substring(0, 40)))) return false;
                   if (normP.includes('sürecin titizlikle yürütüldüğü') || normP.includes('sahadaki son durum yakından')) return false;
                   if (normP.includes('süreç titizlikle yürütülüyor') || normP.includes('sektör temsilcileri tarafından')) return false;
                   if (normP.includes('resmi makamlar ve yetkili birimler tarafından yapılan')) return false;
@@ -535,36 +564,57 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                   return true;
                 });
 
-                const showSpotLead = article.summary && 
-                  article.summary.length > 25 && 
-                  paragraphs.length > 0 && 
-                  !paragraphs[0].startsWith(article.summary.substring(0, 30));
+                if (paragraphs.length === 0) {
+                  if (isLoadingFullContent) {
+                    return (
+                      <div className="py-6 space-y-3 animate-pulse">
+                        <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-full" />
+                        <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-11/12" />
+                        <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-4/5" />
+                        <div className="flex items-center gap-2 text-xs text-emerald-500 pt-2 font-medium">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                          <span>Haber içeriği ve detaylar aktarılıyor...</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="py-4 space-y-3">
+                      <p className="text-sm text-gray-400">Haber detayları hazırlanıyor.</p>
+                      {article.sourceUrl && (
+                        <a
+                          href={article.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors"
+                        >
+                          <span>Orijinal Haberi Kaynağında Oku</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                  );
+                }
 
-                return (
-                  <>
-                    {showSpotLead && (
-                      <p className={`text-base sm:text-lg font-semibold leading-relaxed border-l-2 pl-3.5 py-0.5 ${
-                        theme === 'light' 
-                          ? 'text-slate-900 border-emerald-600' 
-                          : 'text-emerald-300 border-[#1ed760]'
-                      }`}>
-                        {sanitizeNewsText(article.summary)}
-                      </p>
-                    )}
-
-                    {paragraphs.length === 0 ? (
-                      <p className="leading-relaxed">
-                        {sanitizeNewsText(article.content || article.summary || article.title)}
-                      </p>
-                    ) : (
-                      paragraphs.map((paragraph, pIdx) => (
-                        <p key={pIdx} className="leading-relaxed">
-                          {paragraph}
-                        </p>
-                      ))
-                    )}
-                  </>
-                );
+                return paragraphs.map((paragraph, pIdx) => {
+                  if (paragraph.startsWith('## ')) {
+                    return (
+                      <h2 
+                        key={pIdx} 
+                        className={`text-xl sm:text-2xl font-bold tracking-tight pt-5 pb-1 ${
+                          theme === 'light' ? 'text-slate-900' : 'text-white'
+                        }`}
+                      >
+                        {paragraph.replace(/^##\s*/, '')}
+                      </h2>
+                    );
+                  }
+                  return (
+                    <p key={pIdx} className="leading-relaxed">
+                      {paragraph}
+                    </p>
+                  );
+                });
               })()}
             </div>
           </div>
@@ -619,6 +669,17 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
               <Share2 className="w-3.5 h-3.5" />
               <span>Haberi Paylaş</span>
             </button>
+          </div>
+
+          {/* Discreet Legal, Publisher Rights & Google News API Disclaimer */}
+          <div className={`mt-6 pt-3 pb-1 border-t text-[11px] leading-relaxed select-text ${
+            theme === 'light'
+              ? 'border-slate-200/80 text-slate-400'
+              : 'border-white/5 text-zinc-500'
+          }`}>
+            <p className="opacity-75">
+              <strong className="font-semibold">Yasal Bilgilendirme:</strong> Bu haber içeriği, orijinal yayıncının editöryal metnine hiçbir müdahalede bulunulmaksızın Google Haberler (Google News) ve açık RSS servisleri aracılığıyla sayfaya yansıtılmıştır. Haberde yer alan tüm bilgi, görsel, yorum ve hukuki sorumluluk münhasıran ilgili kaynak kuruluşa aittir; VOX içerik sağlayıcı konumunda olmayıp haber metni veya doğruluğu üzerinde herhangi bir sorumluluk kabul etmemektedir.
+            </p>
           </div>
 
           {/* Mobile In-Article Ad Container */}

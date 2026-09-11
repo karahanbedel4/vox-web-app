@@ -2342,7 +2342,20 @@ interface ScrapedArticleDetails {
   keyPoints: string[];
 }
 
-// Deep Live Web Article Scraper: Extracts real paragraphs, high-res image and meta description using Cheerio & Readability
+// Helper to normalize Turkish text for reliable slug and title matching
+function normalizeTurkishForSlug(str: string): string {
+  return (str || '')
+    .toLowerCase()
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+// Deep Live Web Article Scraper: Extracts real spot lead, paragraphs, headings, and high-res image using Cheerio & Readability
 async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDetails | null> {
   if (!pageUrl || !pageUrl.startsWith('http')) return null;
   if (pageUrl.includes('/video/') || pageUrl.endsWith('.pdf')) return null;
@@ -2369,7 +2382,7 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
 
     const $ = cheerio.load(html);
 
-    // 1. Scrape High-Res Original Meta Image (og:image / twitter:image only - do not scrape inside article)
+    // 1. Scrape High-Res Original Meta Image
     let imageUrl = 
       $('meta[property="og:image:secure_url"]').attr('content') ||
       $('meta[property="og:image"]').attr('content') ||
@@ -2386,7 +2399,7 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
       }
     }
 
-    // 2. Scrape Editorial Summary (og:description or meta description)
+    // 2. Scrape Spot Summary (Haber Özeti / Lead text) from meta tags, figcaption, or .spot / .lead classes
     let metaSummary = 
       $('meta[property="og:description"]').attr('content') || 
       $('meta[name="description"]').attr('content') || 
@@ -2399,6 +2412,15 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
       metaSummary = metaSummary.replace(/(?:İşte detaylar\.?\.?\.?|Ayrıntılar geliyor\.?\.?\.?|Haberin devamı için tıklayınız\.?|Foto galeri için tıklayınız\.?)$/i, '').trim();
     }
 
+    // Check figcaption or explicit spot classes if meta summary is short or missing
+    if (!metaSummary || metaSummary.length < 30) {
+      const spotEl = $('figcaption, .spot, .lead, .article-lead, .summary, .haber-ozet, .news-spot, .lead-text, [class*="spot"], [class*="lead"]').first();
+      const spotText = spotEl.text().trim();
+      if (spotText && spotText.length > 25 && !spotText.includes('{') && !spotText.includes('function(')) {
+        metaSummary = cleanRssText(spotText);
+      }
+    }
+
     // 3. Clean up non-article elements
     $('script, style, nav, header, footer, noscript, iframe, .ad, .ads, .advertisement, [class*="cookie"], [class*="paywall"], [class*="share"], [class*="social"], [id*="comment"], .tags, .related-news, .bulten-form, .author-box').remove();
 
@@ -2407,19 +2429,20 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
 
     // Target specific content containers if present
     const contentContainers = [
-      'article', 
-      '[itemprop="articleBody"]', 
-      '.news-content', 
-      '.content-text', 
-      '.article-body', 
-      '.story-body', 
-      '.news-detail-content', 
-      '.detail-content', 
-      '.haber-metni', 
-      '.entry-content', 
+      '.article-body',
+      '[itemprop="articleBody"]',
+      '[property="articleBody"]',
+      '.news-content',
+      '.content-text',
+      '.story-body',
+      '.news-detail-content',
+      '.detail-content',
+      '.haber-metni',
+      '.entry-content',
       '.haber_metin',
       '.content_text',
-      '.news_content'
+      '.news_content',
+      'article'
     ];
 
     let targetEl = null;
@@ -2435,8 +2458,10 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
 
     scope.find('p, h2, h3, blockquote').each((_, el) => {
       const tag = (el as any).tagName ? (el as any).tagName.toLowerCase() : '';
+      const isHeader = tag === 'h2' || tag === 'h3';
       let text = $(el).text().replace(/\s+/g, ' ').trim();
-      if (!text || text.length < 35) return;
+      const minLength = isHeader ? 8 : 20;
+      if (!text || text.length < minLength) return;
       if (text.includes('{') || text.includes('}') || text.includes('function(')) return;
 
       const lower = text.toLowerCase();
@@ -2455,10 +2480,55 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
       if (seenP.has(fingerprint)) return;
       seenP.add(fingerprint);
 
-      cleanParagraphs.push(text);
+      // If it's a section header, preserve it with ## prefix for distinct display
+      if (isHeader) {
+        cleanParagraphs.push(`## ${text}`);
+      } else {
+        cleanParagraphs.push(text);
+      }
     });
 
-    // Fallback to Readability if Cheerio found fewer than 2 paragraphs
+    // 4. Fallback to JSON-LD if paragraphs are sparse
+    if (cleanParagraphs.length < 2) {
+      $('script[type="application/ld+json"]').each((_, el) => {
+        try {
+          const raw = $(el).html();
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          const extractFromObj = (item: any) => {
+            if (!item || typeof item !== 'object') return;
+            if (item['@type'] === 'NewsArticle' || item['@type'] === 'Article' || item['@type'] === 'BlogPosting') {
+              if ((!metaSummary || metaSummary.length < 25) && item.description && typeof item.description === 'string') {
+                metaSummary = cleanRssText(item.description);
+              }
+              if (item.articleBody && typeof item.articleBody === 'string' && cleanParagraphs.length < 2) {
+                const bodyParagraphs = item.articleBody
+                  .split(/\n\n+|\r\n\r\n+/)
+                  .map((p: string) => cleanRssText(p))
+                  .filter((p: string) => p.length > 20);
+                for (const bp of bodyParagraphs) {
+                  const fp = bp.substring(0, 45).toLowerCase();
+                  if (!seenP.has(fp)) {
+                    seenP.add(fp);
+                    cleanParagraphs.push(bp);
+                  }
+                }
+              }
+            }
+            if (Array.isArray(item['@graph'])) {
+              item['@graph'].forEach(extractFromObj);
+            }
+          };
+          if (Array.isArray(data)) {
+            data.forEach(extractFromObj);
+          } else {
+            extractFromObj(data);
+          }
+        } catch (e) {}
+      });
+    }
+
+    // 5. Fallback to Readability if still fewer than 2 paragraphs
     if (cleanParagraphs.length < 2) {
       try {
         const dom = new JSDOM(html, { url: finalUrl });
@@ -2468,7 +2538,7 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
           const lines = parsedArt.textContent.split('\n');
           for (const line of lines) {
             const cl = cleanRssText(line);
-            if (cl.length < 35) continue;
+            if (cl.length < 25) continue;
             const fp = cl.substring(0, 45).toLowerCase();
             if (seenP.has(fp)) continue;
             seenP.add(fp);
@@ -2478,19 +2548,20 @@ async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDeta
       } catch (e) {}
     }
 
-    // 4. Extract Key Points
+    // 6. Extract Key Points
     const keyPoints: string[] = [];
     for (const p of cleanParagraphs) {
       if (keyPoints.length >= 4) break;
-      const firstSentenceMatch = p.match(/^([^.!?]+[.!?])/);
-      const sentence = firstSentenceMatch ? firstSentenceMatch[1].trim() : p.substring(0, 120).trim();
-      if (sentence.length >= 35 && sentence.length <= 160 && !keyPoints.some(k => k.includes(sentence.substring(0, 20)))) {
+      const cleanPLine = p.replace(/^##\s*/, '');
+      const firstSentenceMatch = cleanPLine.match(/^([^.!?]+[.!?])/);
+      const sentence = firstSentenceMatch ? firstSentenceMatch[1].trim() : cleanPLine.substring(0, 120).trim();
+      if (sentence.length >= 30 && sentence.length <= 160 && !keyPoints.some(k => k.includes(sentence.substring(0, 20)))) {
         keyPoints.push(sentence);
       }
     }
 
     if (!metaSummary && cleanParagraphs.length > 0) {
-      metaSummary = cleanParagraphs[0];
+      metaSummary = cleanParagraphs[0].replace(/^##\s*/, '');
     }
 
     return {
@@ -2776,10 +2847,18 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
       }
 
       if (title && title.length > 5) {
-        const cleanSummary = summary && summary.length > 25 ? summary : `${title}. ${author} son dakika gelişmesi.`;
-        const cleanContent = fullContent && fullContent.length > 60 && fullContent !== title
+        const isDescJustTitle = !summary || 
+          summary.trim().toLowerCase() === title.trim().toLowerCase() ||
+          (summary.length < 40 && title.toLowerCase().includes(summary.toLowerCase()));
+
+        let cleanSummary = !isDescJustTitle && summary.length > 25 ? summary : '';
+        let cleanContent = fullContent && fullContent.length > 60 && fullContent.trim().toLowerCase() !== title.trim().toLowerCase()
           ? fullContent 
-          : cleanSummary;
+          : '';
+
+        if (!cleanContent && cleanSummary && cleanSummary.length > 100) {
+          cleanContent = cleanSummary;
+        }
 
         const categoryImages = categoryDefaultImages[feedConfig.category] || categoryDefaultImages['Gündem'];
         const fallbackImg = categoryImages[i % categoryImages.length];
@@ -2789,10 +2868,11 @@ async function fetchSingleRssFeed(feedConfig: typeof HIGH_FREQUENCY_FEEDS[0]): P
         const uniqueId = `vox_${feedConfig.category.toLowerCase()}_${cleanSlug}`;
 
         // Split cleanSummary or cleanContent into real informative keypoints
-        const sentences = cleanSummary.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 25);
+        const textForPoints = cleanSummary || cleanContent || '';
+        const sentences = textForPoints.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 25);
         const realKeyPoints = sentences.length >= 2 
           ? sentences.slice(0, 3) 
-          : [cleanSummary];
+          : (cleanSummary ? [cleanSummary] : []);
 
         const articleObj: CachedNewsArticle = {
           id: uniqueId,
@@ -2970,6 +3050,11 @@ async function refreshServerNewsWorker(): Promise<void> {
       serverNewsCache.lastUpdated = Date.now();
 
       console.log(`[VOX News Worker] Cache updated: ${serverNewsCache.all.length} active fresh articles across ${Object.keys(byCategoryMap).length} categories.`);
+
+      // Proactively enrich newest articles with original full body and spot summaries
+      autoEnrichLatestArticlesWorker(serverNewsCache.all).catch(e => {
+        console.warn('[VOX News Worker] Auto-enrich background notice:', e);
+      });
     } catch (err) {
       console.warn('[VOX News Worker] Update notice:', err);
     } finally {
@@ -2979,6 +3064,61 @@ async function refreshServerNewsWorker(): Promise<void> {
   })();
 
   return activeRefreshPromise;
+}
+
+// Background worker to auto-enrich latest articles whose summary or content is missing/short
+async function autoEnrichLatestArticlesWorker(articles: CachedNewsArticle[]): Promise<void> {
+  // Take top 35 newest articles
+  const candidates = articles.slice(0, 35).filter(a => {
+    const isMissingContent = !a.content || a.content === a.title || a.content.length < 250;
+    const isMissingSummary = !a.summary || a.summary === a.title || a.summary.length < 35;
+    return (isMissingContent || isMissingSummary) && a.sourceUrl && a.sourceUrl.startsWith('http');
+  });
+
+  if (candidates.length === 0) return;
+
+  console.log(`[VOX News Worker] Auto-enriching ${candidates.length} fresh articles with full content & lead summaries...`);
+
+  // Process in small batches of 3 concurrent requests to prevent server strain
+  const BATCH_SIZE = 3;
+  for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+    const batch = candidates.slice(i, i + BATCH_SIZE);
+    await Promise.all(batch.map(async (art) => {
+      try {
+        const scraped = await scrapeArticleDetails(art.sourceUrl);
+        if (scraped) {
+          let updated = false;
+          if (scraped.summary && scraped.summary !== art.title && scraped.summary.length > 25) {
+            art.summary = scraped.summary;
+            updated = true;
+          }
+          if (scraped.paragraphs && scraped.paragraphs.length > 0) {
+            art.content = scraped.paragraphs.join('\n\n');
+            updated = true;
+          }
+          if (scraped.keyPoints && scraped.keyPoints.length > 0) {
+            art.keyPoints = scraped.keyPoints;
+            updated = true;
+          }
+          if (scraped.imageUrl && !art.hasRealImage) {
+            art.imageUrl = scraped.imageUrl;
+            art.hasRealImage = true;
+            updated = true;
+          }
+          if (updated) {
+            art.durationSeconds = Math.max(90, Math.min(420, Math.round((art.content.length + art.summary.length) * 0.4)));
+            const cacheKey = art.id || art.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+            enrichedArticleCache.set(cacheKey, {
+              summary: art.summary,
+              content: art.content,
+              keyPoints: art.keyPoints,
+              imageUrl: art.imageUrl
+            });
+          }
+        }
+      } catch (err) {}
+    }));
+  }
 }
 
 // Start background worker immediately on boot
@@ -3037,15 +3177,26 @@ app.get('/api/news/article/:idOrSlug', async (req, res) => {
     }
 
     const decoded = decodeURIComponent(idOrSlug).toLowerCase().trim();
+    const normDecoded = normalizeTurkishForSlug(decoded).replace(/voxozet$/, '');
 
     // 1. Direct ID match
     let found = serverNewsCache.all.find(a => a.id.toLowerCase() === decoded);
 
-    // 2. Slug fuzzy match
+    // 2. Robust Turkish Slug & Title Match
     if (!found) {
       found = serverNewsCache.all.find(a => {
-        const cleanSlug = a.title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').substring(0, 40);
-        return cleanSlug && (decoded.includes(cleanSlug) || a.id.toLowerCase().includes(decoded));
+        const normTitle = normalizeTurkishForSlug(a.title);
+        const normId = normalizeTurkishForSlug(a.id);
+        
+        // Match by title substring (first 30 characters)
+        if (normDecoded.includes(normTitle.substring(0, 30)) || normTitle.includes(normDecoded.substring(0, 30))) {
+          return true;
+        }
+        // Match by ID suffix or cleaned slug
+        if (normId.length > 8 && normDecoded.includes(normId.slice(-10))) {
+          return true;
+        }
+        return false;
       });
     }
 
@@ -3073,6 +3224,9 @@ app.get('/api/news/article/:idOrSlug', async (req, res) => {
         found.imageUrl = req.query.imageUrl as string;
         found.hasRealImage = true;
       }
+      if (req.query.url && !found.sourceUrl) {
+        found.sourceUrl = req.query.url as string;
+      }
       // Automatically enrich with scraping and Gemini AI / clean structure
       const enriched = await enrichNewsArticle(found);
       // Ensure image is never wiped out
@@ -3080,6 +3234,10 @@ app.get('/api/news/article/:idOrSlug', async (req, res) => {
         enriched.imageUrl = found.imageUrl;
         enriched.hasRealImage = true;
       }
+
+      // Update in memory cache so future calls get the enriched version
+      Object.assign(found, enriched);
+
       return res.json({ success: true, article: enriched });
     }
 

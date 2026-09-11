@@ -1132,11 +1132,19 @@ export function getArticleUrl(article: Article): string {
 /**
  * Clean news paragraphs by filtering out any residual robotic boilerplate or publisher disclaimers
  */
-export function cleanNewsParagraphs(content?: string, summary?: string): string[] {
-  if (!content) return summary ? [summary] : [];
-  const rawParas = content.split('\n\n').map(p => p.trim()).filter(Boolean);
+export function cleanNewsParagraphs(content?: string, summary?: string, title?: string): string[] {
+  if (!content) {
+    if (summary && summary.length > 30 && summary.trim() !== title?.trim() && !summary.includes('son dakika gelişmesi')) {
+      return [summary];
+    }
+    return [];
+  }
+  const rawParas = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
   const filtered = rawParas.filter(p => {
+    if (p.length < 10) return false;
     const l = p.toLowerCase();
+    const normTitle = (title || '').trim().toLowerCase();
+    if (normTitle && (l === normTitle || (normTitle.length > 20 && l.startsWith(normTitle)))) return false;
     if (l.includes('süreç titizlikle yürütülüyor')) return false;
     if (l.includes('sektör temsilcileri tarafından')) return false;
     if (l.includes('resmi birimler ve yetkili makamlar')) return false;
@@ -1147,7 +1155,7 @@ export function cleanNewsParagraphs(content?: string, summary?: string): string[
     return true;
   });
 
-  if (filtered.length === 0 && summary) {
+  if (filtered.length === 0 && summary && summary.length > 30 && summary.trim() !== title?.trim() && !summary.includes('son dakika gelişmesi')) {
     return [summary];
   }
   return filtered;
