@@ -526,12 +526,12 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             </NavLink>
 
-            {/* CANLI TV (9 Haber Kanalı) */}
+            {/* CANLI TV (Haber & Spor Kanalları) */}
             <NavLink
               to="/canli-tv"
               className={({ isActive }) =>
                 `flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold tracking-wide transition-all ${
-                  isActive || location.pathname === '/canli-tv'
+                  isActive || location.pathname.startsWith('/canli-tv')
                     ? 'bg-red-600/15 text-red-400 border border-red-500/30 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`
@@ -766,11 +766,11 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           <Link
             to="/canli-tv"
             className={`p-2 rounded-xl transition-all relative cursor-pointer ${
-              location.pathname === '/canli-tv' 
+              location.pathname.startsWith('/canli-tv') 
                 ? 'bg-red-600/20 text-red-400 border border-red-500/40' 
                 : 'text-gray-400 hover:text-white hover:bg-white/10'
             }`}
-            title="Canlı TV (Haber Yayınları)"
+            title="Canlı TV (Haber ve Spor Yayınları)"
             aria-label="Canlı TV"
           >
             <Tv className="w-4 h-4 text-red-500" />
@@ -893,7 +893,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     onClick={() => setIsMobileDrawerOpen(false)}
                     className={({ isActive }) =>
                       `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
-                        isActive || location.pathname === '/canli-tv'
+                        isActive || location.pathname.startsWith('/canli-tv')
                           ? 'bg-red-600/15 text-red-400 border border-red-500/30'
                           : 'text-gray-300 hover:text-white hover:bg-white/5'
                       }`
@@ -1072,7 +1072,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
 
           {/* TAB 2: CANLI TV */}
           {(() => {
-            const isTvActive = location.pathname === '/canli-tv';
+            const isTvActive = location.pathname.startsWith('/canli-tv');
             return (
               <NavLink
                 to="/canli-tv"

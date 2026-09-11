@@ -4,14 +4,103 @@ export interface LiveTvChannel {
   shortName: string;
   youtubeId: string;
   youtubeUrl: string;
-  category: 'Gündem' | 'Ekonomi' | 'Dünya';
+  category: 'Gündem' | 'Ekonomi' | 'Dünya' | 'Spor';
   brandColor: string;
   badgeColor: string;
   description: string;
   resolution: string;
+  isDynamicLive?: boolean;
 }
 
+export interface LiveTvCategoryInfo {
+  id: string;
+  name: string;
+  slug: string;
+  seoTitle: string;
+  seoDescription: string;
+  h1Title: string;
+  keywords: string[];
+}
+
+export const LIVE_TV_CATEGORIES: LiveTvCategoryInfo[] = [
+  {
+    id: 'Tümü',
+    name: 'Tümü',
+    slug: '',
+    seoTitle: 'Canlı TV - Kesintisiz Haber ve Spor Kanalları İzle | VOX',
+    seoDescription: 'CNN TÜRK, Sözcü TV, NTV, Habertürk, HT Spor, A Spor, beIN Sports Haber, HalkTV ve Bloomberg HT canlı yayınlarını tek ekranda donmadan ve reklamsız izleyin.',
+    h1Title: 'Canlı TV - Kesintisiz Haber ve Spor Yayınları',
+    keywords: ['canlı tv izle', 'canlı haber izle', 'canlı spor kanalları', 'kesintisiz canlı tv']
+  },
+  {
+    id: 'Spor',
+    name: 'Spor',
+    slug: 'spor',
+    seoTitle: 'Canlı Spor TV - HT Spor, A Spor, beIN Sports Haber Canlı İzle | VOX',
+    seoDescription: 'HT Spor, A Spor ve beIN SPORTS HABER şifresiz HD canlı yayınlarını tek ekranda donmadan izleyin. Süper Lig maç özetleri, transfer haberleri ve canlı spor bültenleri.',
+    h1Title: 'Canlı Spor Kanalları - Kesintisiz HD Spor Yayınları',
+    keywords: ['canlı spor izle', 'ht spor canlı', 'aspor canlı izle', 'bein sports haber izle', 'canlı maç bültenleri']
+  },
+  {
+    id: 'Gündem',
+    name: 'Gündem',
+    slug: 'gundem',
+    seoTitle: 'Canlı Haber Kanalları - CNN TÜRK, Sözcü TV, NTV, Habertürk İzle | VOX',
+    seoDescription: 'Türkiye’nin lider haber kanalları CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, TRT Haber ve TV100 canlı yayınlarını tek ekranda eş zamanlı takip edin.',
+    h1Title: 'Canlı Gündem ve Haber Kanalları',
+    keywords: ['canlı haber izle', 'cnn türk canlı', 'sözcü tv canlı', 'ntv canlı', 'habertürk canlı']
+  },
+  {
+    id: 'Ekonomi',
+    name: 'Ekonomi',
+    slug: 'ekonomi',
+    seoTitle: 'Canlı Ekonomi TV - Bloomberg HT Canlı Yayınları ve Borsa İzle | VOX',
+    seoDescription: 'Bloomberg HT canlı yayını ile Borsa İstanbul, altın, dolar, euro ve küresel finans piyasalarını kesintisiz ve canlı olarak tek ekranda izleyin.',
+    h1Title: 'Canlı Ekonomi ve Finans Yayınları',
+    keywords: ['bloomberg ht canlı', 'canlı borsa izle', 'ekonomi kanalları canlı', 'piyasa haberleri canlı']
+  }
+];
+
 export const LIVE_TV_CHANNELS: LiveTvChannel[] = [
+  // --- SPOR KANALLARI ---
+  {
+    id: 'ht-spor',
+    name: 'HT Spor',
+    shortName: 'HT SPOR',
+    youtubeId: 'gcWaPe_LBMc',
+    youtubeUrl: 'https://www.youtube.com/watch?v=gcWaPe_LBMc',
+    category: 'Spor',
+    brandColor: '#CC0000',
+    badgeColor: 'bg-red-600',
+    description: 'HT Spor kesintisiz canlı yayın, Süper Lig, transfer gelişmeleri ve spor bültenleri.',
+    resolution: '1080p HD'
+  },
+  {
+    id: 'a-spor',
+    name: 'A Spor',
+    shortName: 'A SPOR',
+    youtubeId: '-zSaswVrQ_M',
+    youtubeUrl: 'https://www.youtube.com/watch?v=-zSaswVrQ_M',
+    category: 'Spor',
+    brandColor: '#009639',
+    badgeColor: 'bg-emerald-600',
+    description: 'A Spor kesintisiz canlı yayın akışı, maç özetleri, tartışma programları ve son dakika spor haberleri.',
+    resolution: '1080p HD'
+  },
+  {
+    id: 'bein-sports-haber',
+    name: 'beIN SPORTS HABER',
+    shortName: 'beIN',
+    youtubeId: 'i7UpPgxfZZ8',
+    youtubeUrl: 'https://www.youtube.com/watch?v=i7UpPgxfZZ8',
+    category: 'Spor',
+    brandColor: '#5D2D91',
+    badgeColor: 'bg-purple-700',
+    description: 'beIN SPORTS HABER şifresiz HD canlı yayını, Trendyol Süper Lig, Avrupa ligleri ve spor analizleri.',
+    resolution: '1080p HD'
+  },
+
+  // --- HABER & GÜNDEM KANALLARI ---
   {
     id: 'cnn-turk',
     name: 'CNN TÜRK',

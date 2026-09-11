@@ -503,10 +503,18 @@ export default function App() {
               element={<RouterNavigate to="/" replace />}
             />
 
-            {/* Canlı TV - 9 Haber Kanalı Canlı Yayınları */}
+            {/* Canlı TV - Haber ve Spor Kanalları Canlı Yayınları */}
             <RouterRoute
               path="/canli-tv"
               element={<LiveTvPage />}
+            />
+            <RouterRoute
+              path="/canli-tv/:categorySlug"
+              element={<LiveTvPage />}
+            />
+            <RouterRoute
+              path="/canli-spor-tv"
+              element={<RouterNavigate to="/canli-tv/spor" replace />}
             />
             <RouterRoute
               path="/canli-yayin"
