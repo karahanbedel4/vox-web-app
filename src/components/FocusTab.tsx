@@ -1245,11 +1245,16 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                           <span className={`w-1 bg-[#1ed760] rounded-full transition-all duration-200 ${isRunning ? 'h-3 animate-pulse' : 'h-1 opacity-40'}`} />
                         </div>
 
-                        {statusMessage && (
+                        {statusMessage ? (
                           <span className="text-[10px] font-bold text-[#1ed760] bg-[#1ed760]/10 px-2.5 py-0.5 rounded-full border border-[#1ed760]/30">
                             {statusMessage}
                           </span>
-                        )}
+                        ) : isRunning && currentPlayingTrack ? (
+                          <span className="text-[10px] font-bold text-[#1ed760] bg-[#1ed760]/10 px-2.5 py-0.5 rounded-full border border-[#1ed760]/30 flex items-center gap-1">
+                            <Repeat className="w-2.5 h-2.5 animate-spin-slow" />
+                            <span>Müzik döngüde • Pomodoro bitince durur</span>
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   </>
@@ -1270,10 +1275,18 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                             <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-[#1ed760] text-black">
                               {currentPlayingTrack.shelf.title}
                             </span>
-                            <div className="flex items-end gap-0.5 h-2.5">
-                              <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-1" />
-                              <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-2" />
-                              <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-3" />
+                            <div className="flex items-center gap-1.5">
+                              {(currentPlayingTrack.track.category === 'nature' || currentPlayingTrack.track.category === 'lofi') && (
+                                <span className="text-[9px] font-bold text-black bg-[#1ed760] px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                                  <Repeat className="w-2.5 h-2.5" />
+                                  <span>Döngüde</span>
+                                </span>
+                              )}
+                              <div className="flex items-end gap-0.5 h-2.5">
+                                <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-1" />
+                                <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-2" />
+                                <div className="w-0.5 bg-[#1ed760] rounded-full animate-eq-3" />
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1286,6 +1299,12 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                           <p className="text-[11px] text-gray-400 truncate">
                             {currentPlayingTrack.track.subtitle}
                           </p>
+                          {(currentPlayingTrack.track.category === 'nature' || currentPlayingTrack.track.category === 'lofi') && (
+                            <p className="text-[10px] text-[#1ed760] font-medium flex items-center justify-center gap-1 pt-0.5">
+                              <Sparkles className="w-3 h-3" />
+                              <span>Pomodoro süresince kesintisiz döngüde çalar, süre bitince durur</span>
+                            </p>
+                          )}
                         </div>
 
                         {/* Mockup Next / Prev / Play / Pause Controls */}
@@ -1689,6 +1708,8 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                     const isPlaying = Boolean(channelState && channelState.active && channelState.volume > 0);
                     const volume = channelState ? channelState.volume : 60;
 
+                    const isNatureOrLofi = track.category === 'nature' || track.category === 'lofi';
+
                     const handleToggleTrack = (e?: React.MouseEvent) => {
                       if (e) e.stopPropagation();
                       woodRainSynth.unlockAudioContext();
@@ -1697,7 +1718,10 @@ export const FocusTab: React.FC<FocusTabProps> = ({
                       if (isPlaying) {
                         onToggleAmbientChannel(track.id);
                       } else {
-                        if (onStartPlaylist) {
+                        // Nature & Lo-Fi tracks play directly as a dedicated continuous loop for Pomodoro
+                        if (isNatureOrLofi) {
+                          onToggleAmbientChannel(track.id);
+                        } else if (onStartPlaylist) {
                           onStartPlaylist(shelf.id, track.id);
                         } else {
                           onToggleAmbientChannel(track.id);
@@ -1750,14 +1774,14 @@ export const FocusTab: React.FC<FocusTabProps> = ({
 
                           {/* Playing Animation Equalizer / Status Badge */}
                           {isPlaying && (
-                            <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#1ed760] text-black text-[10px] font-black shadow-lg">
-                              <div className="flex items-end gap-0.5 h-3">
+                            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1ed760] text-black text-[10px] font-black shadow-lg">
+                              {isNatureOrLofi && <Repeat className="w-2.5 h-2.5" />}
+                              <div className="flex items-end gap-0.5 h-2.5">
                                 <div className="w-0.5 bg-black rounded-full animate-eq-1" />
                                 <div className="w-0.5 bg-black rounded-full animate-eq-2" />
                                 <div className="w-0.5 bg-black rounded-full animate-eq-3" />
-                                <div className="w-0.5 bg-black rounded-full animate-eq-4" />
                               </div>
-                              <span>Çalıyor</span>
+                              <span>{isNatureOrLofi ? 'Döngüde' : 'Çalıyor'}</span>
                             </div>
                           )}
 

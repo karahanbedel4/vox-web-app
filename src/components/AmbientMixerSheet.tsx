@@ -27,6 +27,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHapticImpact } from '../lib/haptics';
 import { universalSynthService } from '../lib/universalSynthService';
+import { isNatureOrLofiTrack } from '../lib/soundtrackData';
 
 export interface AmbientChannel {
   id: string;
@@ -36,6 +37,7 @@ export interface AmbientChannel {
   youtubeId?: string;
   volume: number; // 0-100
   active: boolean;
+  category?: 'nature' | 'lofi' | 'movies' | 'series' | 'marvel' | 'transformers';
 }
 
 export interface PlaylistInfo {
@@ -220,16 +222,22 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
           universalSynthService.stopSynthSound(ch.id);
         }
       } else if (ch.type === 'stream' && ch.url) {
+        const isNatureOrLofi = isNatureOrLofiTrack(ch);
         if (!audioRefs.current[ch.id]) {
           const audio = new Audio(ch.url);
-          audio.loop = false; // When ended, advance playlist or loop naturally
+          // Nature and Lo-Fi sounds must loop seamlessly throughout the entire Pomodoro duration!
+          audio.loop = isNatureOrLofi;
           audio.setAttribute('playsinline', 'true');
           audio.setAttribute('webkit-playsinline', 'true');
           audio.preload = 'auto';
           audio.crossOrigin = 'anonymous';
 
           audio.onended = () => {
-            if (onTrackEnded) {
+            // For nature and lofi tracks, seamlessly repeat in an endless loop
+            if (isNatureOrLofiTrack(ch)) {
+              audio.currentTime = 0;
+              audio.play().catch(() => {});
+            } else if (onTrackEnded) {
               onTrackEnded();
             } else if (onNextTrack) {
               onNextTrack();
@@ -239,9 +247,22 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
             }
           };
 
+          audio.onerror = () => {
+            setTimeout(() => {
+              if (ch.active && ch.volume > 0) {
+                audio.load();
+                audio.play().catch(() => {});
+              }
+            }, 600);
+          };
+
           audioRefs.current[ch.id] = audio;
         }
         const audio = audioRefs.current[ch.id];
+        // Ensure seamless looping is active for nature and lofi
+        if (isNatureOrLofi) {
+          audio.loop = true;
+        }
         // If URL changed
         if (audio.src !== ch.url && ch.url) {
           audio.src = ch.url;
@@ -291,6 +312,40 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
       }
     });
   }, [channels, onTrackEnded, onNextTrack]);
+
+  // Stop all playing audio streams, synths, and YouTube iframes when Pomodoro finishes
+  useEffect(() => {
+    const handlePomodoroCompleted = () => {
+      // Pause all direct stream audio elements
+      Object.keys(audioRefs.current).forEach(id => {
+        try {
+          audioRefs.current[id]?.pause();
+        } catch (e) {}
+      });
+      // Stop synths
+      universalSynthService.stopAll();
+      // Pause any active YouTube iframes
+      channels.forEach(ch => {
+        if ((ch.type === 'youtube' || !ch.type) && ch.youtubeId) {
+          const iframe = document.getElementById(`yt-player-${ch.id}`) as HTMLIFrameElement;
+          if (iframe?.contentWindow) {
+            try {
+              iframe.contentWindow.postMessage(JSON.stringify({
+                event: 'command',
+                func: 'pauseVideo',
+                args: []
+              }), '*');
+            } catch (e) {}
+          }
+        }
+      });
+    };
+
+    window.addEventListener('vox_pomodoro_completed', handlePomodoroCompleted);
+    return () => {
+      window.removeEventListener('vox_pomodoro_completed', handlePomodoroCompleted);
+    };
+  }, [channels]);
 
   // Handle Escape key
   useEffect(() => {

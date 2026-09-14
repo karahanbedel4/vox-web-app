@@ -538,15 +538,27 @@ export const FocusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             `Tebrikler! ${workMinutes} dakikalık odaklanma bitti. ${summaryText} İster mola ver, ister yeni seansla devam et.`
           );
 
+          // Stop all ambient nature / lofi / focus music when Pomodoro duration ends
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('vox_pomodoro_completed', {
+              detail: { sessionType: 'work', durationMins: workMinutes }
+            }));
+          }
+
           // Prepare break state in paused mode so user controls their break time
           setIsRunning(false);
           endTimeRef.current = null;
           setSessionType('break');
           const nextSecs = breakMinutes * 60;
           setTimeLeft(nextSecs);
-          showTemporaryStatus(`🏆 Seans bitti! Mola verebilir veya devam edebilirsin.`);
+          showTemporaryStatus(`🏆 Pomodoro bitti! Müzik durduruldu, dinlenme zamanı.`);
         } else {
           // Break finished
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('vox_pomodoro_completed', {
+              detail: { sessionType: 'break', durationMins: breakMinutes }
+            }));
+          }
           setIsRunning(false);
           endTimeRef.current = null;
           setSessionType('work');

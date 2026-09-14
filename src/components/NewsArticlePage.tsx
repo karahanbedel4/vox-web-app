@@ -121,8 +121,35 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
     const ogDesc = document.querySelector('meta[property="og:description"]');
     if (ogDesc) ogDesc.setAttribute('content', desc);
 
+    const rawImg = article.imageUrl || 'https://voxozet.com/og-image.png';
+    const cleanImg = rawImg.startsWith('//') ? `https:${rawImg}` : rawImg;
+
     const ogImg = document.querySelector('meta[property="og:image"]');
-    if (ogImg && article.imageUrl) ogImg.setAttribute('content', article.imageUrl);
+    if (ogImg) ogImg.setAttribute('content', cleanImg);
+
+    const ogImgSecure = document.querySelector('meta[property="og:image:secure_url"]');
+    if (ogImgSecure) ogImgSecure.setAttribute('content', cleanImg);
+
+    const ogImgAlt = document.querySelector('meta[property="og:image:alt"]');
+    if (ogImgAlt) ogImgAlt.setAttribute('content', article.title);
+
+    const twImg = document.querySelector('meta[name="twitter:image"]');
+    if (twImg) twImg.setAttribute('content', cleanImg);
+
+    const twImgAlt = document.querySelector('meta[name="twitter:image:alt"]');
+    if (twImgAlt) twImgAlt.setAttribute('content', article.title);
+
+    const twCard = document.querySelector('meta[name="twitter:card"]');
+    if (twCard) twCard.setAttribute('content', 'summary_large_image');
+
+    const ogType = document.querySelector('meta[property="og:type"]');
+    if (ogType) ogType.setAttribute('content', 'article');
+
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) ogUrl.setAttribute('content', window.location.href);
+
+    const twUrl = document.querySelector('meta[name="twitter:url"]');
+    if (twUrl) twUrl.setAttribute('content', window.location.href);
 
     const canonicalLink = document.querySelector('link[rel="canonical"]');
     if (canonicalLink) canonicalLink.setAttribute('href', window.location.href);
@@ -164,9 +191,14 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
     return () => {
       document.title = 'VOX | Oku, Dinle, Odaklan';
       const defaultDesc = 'Daha az oku. Daha çok dinle. Daha iyi odaklan.';
+      const defaultImg = 'https://voxozet.com/og-image.png';
       if (metaDesc) metaDesc.setAttribute('content', defaultDesc);
       if (ogTitle) ogTitle.setAttribute('content', 'VOX | Oku, Dinle, Odaklan');
       if (ogDesc) ogDesc.setAttribute('content', defaultDesc);
+      if (ogImg) ogImg.setAttribute('content', defaultImg);
+      if (ogImgSecure) ogImgSecure.setAttribute('content', defaultImg);
+      if (twImg) twImg.setAttribute('content', defaultImg);
+      if (ogType) ogType.setAttribute('content', 'website');
       if (canonicalLink) canonicalLink.setAttribute('href', 'https://voxozet.com/');
     };
   }, [article]);

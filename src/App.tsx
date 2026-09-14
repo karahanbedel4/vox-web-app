@@ -42,7 +42,7 @@ import { appStorage } from './lib/storage';
 import { AmbientChannel, PlaylistInfo } from './components/AmbientMixerSheet';
 import { woodRainSynth } from './lib/audioSynth';
 import { universalSynthService } from './lib/universalSynthService';
-import { ALL_DEFAULT_AMBIENT_CHANNELS, ALL_TRACKS, ALL_SOUND_SHELVES, SoundTrack } from './lib/soundtrackData';
+import { ALL_DEFAULT_AMBIENT_CHANNELS, ALL_TRACKS, ALL_SOUND_SHELVES, SoundTrack, isNatureOrLofiTrack } from './lib/soundtrackData';
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -238,20 +238,30 @@ export default function App() {
         url: trackUrl,
         youtubeId: track.youtubeId,
         volume: 65,
-        active: true
+        active: true,
+        category: track.category
       }] : prev);
+
+      const target = baseList.find(c => c.id === id);
+      const isActivating = target ? !target.active : true;
+      const isDedicatedTrack = Boolean(track && isNatureOrLofiTrack(track));
 
       return baseList.map(ch => {
         if (ch.id === id) {
-          const nextActive = !ch.active;
+          const nextActive = isActivating;
           const nextVol = nextActive ? (ch.volume === 0 ? 60 : ch.volume) : ch.volume;
           return { 
             ...ch, 
             type: channelType, 
             url: trackUrl || ch.url, 
             active: nextActive, 
-            volume: nextVol 
+            volume: nextVol,
+            category: track?.category || ch.category
           };
+        }
+        // When activating a nature or lofi track, deactivate other tracks so 1 track plays cleanly in loop
+        if (isDedicatedTrack && isActivating) {
+          return { ...ch, active: false };
         }
         return ch;
       });
@@ -340,7 +350,8 @@ export default function App() {
         url: trackUrl,
         youtubeId: track.youtubeId,
         volume: 65,
-        active: true
+        active: true,
+        category: track.category
       }];
 
       return baseList.map(ch => {
@@ -352,7 +363,8 @@ export default function App() {
             url: trackUrl,
             youtubeId: track.youtubeId,
             active: true, 
-            volume: ch.volume > 0 ? ch.volume : 65 
+            volume: ch.volume > 0 ? ch.volume : 65,
+            category: track.category
           };
         }
         return { ...ch, active: false };
@@ -395,12 +407,31 @@ export default function App() {
     }
   }, [activePlaylistTracks, currentTrackIndex, playTrackInPlaylist]);
 
-  // When a track finishes on YouTube: auto-advance to next track!
+  // When a track finishes on YouTube: auto-advance only for Cinema/Series, NEVER for nature & lofi!
+  // Nature and Lo-Fi tracks loop continuously in place for the full Pomodoro duration
   const handleAmbientTrackEnded = useCallback(() => {
     if (isContinuousPlaylistMode) {
+      if (activeAmbientChannel && isNatureOrLofiTrack(activeAmbientChannel)) {
+        // Keep looping current single nature/lofi sound uninterrupted
+        return;
+      }
       handleNextAmbientTrack();
     }
-  }, [isContinuousPlaylistMode, handleNextAmbientTrack]);
+  }, [isContinuousPlaylistMode, activeAmbientChannel, handleNextAmbientTrack]);
+
+  // Stop all ambient channels and soundscapes when Pomodoro session finishes
+  useEffect(() => {
+    const handlePomodoroCompleted = () => {
+      setAmbientChannels(prev => prev.map(ch => (ch.active ? { ...ch, active: false } : ch)));
+      universalSynthService.stopAll();
+      woodRainSynth.stop();
+    };
+
+    window.addEventListener('vox_pomodoro_completed', handlePomodoroCompleted);
+    return () => {
+      window.removeEventListener('vox_pomodoro_completed', handlePomodoroCompleted);
+    };
+  }, []);
 
   return (
     <ThemeProvider>

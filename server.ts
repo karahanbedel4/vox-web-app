@@ -9,6 +9,7 @@ import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
 import * as cheerio from 'cheerio';
 import { GUIDE_ARTICLES } from './src/data/guides';
+import { INITIAL_ARTICLES } from './src/data/defaultArticles';
 
 const app = express();
 const PORT = 3000;
@@ -2355,6 +2356,244 @@ function normalizeTurkishForSlug(str: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
+// Escape XML entities for Sitemaps & RSS
+function escapeXml(str: string): string {
+  return (str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+// Escape HTML attribute values
+function escapeHtmlAttr(str: string): string {
+  return (str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// Unified Canonical Slug Generator (100% parity with frontend generateArticleSlug in newsService.ts)
+function generateCanonicalArticleSlug(title: string, id: string = ''): string {
+  const clean = (title || '')
+    .toLowerCase()
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 80);
+
+  const idHash = id ? id.replace(/[^a-z0-9]/gi, '').slice(-5) : '';
+  const suffix = idHash ? `${idHash}-voxozet` : 'voxozet';
+  return `${clean}-${suffix}`;
+}
+
+// Comprehensive Article Lookup: Matches IDs, hashes, canonical slugs, and normalized titles
+function findArticleInServer(slugOrId: string): CachedNewsArticle | null {
+  if (!slugOrId) return null;
+  const rawDecoded = decodeURIComponent(slugOrId).toLowerCase().trim();
+  const cleanPath = rawDecoded.replace(/^\/?haber\//, '').split('?')[0].trim();
+  if (!cleanPath) return null;
+
+  // Suffix strip: "-voxozet" or "voxozet"
+  const stripped = cleanPath.replace(/-voxozet$/, '').replace(/voxozet$/, '');
+  
+  // Potential ID hash at the end (e.g. "...-lemeg" -> "lemeg")
+  const idHashMatch = stripped.match(/(?:^|-)([a-z0-9]{4,10})$/i);
+  const potentialHash = idHashMatch ? idHashMatch[1].toLowerCase() : '';
+  const titlePartOnly = potentialHash ? stripped.slice(0, -(potentialHash.length + 1)) : stripped;
+
+  const normStripped = normalizeTurkishForSlug(stripped);
+  const normTitlePart = normalizeTurkishForSlug(titlePartOnly);
+
+  // 1. Direct ID match in active serverNewsCache
+  let found = serverNewsCache.all.find(a => {
+    const aId = a.id.toLowerCase();
+    return aId === cleanPath || aId === stripped;
+  });
+
+  // 2. Exact canonical slug match
+  if (!found) {
+    found = serverNewsCache.all.find(a => {
+      const canonical = generateCanonicalArticleSlug(a.title, a.id).toLowerCase();
+      return canonical === cleanPath || canonical === stripped || canonical.replace(/-voxozet$/, '') === stripped;
+    });
+  }
+
+  // 3. ID Hash match (e.g. "lemeg" matching the last characters of article ID)
+  if (!found && potentialHash.length >= 4) {
+    found = serverNewsCache.all.find(a => {
+      const cleanId = a.id.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleanId.endsWith(potentialHash) || cleanId.includes(potentialHash);
+    });
+  }
+
+  // 4. Normalized title substring comparison
+  if (!found) {
+    found = serverNewsCache.all.find(a => {
+      const normTitle = normalizeTurkishForSlug(a.title);
+      if (normTitle.length >= 10) {
+        const checkChunk = normTitle.substring(0, Math.min(28, normTitle.length));
+        if (normStripped.includes(checkChunk) || normTitlePart.includes(checkChunk)) {
+          return true;
+        }
+        if (normTitlePart.length >= 10 && normTitle.includes(normTitlePart.substring(0, Math.min(28, normTitlePart.length)))) {
+          return true;
+        }
+      }
+      return false;
+    });
+  }
+
+  // 5. Fallback to INITIAL_ARTICLES
+  if (!found && typeof INITIAL_ARTICLES !== 'undefined') {
+    const staticFound = INITIAL_ARTICLES.find(a => {
+      const aId = a.id.toLowerCase();
+      if (aId === cleanPath || aId === stripped) return true;
+      const canonical = generateCanonicalArticleSlug(a.title, a.id).toLowerCase();
+      if (canonical === cleanPath || canonical === stripped || canonical.replace(/-voxozet$/, '') === stripped) return true;
+      if (potentialHash.length >= 4 && aId.endsWith(potentialHash)) return true;
+      const normTitle = normalizeTurkishForSlug(a.title);
+      if (normTitle.length >= 10) {
+        const checkChunk = normTitle.substring(0, Math.min(28, normTitle.length));
+        if (normStripped.includes(checkChunk) || normTitle.includes(normTitlePart.substring(0, Math.min(28, normTitlePart.length)))) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (staticFound) {
+      found = {
+        id: staticFound.id,
+        title: staticFound.title,
+        summary: staticFound.summary,
+        content: staticFound.content,
+        category: staticFound.category,
+        author: staticFound.author || 'VOX Editör Ekibi',
+        imageUrl: staticFound.imageUrl || 'https://voxozet.com/og-image.png',
+        hasRealImage: !!staticFound.imageUrl,
+        sourceType: 'rss',
+        sourceUrl: '',
+        durationSeconds: staticFound.durationSeconds || 180,
+        createdAt: staticFound.createdAt || new Date().toISOString(),
+        keyPoints: staticFound.keyPoints || []
+      };
+    }
+  }
+
+  // 6. Enrich with any cached scrape/AI details (especially high-res scraped imageUrl!)
+  if (found) {
+    const cacheKey = found.id || found.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const enriched = enrichedArticleCache.get(cacheKey);
+    if (enriched) {
+      return {
+        ...found,
+        summary: enriched.summary || found.summary,
+        content: enriched.content || found.content,
+        keyPoints: (enriched.keyPoints && enriched.keyPoints.length > 0) ? enriched.keyPoints : found.keyPoints,
+        imageUrl: enriched.imageUrl || found.imageUrl,
+        hasRealImage: !!(enriched.imageUrl || found.hasRealImage)
+      };
+    }
+  }
+
+  return found || null;
+}
+
+const INDEXNOW_KEY = 'c7489a2b5e1f0436d892b1234567890a';
+
+// Automated Search Engine Push Function: Pushes URLs to IndexNow (Bing/Yandex), Google Ping, Bing Ping, and WebSub
+async function autoPushLatestNewsToSearchEngines(articles?: CachedNewsArticle[]): Promise<{
+  success: boolean;
+  pushedCount: number;
+  results: Record<string, any>;
+}> {
+  const results: Record<string, any> = {};
+  const list = (articles && articles.length > 0) ? articles : serverNewsCache.all.slice(0, 50);
+  
+  if (list.length === 0) {
+    return { success: false, pushedCount: 0, results: { note: 'No articles in cache to push' } };
+  }
+
+  const baseUrl = 'https://voxozet.com';
+  const urlsToPush = list.map(a => `${baseUrl}/haber/${generateCanonicalArticleSlug(a.title, a.id)}`);
+
+  // 1. Push to IndexNow API (Instant indexing for Bing, Yandex, Seznam, Naver)
+  try {
+    const indexNowPayload = {
+      host: 'voxozet.com',
+      key: INDEXNOW_KEY,
+      keyLocation: `${baseUrl}/${INDEXNOW_KEY}.txt`,
+      urlList: urlsToPush
+    };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const [indexNowRes, bingIndexNowRes] = await Promise.allSettled([
+      fetch('https://api.indexnow.org/indexnow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(indexNowPayload),
+        signal: controller.signal
+      }),
+      fetch('https://www.bing.com/indexnow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(indexNowPayload),
+        signal: controller.signal
+      })
+    ]);
+    clearTimeout(timeout);
+
+    results.indexNow = indexNowRes.status === 'fulfilled' ? { status: indexNowRes.value.status, ok: indexNowRes.value.ok } : { status: 'failed' };
+    results.bingIndexNow = bingIndexNowRes.status === 'fulfilled' ? { status: bingIndexNowRes.value.status, ok: bingIndexNowRes.value.ok } : { status: 'failed' };
+  } catch (err: any) {
+    results.indexNowError = err?.message;
+  }
+
+  // 2. Ping Google & Bing Sitemaps
+  try {
+    const sitemapUrl = encodeURIComponent(`${baseUrl}/sitemap.xml`);
+    const [googlePing, bingPing] = await Promise.allSettled([
+      fetch(`https://www.google.com/ping?sitemap=${sitemapUrl}`),
+      fetch(`https://www.bing.com/ping?sitemap=${sitemapUrl}`)
+    ]);
+    results.googleSitemapPing = googlePing.status === 'fulfilled' ? { status: googlePing.value.status } : { status: 'error' };
+    results.bingSitemapPing = bingPing.status === 'fulfilled' ? { status: bingPing.value.status } : { status: 'error' };
+  } catch (err: any) {
+    results.sitemapPingError = err?.message;
+  }
+
+  // 3. Ping Google PubSubHubbub (WebSub) for instant RSS indexing
+  try {
+    const hubBody = new URLSearchParams({
+      'hub.mode': 'publish',
+      'hub.url': `${baseUrl}/rss.xml`
+    }).toString();
+
+    const hubRes = await fetch('https://pubsubhubbub.appspot.com/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: hubBody
+    });
+    results.pubsubhubbub = { status: hubRes.status, ok: hubRes.ok };
+  } catch (err: any) {
+    results.pubsubhubbubError = err?.message;
+  }
+
+  console.log(`[VOX SEO Auto-Push] Successfully broadcast ${urlsToPush.length} news URLs to search engines (IndexNow, Google, Bing, WebSub).`);
+  return { success: true, pushedCount: urlsToPush.length, results };
+}
+
 // Deep Live Web Article Scraper: Extracts real spot lead, paragraphs, headings, and high-res image using Cheerio & Readability
 async function scrapeArticleDetails(pageUrl: string): Promise<ScrapedArticleDetails | null> {
   if (!pageUrl || !pageUrl.startsWith('http')) return null;
@@ -3051,6 +3290,11 @@ async function refreshServerNewsWorker(): Promise<void> {
 
       console.log(`[VOX News Worker] Cache updated: ${serverNewsCache.all.length} active fresh articles across ${Object.keys(byCategoryMap).length} categories.`);
 
+      // Automatically broadcast fresh URLs to Google, Bing, IndexNow, and WebSub
+      autoPushLatestNewsToSearchEngines(serverNewsCache.all.slice(0, 50)).catch(err => {
+        console.warn('[SEO Push Worker] Notice:', err?.message);
+      });
+
       // Proactively enrich newest articles with original full body and spot summaries
       autoEnrichLatestArticlesWorker(serverNewsCache.all).catch(e => {
         console.warn('[VOX News Worker] Auto-enrich background notice:', e);
@@ -3179,26 +3423,8 @@ app.get('/api/news/article/:idOrSlug', async (req, res) => {
     const decoded = decodeURIComponent(idOrSlug).toLowerCase().trim();
     const normDecoded = normalizeTurkishForSlug(decoded).replace(/voxozet$/, '');
 
-    // 1. Direct ID match
-    let found = serverNewsCache.all.find(a => a.id.toLowerCase() === decoded);
-
-    // 2. Robust Turkish Slug & Title Match
-    if (!found) {
-      found = serverNewsCache.all.find(a => {
-        const normTitle = normalizeTurkishForSlug(a.title);
-        const normId = normalizeTurkishForSlug(a.id);
-        
-        // Match by title substring (first 30 characters)
-        if (normDecoded.includes(normTitle.substring(0, 30)) || normTitle.includes(normDecoded.substring(0, 30))) {
-          return true;
-        }
-        // Match by ID suffix or cleaned slug
-        if (normId.length > 8 && normDecoded.includes(normId.slice(-10))) {
-          return true;
-        }
-        return false;
-      });
-    }
+    // 1. Direct and robust resolution via findArticleInServer
+    let found = findArticleInServer(idOrSlug);
 
     // 3. Query param dynamic construction if not found in memory cache
     if (!found && (req.query.url || req.query.title)) {
@@ -3430,26 +3656,15 @@ app.get(['/sitemap.xml', '/sitemap'], (req, res) => {
 `;
     }
 
-    // Dynamic cached articles in memory
+    // Dynamic cached articles in memory (up to 200)
     const articles = serverNewsCache.all.slice(0, 200);
     for (const article of articles) {
       if (!article.title) continue;
 
-      const cleanSlug = article.title
-        .toLowerCase()
-        .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .substring(0, 60);
-
+      const slug = generateCanonicalArticleSlug(article.title, article.id);
       const pubDate = article.createdAt ? new Date(article.createdAt).toISOString() : now;
-      const articleUrl = `${baseUrl}/haber/${cleanSlug}-voxozet`;
-      const escapedTitle = article.title
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
+      const articleUrl = `${baseUrl}/haber/${slug}`;
+      const escapedTitle = escapeXml(article.title);
 
       xml += `  <url>
     <loc>${articleUrl}</loc>
@@ -3466,7 +3681,7 @@ app.get(['/sitemap.xml', '/sitemap'], (req, res) => {
     </news:news>`;
 
       if (article.imageUrl && article.imageUrl.startsWith('http')) {
-        const escapedImg = article.imageUrl.replace(/&/g, '&amp;');
+        const escapedImg = escapeXml(article.imageUrl);
         xml += `
     <image:image>
       <image:loc>${escapedImg}</image:loc>
@@ -3484,6 +3699,146 @@ app.get(['/sitemap.xml', '/sitemap'], (req, res) => {
   } catch (e: any) {
     return res.status(500).send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`);
   }
+});
+
+// Dedicated Google News Sitemap (Strictly past 48 hours for Googlebot-News)
+app.get('/sitemap-news.xml', (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=600, s-maxage=1200');
+
+    const baseUrl = 'https://voxozet.com';
+    const now = new Date();
+    const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+
+    const freshArticles = serverNewsCache.all.filter(a => {
+      if (!a.title) return false;
+      if (!a.createdAt) return true;
+      const artDate = new Date(a.createdAt);
+      return !isNaN(artDate.getTime()) && artDate >= fortyEightHoursAgo;
+    }).slice(0, 100);
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+`;
+
+    for (const article of freshArticles) {
+      const slug = generateCanonicalArticleSlug(article.title, article.id);
+      const pubDate = article.createdAt ? new Date(article.createdAt).toISOString() : now.toISOString();
+      const articleUrl = `${baseUrl}/haber/${slug}`;
+      const escapedTitle = escapeXml(article.title);
+
+      xml += `  <url>
+    <loc>${articleUrl}</loc>
+    <news:news>
+      <news:publication>
+        <news:name>VOX</news:name>
+        <news:language>tr</news:language>
+      </news:publication>
+      <news:publication_date>${pubDate}</news:publication_date>
+      <news:title>${escapedTitle}</news:title>
+    </news:news>`;
+
+      if (article.imageUrl && article.imageUrl.startsWith('http')) {
+        const escapedImg = escapeXml(article.imageUrl);
+        xml += `
+    <image:image>
+      <image:loc>${escapedImg}</image:loc>
+      <image:title>${escapedTitle}</image:title>
+    </image:image>`;
+      }
+
+      xml += `
+  </url>
+`;
+    }
+
+    xml += `</urlset>`;
+    return res.send(xml);
+  } catch (err: any) {
+    return res.status(500).send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`);
+  }
+});
+
+// RSS 2.0 Feed with WebSub Hub for Google News and Instant Search Discovery
+app.get(['/rss.xml', '/feed.xml', '/rss'], (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=900, s-maxage=1800');
+
+    const baseUrl = 'https://voxozet.com';
+    const now = new Date().toUTCString();
+    const articles = serverNewsCache.all.slice(0, 60);
+
+    let rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" 
+     xmlns:atom="http://www.w3.org/2005/Atom"
+     xmlns:media="http://search.yahoo.com/mrss/"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>VOX | Oku, Dinle, Odaklan</title>
+    <link>${baseUrl}</link>
+    <description>Güncel haber akışında kalabalıktan kurtulun; yapay zeka ile haberleri sesli dinleyin ve odaklanın.</description>
+    <language>tr</language>
+    <lastBuildDate>${now}</lastBuildDate>
+    <atom:link rel="self" href="${baseUrl}/rss.xml" type="application/rss+xml" />
+    <atom:link rel="hub" href="https://pubsubhubbub.appspot.com/" />
+`;
+
+    for (const article of articles) {
+      if (!article.title) continue;
+      const slug = generateCanonicalArticleSlug(article.title, article.id);
+      const link = `${baseUrl}/haber/${slug}`;
+      const pubDate = article.createdAt ? new Date(article.createdAt).toUTCString() : now;
+      const title = escapeXml(article.title);
+      const desc = escapeXml(article.summary || article.title);
+      const category = escapeXml(article.category || 'Gündem');
+      const author = escapeXml(article.author || 'VOX Editör Ekibi');
+      const img = article.imageUrl && article.imageUrl.startsWith('http') ? escapeXml(article.imageUrl) : '';
+
+      rss += `    <item>
+      <title>${title}</title>
+      <link>${link}</link>
+      <guid isPermaLink="true">${link}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <description>${desc}</description>
+      <category>${category}</category>
+      <author>${author}</author>`;
+
+      if (img) {
+        rss += `
+      <enclosure url="${img}" type="image/jpeg" length="0" />
+      <media:content url="${img}" medium="image" />`;
+      }
+
+      rss += `
+    </item>
+`;
+    }
+
+    rss += `  </channel>
+</rss>`;
+    return res.send(rss);
+  } catch (err: any) {
+    return res.status(500).send(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>VOX</title></channel></rss>`);
+  }
+});
+
+// IndexNow Verification Token Endpoint (Enables Bing, Yandex, and partner search engines to verify domain ownership)
+app.get(['/c7489a2b5e1f0436d892b1234567890a.txt', '/indexnow-key.txt'], (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send(INDEXNOW_KEY);
+});
+
+// Dynamic IndexNow key route in case engine requests key matching the filename
+app.get('/:key([a-f0-9]{32}).txt', (req, res, next) => {
+  if (req.params.key === INDEXNOW_KEY) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    return res.send(INDEXNOW_KEY);
+  }
+  next();
 });
 
 // Dynamic Robots.txt Endpoint
@@ -3514,6 +3869,26 @@ User-agent: Googlebot-News
 Allow: /
 Allow: /haber/
 
+User-agent: Bingbot
+Allow: /
+Allow: /haber/
+
+User-agent: Twitterbot
+Allow: /
+Allow: /haber/
+
+User-agent: facebookexternalhit
+Allow: /
+Allow: /haber/
+
+User-agent: WhatsApp
+Allow: /
+Allow: /haber/
+
+User-agent: TelegramBot
+Allow: /
+Allow: /haber/
+
 User-agent: Mediapartners-Google
 Allow: /
 
@@ -3521,6 +3896,7 @@ User-agent: Google-AdSense-Bot
 Allow: /
 
 Sitemap: https://voxozet.com/sitemap.xml
+Sitemap: https://voxozet.com/sitemap-news.xml
 `);
 });
 
@@ -3531,34 +3907,23 @@ app.get('/ads.txt', (req, res) => {
   res.send(`google.com, pub-4663082689738592, DIRECT, f08c47fec0942fa0\n`);
 });
 
-// Search Engine Sitemap Ping Endpoint (Google & Bing)
-app.get('/api/seo/ping-sitemap', async (req, res) => {
-  const sitemapUrl = encodeURIComponent('https://voxozet.com/sitemap.xml');
-  const googlePing = `https://www.google.com/ping?sitemap=${sitemapUrl}`;
-  const bingPing = `https://www.bing.com/ping?sitemap=${sitemapUrl}`;
-
-  const results: Record<string, any> = {};
-
+// Automated Live Push to Search Engines (IndexNow, Google Ping, Bing Ping, WebSub)
+app.all(['/api/seo/auto-push-now', '/api/seo/ping-sitemap'], async (req, res) => {
   try {
-    const googleRes = await fetch(googlePing);
-    results.google = { status: googleRes.status, ok: googleRes.ok };
+    const pushResult = await autoPushLatestNewsToSearchEngines();
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      sitemaps: [
+        'https://voxozet.com/sitemap.xml',
+        'https://voxozet.com/sitemap-news.xml'
+      ],
+      rss: 'https://voxozet.com/rss.xml',
+      ...pushResult
+    });
   } catch (err: any) {
-    results.google = { status: 'error', message: err?.message };
+    res.status(500).json({ success: false, error: err?.message });
   }
-
-  try {
-    const bingRes = await fetch(bingPing);
-    results.bing = { status: bingRes.status, ok: bingRes.ok };
-  } catch (err: any) {
-    results.bing = { status: 'error', message: err?.message };
-  }
-
-  res.json({
-    success: true,
-    timestamp: new Date().toISOString(),
-    sitemap: 'https://voxozet.com/sitemap.xml',
-    results
-  });
 });
 
 // Quota & Cloud Health Status Endpoint
@@ -4475,23 +4840,28 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
 
   // 6. HABER DETAYI (/haber/:slug)
   else if (reqPath.startsWith('/haber/')) {
-    const slug = reqPath.replace('/haber/', '').split('?')[0].toLowerCase().trim();
-    const article = serverNewsCache.all.find(a => {
-      const cleanSlug = a.title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').substring(0, 40);
-      return (cleanSlug && slug.includes(cleanSlug)) || a.id.toLowerCase() === slug || slug.includes(a.id.toLowerCase());
-    });
+    const article = findArticleInServer(reqPath);
 
     if (article) {
-      const cacheKey = article.id || article.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const enriched = enrichedArticleCache.get(cacheKey);
-      const fullArt = enriched ? { ...article, ...enriched } : article;
-
+      const fullArt = article;
+      const canonicalSlug = generateCanonicalArticleSlug(fullArt.title, fullArt.id);
+      const artUrl = `https://voxozet.com/haber/${canonicalSlug}`;
       const artTitle = `${fullArt.title} | VOX`;
       const displaySummary = fullArt.summary || fullArt.title;
-      const artDesc = displaySummary.replace(/["'\n\r]/g, ' ').substring(0, 200).trim();
-      const artImg = fullArt.imageUrl || 'https://voxozet.com/og-image.png';
-      const artUrl = `https://voxozet.com/haber/${slug}`;
-      const pubDate = fullArt.createdAt || new Date().toISOString();
+      const artDesc = displaySummary.replace(/["'\n\r]/g, ' ').substring(0, 220).trim();
+      
+      // Ensure image is a complete, absolute HTTPS URL for social media crawlers
+      let artImg = fullArt.imageUrl || '';
+      if (!artImg || artImg.trim() === '' || artImg.includes('default-fallback')) {
+        artImg = 'https://voxozet.com/og-image.png';
+      } else if (artImg.startsWith('//')) {
+        artImg = `https:${artImg}`;
+      } else if (artImg.startsWith('/')) {
+        artImg = `https://voxozet.com${artImg}`;
+      }
+
+      const imgType = artImg.endsWith('.png') ? 'image/png' : (artImg.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
+      const pubDate = fullArt.createdAt ? new Date(fullArt.createdAt).toISOString() : new Date().toISOString();
 
       const schemaJson = JSON.stringify({
         '@context': 'https://schema.org',
@@ -4536,7 +4906,7 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
             <div style="font-size: 13px; color: #64748b;">Yayın Tarihi: ${pubDate.split('T')[0]} • Kaynak: ${fullArt.author || 'VOX Haber'}</div>
           </header>
 
-          ${artImg ? `<div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; max-height: 480px;"><img src="${artImg}" alt="${fullArt.title}" style="width: 100%; height: auto; object-fit: cover; display: block;" /></div>` : ''}
+          ${artImg ? `<div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; max-height: 480px;"><img src="${artImg}" alt="${escapeHtmlAttr(fullArt.title)}" style="width: 100%; height: auto; object-fit: cover; display: block;" /></div>` : ''}
 
           <!-- Haberin Özeti -->
           <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 18px 20px; border-radius: 8px; margin-bottom: 28px;">
@@ -4556,19 +4926,35 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
         </article>
       `;
 
+      const extraArticleMeta = `
+    <meta property="article:published_time" content="${pubDate}" />
+    <meta property="article:modified_time" content="${pubDate}" />
+    <meta property="article:section" content="${escapeHtmlAttr(fullArt.category || 'Gündem')}" />
+    <meta property="article:author" content="${escapeHtmlAttr(fullArt.author || 'VOX Editör Ekibi')}" />
+    <script type="application/ld+json">${schemaJson}</script>`;
+
       modifiedTemplate = modifiedTemplate
-        .replace(/<title>.*?<\/title>/, `<title>${artTitle}</title>`)
-        .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${artTitle}" />`)
-        .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${artDesc}" />`)
-        .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${artTitle}" />`)
-        .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${artDesc}" />`)
+        .replace(/<title>.*?<\/title>/, `<title>${escapeHtmlAttr(artTitle)}</title>`)
+        .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${escapeHtmlAttr(artTitle)}" />`)
+        .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${escapeHtmlAttr(artDesc)}" />`)
+        .replace(/<link rel="canonical" href=".*?" \/>/, `<link rel="canonical" href="${artUrl}" />`)
+        .replace(/<meta property="og:type" content=".*?" \/>/, `<meta property="og:type" content="article" />`)
+        .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${escapeHtmlAttr(artTitle)}" />`)
+        .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${escapeHtmlAttr(artDesc)}" />`)
         .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${artUrl}" />`)
         .replace(/<meta property="og:image" content=".*?" \/>/, `<meta property="og:image" content="${artImg}" />`)
-        .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${artTitle}" />`)
-        .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${artDesc}" />`)
+        .replace(/<meta property="og:image:secure_url" content=".*?" \/>/, `<meta property="og:image:secure_url" content="${artImg}" />`)
+        .replace(/<meta property="og:image:type" content=".*?" \/>/, `<meta property="og:image:type" content="${imgType}" />`)
+        .replace(/<meta property="og:image:width" content=".*?" \/>/, `<meta property="og:image:width" content="1200" />`)
+        .replace(/<meta property="og:image:height" content=".*?" \/>/, `<meta property="og:image:height" content="630" />`)
+        .replace(/<meta property="og:image:alt" content=".*?" \/>/, `<meta property="og:image:alt" content="${escapeHtmlAttr(fullArt.title)}" />`)
+        .replace(/<meta name="twitter:card" content=".*?" \/>/, `<meta name="twitter:card" content="summary_large_image" />`)
+        .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${escapeHtmlAttr(artTitle)}" />`)
+        .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${escapeHtmlAttr(artDesc)}" />`)
         .replace(/<meta name="twitter:image" content=".*?" \/>/, `<meta name="twitter:image" content="${artImg}" />`)
+        .replace(/<meta name="twitter:image:alt" content=".*?" \/>/, `<meta name="twitter:image:alt" content="${escapeHtmlAttr(fullArt.title)}" />`)
         .replace(/<meta name="twitter:url" content=".*?" \/>/, `<meta name="twitter:url" content="${artUrl}" />`)
-        .replace('</head>', `  <script type="application/ld+json">${schemaJson}</script>\n  </head>`);
+        .replace('</head>', `${extraArticleMeta}\n  </head>`);
     }
   }
 

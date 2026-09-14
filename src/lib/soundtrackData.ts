@@ -730,8 +730,43 @@ export function convertTrackToAmbientChannel(track: SoundTrack, volume: number =
     url: track.audioUrl || (track.youtubeId ? `https://www.youtube.com/watch?v=${track.youtubeId}` : undefined),
     youtubeId: track.youtubeId,
     volume,
-    active
+    active,
+    category: track.category
   };
+}
+
+/**
+ * Checks whether a channel or track is a nature or lofi sound
+ * Used to loop these tracks endlessly during Pomodoro focus sessions
+ */
+export function isNatureOrLofiTrack(channel: { id?: string; category?: string; name?: string }): boolean {
+  if (channel.category === 'nature' || channel.category === 'lofi') return true;
+  const id = (channel.id || '').toLowerCase();
+  const name = (channel.name || '').toLowerCase();
+  
+  if (
+    id.includes('nature') || id.includes('lofi') || id.includes('stream-') ||
+    id.includes('rain') || id.includes('forest') || id.includes('ocean') || 
+    id.includes('fire') || id.includes('cafe') || id.includes('thunder') || 
+    id.includes('wind') || id.includes('crickets') || id.includes('september') || 
+    id.includes('sleepy') || id.includes('delight') || id.includes('cradle') || 
+    id.includes('catwalk') || id.includes('dreaming') || id.includes('valley') || 
+    id.includes('coding') || id.includes('holidays')
+  ) {
+    return true;
+  }
+  
+  if (
+    name.includes('yağmur') || name.includes('orman') || name.includes('kuş') || 
+    name.includes('dalga') || name.includes('okyanus') || name.includes('şömine') || 
+    name.includes('ateş') || name.includes('kafe') || name.includes('fırtına') || 
+    name.includes('rüzgar') || name.includes('cırcır') || name.includes('lofi') || 
+    name.includes('lo-fi') || name.includes('chill')
+  ) {
+    return true;
+  }
+  
+  return false;
 }
 
 // Convert all tracks to default AmbientChannels
