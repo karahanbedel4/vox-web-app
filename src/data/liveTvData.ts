@@ -22,33 +22,238 @@ export interface LiveTvCategoryInfo {
   keywords: string[];
 }
 
+export const TARGET_KEYWORDS_CANLI_TV: string[] = [
+  'kanallar canlı tv',
+  'canl tv izle',
+  'tv kanallar listesi',
+  'canl tv izle trt 1',
+  'canl tv kanal d',
+  'canl tv',
+  'televizyon kanallar indir ucretsiz',
+  'tv kanallar listesi indir',
+  'mobil tv',
+  'canli tv izle',
+  'canli tv',
+  'canli tv izle trt',
+  'tv8 canli izle',
+  'canli tv izle trt1',
+  'canli tv8',
+  'canli tv now',
+  'canli tv ictimai',
+  'canli tv az',
+  'canli tv star',
+  'trt1 canl tv izle',
+  'canlı tv',
+  'canlı tay tv',
+  'canlı show tv izle',
+  'canlı show tv',
+  'canlı star tv izle',
+  'canlı tjk tv',
+  'canlı halk tv',
+  'canlı star tv',
+  'canlı yayın show tv'
+];
+
+export interface TvDirectoryChannel {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  highlight: string;
+  streamUrl?: string;
+  keywords: string[];
+  badge?: string;
+}
+
+export const TV_DIRECTORY_CHANNELS: TvDirectoryChannel[] = [
+  {
+    id: 'trt-1',
+    name: 'TRT 1',
+    category: 'Ulusal',
+    description: 'TRT 1 canlı yayın: Gönül Dağı, Teşkilat, milli maçlar ve Türkiye’nin kamu yayıncısı TRT 1 HD canlı izleme sayfası.',
+    highlight: 'Diziler, Milli Maçlar & Haber',
+    keywords: ['canl tv izle trt 1', 'canli tv izle trt', 'canli tv izle trt1', 'trt1 canl tv izle'],
+    badge: 'Kamu Yayıncısı'
+  },
+  {
+    id: 'tv8',
+    name: 'TV8',
+    category: 'Eğlence',
+    description: 'TV8 canlı izle: MasterChef Türkiye, Survivor, O Ses Türkiye ve TV8 canlı yayın akışını kesintisiz ve donmadan takip edin.',
+    highlight: 'Survivor & MasterChef',
+    keywords: ['tv8 canli izle', 'canli tv8'],
+    badge: 'Popüler Eğlence'
+  },
+  {
+    id: 'show-tv',
+    name: 'Show TV',
+    category: 'Ulusal',
+    description: 'Canlı Show TV izle: Kızılcık Şerbeti, Bahar, Deha dizileri, Güldür Güldür Show ve Show Ana Haber bülteni canlı yayında.',
+    highlight: 'Kızılcık Şerbeti, Bahar, Deha',
+    keywords: ['canlı show tv izle', 'canlı show tv', 'canlı yayın show tv'],
+    badge: 'Ulusal Kanal'
+  },
+  {
+    id: 'star-tv',
+    name: 'Star TV',
+    category: 'Ulusal',
+    description: 'Canlı Star TV izle: Yalı Çapkını, Sahipsizler dizileri ve Star TV HD canlı yayın akışını yüksek kalitede izleyin.',
+    highlight: 'Yalı Çapkını & Star Haber',
+    keywords: ['canli tv star', 'canlı star tv izle', 'canlı star tv'],
+    badge: 'Ulusal Kanal'
+  },
+  {
+    id: 'kanal-d',
+    name: 'Kanal D',
+    category: 'Ulusal',
+    description: 'Canlı TV Kanal D izle: İnci Taneleri, Arka Sokaklar, Kanal D Ana Haber ve sevilen dizilerin canlı yayın akışı.',
+    highlight: 'İnci Taneleri & Arka Sokaklar',
+    keywords: ['canl tv kanal d', 'kanal d canlı izle'],
+    badge: 'Ulusal Kanal'
+  },
+  {
+    id: 'now-tv',
+    name: 'NOW TV',
+    category: 'Ulusal',
+    description: 'Canlı TV NOW izle (eski FOX TV): Kızıl Goncalar, Hudutsuz Sevda, Selçuk Tepeli ile NOW Ana Haber canlı yayın akışı.',
+    highlight: 'Kızıl Goncalar & NOW Haber',
+    keywords: ['canli tv now', 'now tv canlı izle'],
+    badge: 'Ulusal Kanal'
+  },
+  {
+    id: 'halk-tv',
+    name: 'Halk TV',
+    category: 'Gündem',
+    description: 'Canlı Halk TV izle: Türkiye gündemi, canlı siyaset tartışmaları, son dakika haberleri ve tarafsız yorumlar.',
+    highlight: '7/24 Kesintisiz Canlı Yayın',
+    streamUrl: 'https://www.youtube.com/watch?v=jHMsvYrf-UA',
+    keywords: ['canlı halk tv', 'halk tv canlı izle'],
+    badge: 'Aktif Canlı Yayın'
+  },
+  {
+    id: 'tjk-tay-tv',
+    name: 'TJK TV & Tay TV',
+    category: 'Spor / Yarış',
+    description: 'Canlı TJK TV ve Tay TV izle: İstanbul Veliefendi, Ankara, İzmir hipodromu canlı at yarışları ve yarış analizleri.',
+    highlight: 'Canlı At Yarışı & Hipodrom',
+    keywords: ['canlı tjk tv', 'canlı tay tv', 'tjk tv canlı izle'],
+    badge: 'At Yarışı'
+  },
+  {
+    id: 'ictimai-aztv',
+    name: 'İctimai TV & AzTV',
+    category: 'Azerbaycan',
+    description: 'Canlı TV İctimai ve AzTV: Azerbaycan İctimai Televiziyası (İTV) ve AzTV canlı yayın akışı, haberler ve kültür yayınları.',
+    highlight: 'Azerbaycan Canlı Yayınları',
+    keywords: ['canli tv ictimai', 'canli tv az', 'ictimai tv canli'],
+    badge: 'Azerbaycan'
+  },
+  {
+    id: 'ht-spor',
+    name: 'HT Spor',
+    category: 'Spor',
+    description: 'HT Spor canlı izle: Süper Lig, transfer gelişmeleri, maç önü analizleri ve spor bültenleri kesintisiz canlı yayında.',
+    highlight: '7/24 Canlı HD Yayın',
+    streamUrl: 'https://www.youtube.com/watch?v=gcWaPe_LBMc',
+    keywords: ['ht spor canli', 'canlı spor tv izle'],
+    badge: 'Aktif Canlı Yayın'
+  },
+  {
+    id: 'a-spor',
+    name: 'A Spor',
+    category: 'Spor',
+    description: 'A Spor canlı izle: Kesintisiz canlı yayın akışı, maç özetleri, transfer haberleri ve tartışma programları.',
+    highlight: '7/24 Canlı HD Yayın',
+    streamUrl: 'https://www.youtube.com/watch?v=-zSaswVrQ_M',
+    keywords: ['a spor canli', 'aspor izle'],
+    badge: 'Aktif Canlı Yayın'
+  },
+  {
+    id: 'bein-sports-haber',
+    name: 'beIN SPORTS HABER',
+    category: 'Spor',
+    description: 'beIN SPORTS HABER canlı izle: Şifresiz HD canlı yayın, Trendyol Süper Lig, Avrupa ligleri ve spor analizleri.',
+    highlight: 'Şifresiz HD Spor Yayını',
+    streamUrl: 'https://www.youtube.com/watch?v=i7UpPgxfZZ8',
+    keywords: ['bein sports haber canli izle', 'canlı maç bültenleri'],
+    badge: 'Aktif Canlı Yayın'
+  }
+];
+
+export const LIVE_TV_SEO_FAQS = [
+  {
+    question: "Canlı TV izle: TRT 1, TV8, Show TV, Star TV, Kanal D ve NOW TV nasıl canlı izlenir?",
+    answer: "TRT 1, TV8, Show TV, Star TV, Kanal D ve NOW TV kanallarını VOX Canlı TV sayfası üzerinden kesintisiz, donmadan ve reklamsız izleyebilirsiniz. Platformumuz, resmi yayın akışlarını ve haber bültenlerini tek ekranda toplayarak tarayıcınızdan veya mobil cihazınızdan anında izleme olanağı sunar."
+  },
+  {
+    question: "TV kanalları listesi ve televizyon kanalları ücretsiz nasıl indirilir (Mobil TV)?",
+    answer: "VOX Mobil TV uygulamasını telefonunuza veya tabletinize indirmek için uygulama mağazası ücreti ödemeniz gerekmez. Tarayıcınızın 'Ana Ekrana Ekle' seçeneğini kullanarak Progressive Web App (PWA) olarak ücretsiz indirebilir, TV kanalları listesine ve canlı yayın akışlarına tek tıkla ana ekranınızdan erişebilirsiniz."
+  },
+  {
+    question: "Canlı TJK TV ve Tay TV at yarışı yayınları nereden izlenir?",
+    answer: "TJK TV ve Tay TV at yarışı canlı yayınları, Türkiye Jokey Kulübü resmi yayınları çerçevesinde İstanbul, Ankara, İzmir, Bursa, Adana ve Şanlıurfa hipodrom koşularını anlık olarak aktarmaktadır. Sayfamızdaki Spor kategorisinden hipodrom yayın detaylarına ulaşabilirsiniz."
+  },
+  {
+    question: "Canlı TV İctimai ve AzTV (Azerbaycan kanalları) yayını var mı?",
+    answer: "Evet. Kardeş ülke Azerbaycan'ın önde gelen televizyon kanalları İctimai TV (İTV) ve AzTV'nin güncel yayın bültenleri, Karabağ ve bölge haberleri VOX TV kanalları listesinde yer almaktadır."
+  },
+  {
+    question: "Canlı Halk TV, Sözcü TV ve haber kanalları kesintisiz nasıl izlenir?",
+    answer: "Halk TV, Sözcü TV, CNN TÜRK, NTV, Habertürk, TRT Haber, TV100 ve Haber Global kanallarının resmi YouTube canlı yayınları VOX Canlı TV'de 7/24 kesintisiz HD kalitesinde sunulmaktadır. Mozaik ekran modunda aynı anda birden fazla kanalı izleyebilir veya tek kanala odaklanabilirsiniz."
+  },
+  {
+    question: "Canlı TV izlerken donma veya yayın kopması yaşanır mı?",
+    answer: "VOX Canlı TV, doğrudan resmi CDN ve YouTube canlı akış altyapılarını entegre ettiği için internet bağlantınıza göre çözünürlüğü otomatik olarak ayarlar (1080p Full HD, 720p, 480p). Bu sayede mobil internette veya düşük hızlarda bile takılmadan akıcı canlı yayın sağlar."
+  }
+];
+
 export const LIVE_TV_CATEGORIES: LiveTvCategoryInfo[] = [
   {
     id: 'Tümü',
     name: 'Tümü',
     slug: '',
-    seoTitle: 'Canlı TV - Kesintisiz Haber ve Spor Kanalları İzle | VOX',
-    seoDescription: 'CNN TÜRK, Sözcü TV, NTV, Habertürk, HT Spor, A Spor, beIN Sports Haber, HalkTV ve Bloomberg HT canlı yayınlarını tek ekranda donmadan ve reklamsız izleyin.',
-    h1Title: 'Canlı TV - Kesintisiz Haber ve Spor Yayınları',
-    keywords: ['canlı tv izle', 'canlı haber izle', 'canlı spor kanalları', 'kesintisiz canlı tv']
+    seoTitle: 'Canlı TV İzle - TV Kanalları Listesi & Mobil TV | VOX',
+    seoDescription: 'Canlı tv izle: TRT 1, TV8, Show TV, Star TV, Kanal D, NOW TV, Halk TV, TJK TV ve İctimai TV kanallarını kesintisiz ve ücretsiz izleyin. Güncel tv kanalları listesi ve mobil tv yayını.',
+    h1Title: 'Canlı TV İzle - Kesintisiz TV Kanalları Listesi & Mobil TV',
+    keywords: TARGET_KEYWORDS_CANLI_TV
   },
   {
     id: 'Spor',
     name: 'Spor',
     slug: 'spor',
-    seoTitle: 'Canlı Spor TV - HT Spor, A Spor, beIN Sports Haber Canlı İzle | VOX',
-    seoDescription: 'HT Spor, A Spor ve beIN SPORTS HABER şifresiz HD canlı yayınlarını tek ekranda donmadan izleyin. Süper Lig maç özetleri, transfer haberleri ve canlı spor bültenleri.',
-    h1Title: 'Canlı Spor Kanalları - Kesintisiz HD Spor Yayınları',
-    keywords: ['canlı spor izle', 'ht spor canlı', 'aspor canlı izle', 'bein sports haber izle', 'canlı maç bültenleri']
+    seoTitle: 'Canlı Spor TV İzle - TJK TV, Tay TV, A Spor, HT Spor, beIN Canlı | VOX',
+    seoDescription: 'Canlı spor tv izle: Canlı TJK TV, Tay TV at yarışı, HT Spor, A Spor ve beIN SPORTS HABER şifresiz HD canlı yayınlarını tek ekranda donmadan ücretsiz izleyin.',
+    h1Title: 'Canlı Spor TV - TJK TV, Tay TV, A Spor, HT Spor Yayınları',
+    keywords: [
+      'canlı spor izle',
+      'canlı tjk tv',
+      'canlı tay tv',
+      'ht spor canlı',
+      'aspor canlı izle',
+      'bein sports haber izle',
+      'canlı maç bültenleri',
+      'şifresiz spor kanalları',
+      'canlı tv spor'
+    ]
   },
   {
     id: 'Gündem',
     name: 'Gündem',
     slug: 'gundem',
-    seoTitle: 'Canlı Haber Kanalları - CNN TÜRK, Sözcü TV, NTV, Habertürk İzle | VOX',
-    seoDescription: 'Türkiye’nin lider haber kanalları CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, TRT Haber ve TV100 canlı yayınlarını tek ekranda eş zamanlı takip edin.',
-    h1Title: 'Canlı Gündem ve Haber Kanalları',
-    keywords: ['canlı haber izle', 'cnn türk canlı', 'sözcü tv canlı', 'ntv canlı', 'habertürk canlı']
+    seoTitle: 'Canlı Haber TV İzle - TRT 1, Halk TV, Sözcü, CNN Türk, NTV Canlı | VOX',
+    seoDescription: 'Canlı haber tv izle: Canlı Halk TV, TRT 1, CNN TÜRK, Sözcü TV, NTV, Habertürk ve TV100 canlı yayınlarını tek ekranda kesintisiz ve donmadan takip edin.',
+    h1Title: 'Canlı Haber Kanalları - TRT, Halk TV, Sözcü, CNN Türk',
+    keywords: [
+      'canlı haber izle',
+      'canlı halk tv',
+      'trt1 canl tv izle',
+      'canli tv izle trt',
+      'canli tv izle trt1',
+      'cnn türk canlı',
+      'sözcü tv canlı',
+      'ntv canlı',
+      'habertürk canlı'
+    ]
   },
   {
     id: 'Ekonomi',
@@ -57,7 +262,13 @@ export const LIVE_TV_CATEGORIES: LiveTvCategoryInfo[] = [
     seoTitle: 'Canlı Ekonomi TV - Bloomberg HT Canlı Yayınları ve Borsa İzle | VOX',
     seoDescription: 'Bloomberg HT canlı yayını ile Borsa İstanbul, altın, dolar, euro ve küresel finans piyasalarını kesintisiz ve canlı olarak tek ekranda izleyin.',
     h1Title: 'Canlı Ekonomi ve Finans Yayınları',
-    keywords: ['bloomberg ht canlı', 'canlı borsa izle', 'ekonomi kanalları canlı', 'piyasa haberleri canlı']
+    keywords: [
+      'bloomberg ht canlı',
+      'canlı borsa izle',
+      'ekonomi kanalları canlı',
+      'piyasa haberleri canlı',
+      'canlı finans tv'
+    ]
   }
 ];
 

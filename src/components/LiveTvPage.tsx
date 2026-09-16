@@ -28,7 +28,15 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../lib/ThemeContext';
-import { LIVE_TV_CHANNELS, LIVE_TV_CATEGORIES, LiveTvChannel } from '../data/liveTvData';
+import { 
+  LIVE_TV_CHANNELS, 
+  LIVE_TV_CATEGORIES, 
+  LiveTvChannel, 
+  TV_DIRECTORY_CHANNELS, 
+  LIVE_TV_SEO_FAQS, 
+  TARGET_KEYWORDS_CANLI_TV,
+  TvDirectoryChannel 
+} from '../data/liveTvData';
 import { liveTvBackgroundAudio } from '../lib/liveTvBackgroundAudio';
 import { triggerHapticImpact } from '../lib/haptics';
 
@@ -241,6 +249,29 @@ export function LiveTvPage() {
     }
     metaDesc.setAttribute('content', activeCategoryInfo.seoDescription);
 
+    // Update meta keywords
+    let metaKeywords = document.querySelector('meta[name="keywords"]');
+    const prevKeywords = metaKeywords ? metaKeywords.getAttribute('content') : null;
+    if (!metaKeywords) {
+      metaKeywords = document.createElement('meta');
+      metaKeywords.setAttribute('name', 'keywords');
+      document.head.appendChild(metaKeywords);
+    }
+    const categoryKeywordsStr = activeCategoryInfo.keywords.join(', ');
+    metaKeywords.setAttribute('content', categoryKeywordsStr);
+
+    // Update Open Graph tags
+    let ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', activeCategoryInfo.seoTitle);
+    let ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', activeCategoryInfo.seoDescription);
+
+    // Update Twitter tags
+    let twitterTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twitterTitle) twitterTitle.setAttribute('content', activeCategoryInfo.seoTitle);
+    let twitterDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twitterDesc) twitterDesc.setAttribute('content', activeCategoryInfo.seoDescription);
+
     // Canonical link update
     const currentCanonicalUrl = activeCategoryInfo.slug 
       ? `https://voxozet.com/canli-tv/${activeCategoryInfo.slug}` 
@@ -271,6 +302,7 @@ export function LiveTvPage() {
           'url': currentCanonicalUrl,
           'name': activeCategoryInfo.seoTitle,
           'description': activeCategoryInfo.seoDescription,
+          'keywords': categoryKeywordsStr,
           'inLanguage': 'tr-TR',
           'isPartOf': {
             '@type': 'WebSite',
@@ -304,52 +336,47 @@ export function LiveTvPage() {
         },
         {
           '@type': 'ItemList',
-          'name': `${activeCategoryInfo.h1Title} Listesi`,
-          'numberOfItems': currentChannels.length,
-          'itemListElement': currentChannels.map((ch, index) => ({
-            '@type': 'ListItem',
-            'position': index + 1,
-            'name': ch.name,
-            'url': ch.youtubeUrl,
-            'description': ch.description
-          }))
+          'name': `${activeCategoryInfo.h1Title} & TV Kanalları Listesi`,
+          'numberOfItems': currentChannels.length + TV_DIRECTORY_CHANNELS.length,
+          'itemListElement': [
+            ...currentChannels.map((ch, index) => ({
+              '@type': 'ListItem',
+              'position': index + 1,
+              'name': ch.name,
+              'url': ch.youtubeUrl,
+              'description': ch.description
+            })),
+            ...TV_DIRECTORY_CHANNELS.map((td, index) => ({
+              '@type': 'ListItem',
+              'position': currentChannels.length + index + 1,
+              'name': td.name,
+              'url': `https://voxozet.com/canli-tv#${td.id}`,
+              'description': td.description
+            }))
+          ]
+        },
+        {
+          '@type': 'SoftwareApplication',
+          'name': 'VOX Mobil TV (PWA)',
+          'operatingSystem': 'Android, iOS, Windows, macOS',
+          'applicationCategory': 'EntertainmentApplication',
+          'offers': {
+            '@type': 'Offer',
+            'price': '0',
+            'priceCurrency': 'TRY'
+          },
+          'description': 'Kesintisiz canlı televizyon izleme ve mobil TV uygulaması. Ücretsiz indirin ve ana ekrana ekleyin.'
         },
         {
           '@type': 'FAQPage',
-          'mainEntity': [
-            {
-              '@type': 'Question',
-              'name': 'VOX Canlı TV sayfasında hangi spor ve haber kanalları yer alır?',
-              'acceptedAnswer': {
-                '@type': 'Answer',
-                'text': 'VOX Canlı TV sayfasında HT Spor, A Spor, beIN SPORTS HABER spor yayınlarının yanı sıra CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, Bloomberg HT, TRT Haber, TV100 ve Haber Global kanallarının resmi YouTube canlı yayınları kesintisiz izlenebilir.'
-              }
-            },
-            {
-              '@type': 'Question',
-              'name': 'A Spor, HT Spor ve beIN Sports Haber yayınları şifresiz ve ücretsiz midir?',
-              'acceptedAnswer': {
-                '@type': 'Answer',
-                'text': 'Evet. Sayfamızdaki spor kanalları resmi yayıncı kuruluşların YouTube üzerindeki açık ve şifresiz HD canlı bültenlerini aktarır. Tamamen ücretsizdir, abonelik gerekmez.'
-              }
-            },
-            {
-              '@type': 'Question',
-              'name': 'TRT Spor canlı yayını sayfada ne zaman açılır?',
-              'acceptedAnswer': {
-                '@type': 'Answer',
-                'text': 'TRT Spor yalnızca önemli maç ve özel spor başlıklarında YouTube üzerinden canlı yayın açmaktadır. Sistemimiz TRT Spor yayınını anlık algılar ve aktif olduğunda Spor sekmesine otomatik olarak yerleştirir.'
-              }
-            },
-            {
-              '@type': 'Question',
-              'name': 'Yayınların sesi neden sayfa açıldığında kapalıdır?',
-              'acceptedAnswer': {
-                '@type': 'Answer',
-                'text': 'Aynı anda birden fazla kanalın sesinin birbirine karışmasını önlemek ve tarayıcı ses politikalarına uyum sağlamak için tüm yayınlar varsayılan olarak sessiz başlar. İzlemek istediğiniz kanalın sesini tek tıkla açabilirsiniz.'
-              }
+          'mainEntity': LIVE_TV_SEO_FAQS.map(faq => ({
+            '@type': 'Question',
+            'name': faq.question,
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': faq.answer
             }
-          ]
+          }))
         }
       ]
     };
@@ -360,6 +387,9 @@ export function LiveTvPage() {
       document.title = prevTitle;
       if (prevDesc && metaDesc) {
         metaDesc.setAttribute('content', prevDesc);
+      }
+      if (prevKeywords && metaKeywords) {
+        metaKeywords.setAttribute('content', prevKeywords);
       }
       const existing = document.getElementById(jsonLdId);
       if (existing) {
@@ -1237,6 +1267,162 @@ export function LiveTvPage() {
           </div>
         )}
 
+        {/* TV KANALLARI LİSTESİ & REHBERİ (TRT 1, TV8, SHOW TV, STAR TV, KANAL D, NOW TV, HALK TV, TJK TV, İCTİMAİ TV) */}
+        <section 
+          id="tv-kanallari-listesi"
+          aria-labelledby="directory-section-heading"
+          className={`p-6 sm:p-8 rounded-2xl border transition-all ${
+            theme === 'light'
+              ? 'bg-white border-slate-200 shadow-sm'
+              : 'bg-[#101712] border-white/10 shadow-md'
+          }`}
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold text-red-500 uppercase tracking-wider">
+                <Tv className="w-4 h-4" />
+                <span>TV Kanalları Listesi & Rehber</span>
+              </div>
+              <h2 id="directory-section-heading" className="text-lg sm:text-xl font-black mt-1">
+                Türkiye & Azerbaycan Canlı TV Kanalları Listesi
+              </h2>
+              <p className={`text-xs sm:text-sm mt-1 leading-relaxed ${
+                theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
+              }`}>
+                TRT 1, TV8, Show TV, Star TV, Kanal D, NOW TV, Halk TV, TJK TV & Tay TV ve İctimai TV kanalları hakkında güncel yayın bilgileri ve izleme seçenekleri:
+              </p>
+            </div>
+            <span className="text-xs px-3 py-1.5 rounded-full bg-red-600/10 text-red-500 font-bold border border-red-500/20 whitespace-nowrap self-start md:self-auto">
+              Kesintisiz Canlı TV
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+            {TV_DIRECTORY_CHANNELS.map((ch) => {
+              const matchedLiveChannel = allChannels.find(c => 
+                c.name.toLowerCase().includes(ch.name.toLowerCase()) || 
+                ch.name.toLowerCase().includes(c.name.toLowerCase())
+              );
+
+              return (
+                <div 
+                  key={ch.id}
+                  id={ch.id}
+                  className={`p-4 rounded-xl border flex flex-col justify-between transition-all hover:border-red-500/30 ${
+                    theme === 'light'
+                      ? 'bg-slate-50 border-slate-200'
+                      : 'bg-white/[0.03] border-white/5'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="font-black text-base sm:text-lg text-red-500 tracking-tight">
+                        {ch.name}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {ch.badge && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
+                            {ch.badge}
+                          </span>
+                        )}
+                        <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium ${
+                          theme === 'light' ? 'bg-slate-200 text-slate-700' : 'bg-white/10 text-zinc-300'
+                        }`}>
+                          {ch.category}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-xs font-semibold text-emerald-500 mb-1.5">
+                      {ch.highlight}
+                    </div>
+
+                    <p className={`text-xs leading-relaxed mb-3 ${
+                      theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
+                    }`}>
+                      {ch.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/5 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-1">
+                      {ch.keywords.slice(0, 2).map((kw, ki) => (
+                        <span 
+                          key={ki} 
+                          className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${
+                            theme === 'light' ? 'bg-slate-200/70 text-slate-600' : 'bg-white/5 text-zinc-400'
+                          }`}
+                        >
+                          #{kw}
+                        </span>
+                      ))}
+                    </div>
+
+                    {matchedLiveChannel ? (
+                      <button
+                        onClick={() => {
+                          setFocusedChannelId(matchedLiveChannel.id);
+                          setViewMode('focus');
+                          setUnmutedChannelId(matchedLiveChannel.id);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          triggerHapticImpact();
+                        }}
+                        className="flex items-center gap-1 text-[11px] font-bold text-red-500 hover:text-red-400 whitespace-nowrap cursor-pointer transition-colors"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        <span>Canlı İzle</span>
+                      </button>
+                    ) : ch.streamUrl ? (
+                      <a 
+                        href={ch.streamUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[11px] font-bold text-red-500 hover:text-red-400 whitespace-nowrap transition-colors"
+                      >
+                        <span>İzle</span>
+                        <ArrowUpRight className="w-3 h-3" />
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* MOBİL TV & PWA ÜCRETSİZ İNDİR BİLGİ KARTI */}
+        <section 
+          id="mobil-tv-ucretsiz-indir"
+          className={`p-6 rounded-2xl border transition-all ${
+            theme === 'light'
+              ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200'
+              : 'bg-gradient-to-r from-emerald-950/20 to-teal-950/20 border-emerald-500/20'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 uppercase tracking-wider">
+                <Smartphone className="w-4 h-4" />
+                <span>Mobil TV & PWA</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
+                Televizyon Kanalları Ücretsiz İndir (Mobil TV)
+              </h3>
+              <p className={`text-xs sm:text-sm max-w-2xl leading-relaxed ${
+                theme === 'light' ? 'text-slate-600' : 'text-zinc-300'
+              }`}>
+                VOX Mobil TV uygulamasını telefonunuza tek tıkla ücretsiz indirin. Mağaza aramadan iPhone ve Android cihazınızda tarayıcınızın <strong>"Ana Ekrana Ekle"</strong> butonuna dokunarak TV kanalları listesine her an kesintisiz ve donmadan ulaşabilirsiniz.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-emerald-600 text-white shadow-sm flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5" />
+                <span>Ücretsiz Yükle</span>
+              </span>
+            </div>
+          </div>
+        </section>
+
         {/* SEO & GEMINI AI KNOWLEDGE HUB / FAQ SECTION */}
         <section 
           id="canli-tv-bilgi-merkezi"
@@ -1251,50 +1437,21 @@ export function LiveTvPage() {
             <div>
               <div className="flex items-center gap-2 text-xs font-bold text-red-500 uppercase tracking-wider">
                 <HelpCircle className="w-4 h-4" />
-                <span>Bilgi & Rehber</span>
+                <span>Google & Gemini AI Uyumlu SSS</span>
               </div>
               <h2 id="faq-section-heading" className="text-lg sm:text-xl font-black mt-1">
-                VOX Canlı TV Hakkında & Sıkça Sorulan Sorular
+                Canlı TV & Kanallar Hakkında Sıkça Sorulan Sorular
               </h2>
             </div>
             <div className="flex items-center gap-2 text-xs text-zinc-400">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Resmi YouTube API Akışları</span>
+              <span>Doğrulanmış Bilgi Altyapısı</span>
             </div>
           </div>
 
           {/* SSS / Accordion Items */}
           <div className="divide-y divide-white/10 mt-2">
-            {[
-              {
-                q: "VOX Canlı TV'de hangi haber ve spor kanalları yer alıyor?",
-                a: "VOX Canlı TV sayfasında HT Spor, A Spor, beIN SPORTS HABER spor yayınlarının yanı sıra CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, Bloomberg HT, TRT Haber, TV100 ve Haber Global kanallarının resmi canlı yayınları tek ekranda kesintisiz izlenebilir."
-              },
-              {
-                q: "Spor kanalları (A Spor, HT Spor, beIN Sports Haber) şifresiz ve ücretsiz midir?",
-                a: "Evet. VOX Canlı TV'de sunulan tüm spor kanalları resmi yayıncı kuruluşların YouTube üzerindeki açık, şifresiz ve yüksek kaliteli canlı bültenleridir. Üyelik veya ücret talep edilmez."
-              },
-              {
-                q: "TRT Spor canlı yayını ne zaman görünür?",
-                a: "TRT Spor kanalı yalnızca önemli spor etkinlikleri, maç özetleri ve özel bültenlerde YouTube üzerinde canlı yayın açmaktadır. Sistemimiz TRT Spor'un canlı yayın durumunu anlık olarak kontrol eder ve aktif canlı yayın olduğunda Spor kategorisinde otomatik olarak gösterir."
-              },
-              {
-                q: "Kategori filtreleri (/canli-tv/spor, /canli-tv/ekonomi) nasıl çalışır?",
-                a: "Üst kısımdaki Spor, Gündem, Ekonomi ve Tümü butonlarına basarak ilgili kategorideki kanalları anında listeleyebilirsiniz. Ayrıca doğrudan voxozet.com/canli-tv/spor veya /canli-tv/ekonomi bağlantılarını favorilerinize ekleyerek doğrudan hedef kanallara ulaşabilirsiniz."
-              },
-              {
-                q: "F11 Geniş Ekran ve Sinema Modu nasıl çalışır?",
-                a: "Klavyenizden F11 tuşuna bastığınızda veya üst araç çubuğundaki 'Geniş Ekran' butonuna tıkladığınızda sol kenar menüsü otomatik olarak gizlenir. Böylece tüm video kutuları ekranınızın tamamına yayılarak stadyum ve haber bülteni izleme keyfini artırır."
-              },
-              {
-                q: "Yayınların sesi neden başta kapalı ve ses nasıl açılır?",
-                a: "Aynı anda birden fazla kanalın sesinin birbirine girmesini önlemek ve tarayıcı ses politikalarına uymak için tüm yayınlar varsayılan olarak sessiz başlar. Takip etmek istediğiniz kanalın kutucuğundaki 'Sesi Aç' butonuna basarak anında net ses alabilirsiniz."
-              },
-              {
-                q: "Safari veya Chrome'u aşağı aldığımda (arka plana attığımda) yayın sesi çalmaya devam eder mi?",
-                a: "Evet! VOX Canlı TV, iOS (Safari/Chrome) ve Android (Chrome/Edge/Samsung Internet) sistemleri için MediaSession ve arka plan ses koruması desteği sunar. Bir kanalın sesini açtıktan sonra tarayıcıyı alta alsanız veya ekranı kilitleseniz dahi yayın sesi kesilmeden devam eder. Ayrıca kilit ekranındaki veya bildirim çekmecesindeki medya denetimlerinden yayını durdurabilir, sayfaya döndüğünüzde açılır bildirimden hangi kanalın sesinin açık olduğunu anında görebilirsiniz."
-              }
-            ].map((faq, idx) => {
+            {LIVE_TV_SEO_FAQS.map((faq, idx) => {
               const isOpen = openFaqIndex === idx;
               return (
                 <div key={idx} className="py-4">
@@ -1303,7 +1460,7 @@ export function LiveTvPage() {
                     className="w-full flex items-center justify-between text-left font-bold text-sm sm:text-base gap-4 cursor-pointer group"
                     aria-expanded={isOpen}
                   >
-                    <span className="group-hover:text-red-500 transition-colors">{faq.q}</span>
+                    <span className="group-hover:text-red-500 transition-colors">{faq.question}</span>
                     <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-red-500' : 'text-zinc-400'}`} />
                   </button>
                   <AnimatePresence>
@@ -1317,7 +1474,7 @@ export function LiveTvPage() {
                         <p className={`text-xs sm:text-sm mt-2.5 leading-relaxed ${
                           theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
                         }`}>
-                          {faq.a}
+                          {faq.answer}
                         </p>
                       </motion.div>
                     )}

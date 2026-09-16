@@ -4646,17 +4646,19 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
     const isEkonomi = reqPath === '/canli-tv/ekonomi';
     const isGundem = reqPath === '/canli-tv/gundem';
 
-    let tvTitle = 'Canlı TV - Kesintisiz Haber ve Spor Kanalları İzle | VOX';
-    let tvDesc = 'CNN TÜRK, Sözcü TV, NTV, Habertürk, HT Spor, A Spor, beIN Sports Haber, HalkTV ve Bloomberg HT canlı yayınlarını tek ekranda donmadan ve reklamsız izleyin.';
+    const tvKeywords = 'kanallar canlı tv, canl tv izle, tv kanallar listesi, canl tv izle trt 1, canl tv kanal d, canl tv, televizyon kanallar indir ucretsiz, tv kanallar listesi indir, mobil tv, canli tv izle, canli tv, canli tv izle trt, tv8 canli izle, canli tv izle trt1, canli tv8, canli tv now, canli tv ictimai, canli tv az, canli tv star, trt1 canl tv izle, canlı tv, canlı tay tv, canlı show tv izle, canlı show tv, canlı star tv izle, canlı tjk tv, canlı halk tv, canlı star tv, canlı yayın show tv, kesintisiz canlı tv, hd canli tv';
+
+    let tvTitle = 'Canlı TV İzle - TV Kanalları Listesi & Mobil TV | VOX';
+    let tvDesc = 'Canlı tv izle: TRT 1, TV8, Show TV, Star TV, Kanal D, NOW TV, Halk TV, TJK TV ve İctimai TV kanallarını kesintisiz ve ücretsiz izleyin. Güncel tv kanalları listesi ve mobil tv yayını.';
     let tvUrl = 'https://voxozet.com/canli-tv';
-    let pageH1 = 'Canlı TV - Kesintisiz Haber ve Spor Yayınları';
+    let pageH1 = 'Canlı TV İzle - Kesintisiz TV Kanalları Listesi & Mobil TV';
     let breadcrumbName = 'Canlı TV';
 
     if (isSpor) {
-      tvTitle = 'Canlı Spor TV - HT Spor, A Spor, beIN Sports Haber Canlı İzle | VOX';
-      tvDesc = 'HT Spor, A Spor ve beIN SPORTS HABER şifresiz HD canlı yayınlarını tek ekranda donmadan izleyin. Süper Lig maç özetleri, transfer haberleri ve canlı spor bültenleri.';
+      tvTitle = 'Canlı Spor TV İzle - TJK TV, Tay TV, A Spor, HT Spor, beIN Canlı | VOX';
+      tvDesc = 'Canlı spor tv izle: Canlı TJK TV, Tay TV at yarışı, HT Spor, A Spor ve beIN SPORTS HABER şifresiz HD canlı yayınlarını tek ekranda donmadan ücretsiz izleyin.';
       tvUrl = 'https://voxozet.com/canli-tv/spor';
-      pageH1 = 'Canlı Spor Kanalları - Kesintisiz HD Spor Yayınları';
+      pageH1 = 'Canlı Spor TV - TJK TV, Tay TV, A Spor, HT Spor Yayınları';
       breadcrumbName = 'Spor Kanalları';
     } else if (isEkonomi) {
       tvTitle = 'Canlı Ekonomi TV - Bloomberg HT Canlı Borsa ve Piyasa Yayınları | VOX';
@@ -4665,10 +4667,10 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
       pageH1 = 'Canlı Ekonomi ve Finans Yayınları';
       breadcrumbName = 'Ekonomi Kanalları';
     } else if (isGundem) {
-      tvTitle = 'Canlı Haber Kanalları - CNN TÜRK, Sözcü TV, NTV, Habertürk İzle | VOX';
-      tvDesc = 'Türkiye’nin lider haber kanalları CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, TRT Haber ve TV100 canlı yayınlarını tek ekranda eş zamanlı takip edin.';
+      tvTitle = 'Canlı Haber TV İzle - TRT 1, Halk TV, Sözcü, CNN Türk, NTV Canlı | VOX';
+      tvDesc = 'Canlı haber tv izle: Canlı Halk TV, TRT 1, CNN TÜRK, Sözcü TV, NTV, Habertürk ve TV100 canlı yayınlarını tek ekranda kesintisiz ve donmadan takip edin.';
       tvUrl = 'https://voxozet.com/canli-tv/gundem';
-      pageH1 = 'Canlı Gündem ve Haber Kanalları';
+      pageH1 = 'Canlı Haber Kanalları - TRT, Halk TV, Sözcü, CNN Türk';
       breadcrumbName = 'Haber Kanalları';
     }
 
@@ -4678,13 +4680,25 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
       { name: 'beIN SPORTS HABER', desc: 'beIN SPORTS HABER şifresiz HD canlı yayını, Trendyol Süper Lig, Avrupa ligleri ve spor analizleri.', cat: 'Spor', url: 'https://www.youtube.com/watch?v=i7UpPgxfZZ8' },
       { name: 'CNN TÜRK', desc: 'Son dakika Türkiye ve dünya haberleri, canlı analizler.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=6N8_r2uwLEc' },
       { name: 'Sözcü TV', desc: 'Bağımsız haber bültenleri, gündem programları ve canlı yayın.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=ztmY_cCtUl0' },
-      { name: 'HalkTV', desc: 'Güncel siyaset, canlı tartışmalar ve Türkiye gündemi.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=jHMsvYrf-UA' },
+      { name: 'HalkTV', desc: 'Canlı Halk TV izle: Güncel siyaset, canlı tartışmalar, son dakika haberleri ve Türkiye gündemi.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=jHMsvYrf-UA' },
       { name: 'Habertürk', desc: 'Ekonomi, politika ve anlık sıcak gelişmeler canlı yayında.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=RNVNlJSUFoE' },
       { name: 'NTV', desc: 'Doğru ve tarafsız habercilik, teknoloji, kültür ve sanat.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=pqq5c6k70kk' },
       { name: 'Bloomberg HT', desc: 'Piyasalar, Borsa İstanbul, döviz ve küresel ekonomi analizleri.', cat: 'Ekonomi', url: 'https://www.youtube.com/watch?v=j7B_zsL11Pw' },
       { name: 'TRT Haber', desc: 'Kamu yayıncılığı, Türkiye ve dünyadan resmi bültenler.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=myv0L5yK_rY' },
       { name: 'TV100', desc: 'Özel haberler, canlı dosya konuları ve gündem yayınları.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=4WSvLRk83-c' },
       { name: 'Haber Global', desc: 'Uluslararası gelişmeler, sıcak haberler ve analizler.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=EqoCJ8BPxtE' }
+    ];
+
+    const directoryChannels = [
+      { name: 'TRT 1', cat: 'Ulusal', desc: 'TRT 1 canlı izle: Gönül Dağı, Teşkilat, milli maçlar ve TRT 1 HD canlı yayın akışı.', kw: 'canl tv izle trt 1, canli tv izle trt, trt1 canl tv izle' },
+      { name: 'TV8', cat: 'Eğlence', desc: 'TV8 canlı izle: MasterChef Türkiye, Survivor ve TV8 canlı yayın kuşağı kesintisiz donmadan.', kw: 'tv8 canli izle, canli tv8' },
+      { name: 'Show TV', cat: 'Ulusal', desc: 'Canlı Show TV izle: Kızılcık Şerbeti, Bahar, Deha ve Show Ana Haber bülteni canlı yayında.', kw: 'canlı show tv izle, canlı show tv, canlı yayın show tv' },
+      { name: 'Star TV', cat: 'Ulusal', desc: 'Canlı Star TV izle: Yalı Çapkını, Sahipsizler ve Star TV HD canlı yayın akışı.', kw: 'canli tv star, canlı star tv izle, canlı star tv' },
+      { name: 'Kanal D', cat: 'Ulusal', desc: 'Canlı TV Kanal D izle: İnci Taneleri, Arka Sokaklar ve Kanal D canlı yayın akışı.', kw: 'canl tv kanal d, kanal d canlı izle' },
+      { name: 'NOW TV', cat: 'Ulusal', desc: 'Canlı TV NOW izle (eski FOX TV): Kızıl Goncalar, Hudutsuz Sevda ve NOW Ana Haber canlı.', kw: 'canli tv now, now tv canlı izle' },
+      { name: 'Halk TV', cat: 'Gündem', desc: 'Canlı Halk TV izle: Türkiye gündemi, siyaset tartışmaları, son dakika haberleri.', kw: 'canlı halk tv' },
+      { name: 'TJK TV & Tay TV', cat: 'Spor / At Yarışı', desc: 'Canlı TJK TV ve Tay TV izle: İstanbul, Ankara, İzmir hipodrom canlı at yarışları ve analizleri.', kw: 'canlı tjk tv, canlı tay tv' },
+      { name: 'İctimai TV & AzTV', cat: 'Azerbaycan', desc: 'Canlı TV İctimai ve AzTV: Azerbaycan İctimai TV (İTV) ve AzTV canlı yayın akışı ve haberleri.', kw: 'canli tv ictimai, canli tv az' }
     ];
 
     const tvChannels = isSpor 
@@ -4699,7 +4713,7 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
       <article style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <h3 style="font-size: 18px; margin: 0; color: #0f172a;">${i + 1}. ${c.name}</h3>
-          <span style="background: #fee2e2; color: #dc2626; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 9999px;">● CANLI</span>
+          <span style="background: #fee2e2; color: #dc2626; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 9999px;">● CANLI YAYIN</span>
         </div>
         <p style="font-size: 14px; color: #475569; margin: 0 0 8px 0; line-height: 1.5;">${c.desc}</p>
         <div style="font-size: 12px; color: #64748b;">
@@ -4707,6 +4721,51 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
           <a href="${c.url}" target="_blank" rel="noopener noreferrer" style="color: #059669; text-decoration: none; font-weight: bold;">YouTube Canlı Yayın &rarr;</a>
         </div>
       </article>
+    `).join('\n');
+
+    const directoryListHtml = directoryChannels.map((d, i) => `
+      <article style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <h3 style="font-size: 17px; margin: 0; color: #0f172a;">${d.name}</h3>
+          <span style="background: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 9999px;">${d.cat}</span>
+        </div>
+        <p style="font-size: 14px; color: #475569; margin: 0 0 6px 0; line-height: 1.5;">${d.desc}</p>
+        <div style="font-size: 12px; color: #059669; font-weight: 500;">İlgili Aramalar: ${d.kw}</div>
+      </article>
+    `).join('\n');
+
+    const faqs = [
+      {
+        q: "Canlı TV izle: TRT 1, TV8, Show TV, Star TV, Kanal D ve NOW TV nasıl canlı izlenir?",
+        a: "TRT 1, TV8, Show TV, Star TV, Kanal D ve NOW TV kanallarını VOX Canlı TV sayfası üzerinden kesintisiz, donmadan ve reklamsız izleyebilirsiniz. Platformumuz, resmi yayın akışlarını ve haber bültenlerini tek ekranda toplayarak tarayıcınızdan veya mobil cihazınızdan anında izleme olanağı sunar."
+      },
+      {
+        q: "TV kanalları listesi ve televizyon kanalları ücretsiz nasıl indirilir (Mobil TV)?",
+        a: "VOX Mobil TV uygulamasını telefonunuza veya tabletinize indirmek için uygulama mağazası ücreti ödemeniz gerekmez. Tarayıcınızın 'Ana Ekrana Ekle' seçeneğini kullanarak Progressive Web App (PWA) olarak ücretsiz indirebilir, TV kanalları listesine ve canlı yayın akışlarına tek tıkla ana ekranınızdan erişebilirsiniz."
+      },
+      {
+        q: "Canlı TJK TV ve Tay TV at yarışı yayınları nereden izlenir?",
+        a: "TJK TV ve Tay TV at yarışı canlı yayınları, Türkiye Jokey Kulübü resmi yayınları çerçevesinde İstanbul, Ankara, İzmir, Bursa, Adana ve Şanlıurfa hipodrom koşularını anlık olarak aktarmaktadır. VOX Canlı TV Spor kategorisinden hipodrom yayın detaylarına ulaşabilirsiniz."
+      },
+      {
+        q: "Canlı TV İctimai ve AzTV (Azerbaycan kanalları) yayını var mı?",
+        a: "Evet. Kardeş ülke Azerbaycan'ın önde gelen televizyon kanalları İctimai TV (İTV) ve AzTV'nin güncel yayın bültenleri, Karabağ ve bölge haberleri VOX TV kanalları listesinde yer almaktadır."
+      },
+      {
+        q: "Canlı Halk TV, Sözcü TV ve haber kanalları kesintisiz nasıl izlenir?",
+        a: "Halk TV, Sözcü TV, CNN TÜRK, NTV, Habertürk, TRT Haber, TV100 ve Haber Global kanallarının resmi YouTube canlı yayınları VOX Canlı TV'de 7/24 kesintisiz HD kalitesinde sunulmaktadır. Mozaik ekran modunda aynı anda birden fazla kanalı izleyebilir veya tek kanala odaklanabilirsiniz."
+      },
+      {
+        q: "Canlı TV izlerken donma veya yayın kopması yaşanır mı?",
+        a: "VOX Canlı TV, doğrudan resmi CDN ve YouTube canlı akış altyapılarını entegre ettiği için internet bağlantınıza göre çözünürlüğü otomatik olarak ayarlar (1080p Full HD, 720p, 480p). Bu sayede mobil internette veya düşük hızlarda bile takılmadan akıcı canlı yayın sağlar."
+      }
+    ];
+
+    const faqsHtml = faqs.map(f => `
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-size: 16px; color: #0f172a; margin: 0 0 6px 0; font-weight: 700;">${f.q}</h3>
+        <p style="font-size: 14px; color: #475569; margin: 0; line-height: 1.6;">${f.a}</p>
+      </div>
     `).join('\n');
 
     const schemaJson = JSON.stringify({
@@ -4718,6 +4777,7 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
           'url': tvUrl,
           'name': tvTitle,
           'description': tvDesc,
+          'keywords': tvKeywords,
           'inLanguage': 'tr-TR',
           'isPartOf': {
             '@type': 'WebSite',
@@ -4736,52 +4796,47 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
         },
         {
           '@type': 'ItemList',
-          'name': `${breadcrumbName} - Aktif Canlı Yayın Akışları`,
-          'numberOfItems': tvChannels.length,
-          'itemListElement': tvChannels.map((c, i) => ({
-            '@type': 'ListItem',
-            'position': i + 1,
-            'name': c.name,
-            'description': c.desc,
-            'url': c.url
-          }))
+          'name': `${breadcrumbName} - Aktif Canlı Yayın Akışları & TV Kanalları Listesi`,
+          'numberOfItems': tvChannels.length + directoryChannels.length,
+          'itemListElement': [
+            ...tvChannels.map((c, i) => ({
+              '@type': 'ListItem',
+              'position': i + 1,
+              'name': c.name,
+              'description': c.desc,
+              'url': c.url
+            })),
+            ...directoryChannels.map((d, i) => ({
+              '@type': 'ListItem',
+              'position': tvChannels.length + i + 1,
+              'name': d.name,
+              'description': d.desc,
+              'url': `https://voxozet.com/canli-tv#${d.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
+            }))
+          ]
+        },
+        {
+          '@type': 'SoftwareApplication',
+          'name': 'VOX Mobil TV Uygulaması (PWA)',
+          'operatingSystem': 'Android, iOS, Windows, macOS',
+          'applicationCategory': 'EntertainmentApplication',
+          'offers': {
+            '@type': 'Offer',
+            'price': '0',
+            'priceCurrency': 'TRY'
+          },
+          'description': 'Ücretsiz mobil TV ve kesintisiz televizyon kanalları izleme uygulaması. Web tarayıcınızdan ücretsiz indirin ve ana ekrana ekleyin.'
         },
         {
           '@type': 'FAQPage',
-          'mainEntity': [
-            {
-              '@type': 'Question',
-              'name': 'VOX Canlı TV nedir ve hangi kanallar yer alır?',
-              'acceptedAnswer': {
-                '@type': 'Answer',
-                'text': 'VOX Canlı TV, Türkiye’nin en çok izlenen haber (CNN TÜRK, Sözcü TV, HalkTV, Habertürk, NTV, TRT Haber, TV100, Haber Global), spor (HT Spor, A Spor, beIN SPORTS HABER) ve ekonomi (Bloomberg HT) kanallarının resmi YouTube canlı yayınlarını tek ekranda mozaik ve odak modunda sunan ücretsiz bir canlı yayın platformudur.'
-              }
-            },
-            {
-              '@type': 'Question',
-              'name': 'Spor kanalları canlı ve şifresiz mi yayınlanıyor?',
-              'acceptedAnswer': {
-                '@type': 'Answer',
-                'text': 'Evet, HT Spor, A Spor ve beIN SPORTS HABER kanallarının resmi YouTube HD yayınları üzerinden şifresiz ve kesintisiz izleyebilirsiniz.'
-              }
-            },
-            {
-              '@type': 'Question',
-              'name': 'Kategori filtreleri nasıl çalışır?',
-              'acceptedAnswer': {
-                '@type': 'Answer',
-                'text': 'Üst kısımdaki Spor, Gündem, Ekonomi ve Tümü filtre butonları veya voxozet.com/canli-tv/spor, voxozet.com/canli-tv/ekonomi gibi doğrudan bağlantılarla ilgilendiğiniz kanal grubuna anında odaklanabilirsiniz.'
-              }
-            },
-            {
-              '@type': 'Question',
-              'name': 'Ses kontrolü ve F11 Geniş Ekran nasıl kullanılır?',
-              'acceptedAnswer': {
-                '@type': 'Answer',
-                'text': 'Tüm kanallar sayfa açıldığında otomatik ve sessiz başlar. Dilediğiniz yayının kutucuğundaki Sesi Aç butonuna bastığınızda o kanal dinlenebilir hale gelir. F11 tuşuna basarak tam ekran sinema moduna geçebilirsiniz.'
-              }
+          'mainEntity': faqs.map(f => ({
+            '@type': 'Question',
+            'name': f.q,
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': f.a
             }
-          ]
+          }))
         }
       ]
     });
@@ -4797,8 +4852,8 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
         <header style="margin-bottom: 24px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
           <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
             <a href="/canli-tv" style="background: ${!isSpor && !isEkonomi && !isGundem ? '#0f172a' : '#f1f5f9'}; color: ${!isSpor && !isEkonomi && !isGundem ? '#ffffff' : '#334155'}; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 9999px; text-decoration: none;">Tüm Kanallar (12)</a>
-            <a href="/canli-tv/spor" style="background: ${isSpor ? '#dc2626' : '#f1f5f9'}; color: ${isSpor ? '#ffffff' : '#334155'}; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 9999px; text-decoration: none;">⚽ Spor (3)</a>
-            <a href="/canli-tv/gundem" style="background: ${isGundem ? '#0f172a' : '#f1f5f9'}; color: ${isGundem ? '#ffffff' : '#334155'}; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 9999px; text-decoration: none;">📰 Gündem (8)</a>
+            <a href="/canli-tv/spor" style="background: ${isSpor ? '#dc2626' : '#f1f5f9'}; color: ${isSpor ? '#ffffff' : '#334155'}; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 9999px; text-decoration: none;">⚽ Spor & TJK TV (3)</a>
+            <a href="/canli-tv/gundem" style="background: ${isGundem ? '#0f172a' : '#f1f5f9'}; color: ${isGundem ? '#ffffff' : '#334155'}; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 9999px; text-decoration: none;">📰 Gündem & Haber (8)</a>
             <a href="/canli-tv/ekonomi" style="background: ${isEkonomi ? '#d97706' : '#f1f5f9'}; color: ${isEkonomi ? '#ffffff' : '#334155'}; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 9999px; text-decoration: none;">📈 Ekonomi (1)</a>
           </div>
           <h1 style="font-size: 30px; color: #0f172a; margin: 12px 0 8px 0;">${pageH1}</h1>
@@ -4810,16 +4865,24 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
           ${channelsListHtml}
         </section>
 
-        <section style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-          <h2 style="font-size: 20px; color: #0f172a; margin-top: 0;">Sıkça Sorulan Sorular (SSS)</h2>
-          <div style="margin-top: 12px;">
-            <h3 style="font-size: 16px; color: #0f172a; margin: 12px 0 4px 0;">Spor ve haber yayınlarını izlemek için üyelik gerekiyor mu?</h3>
-            <p style="font-size: 14px; color: #475569; margin: 0;">Hayır, VOX Canlı TV tamamen ücretsizdir ve herhangi bir üyelik veya ödeme gerektirmez.</p>
-            <h3 style="font-size: 16px; color: #0f172a; margin: 12px 0 4px 0;">HT Spor, A Spor ve beIN SPORTS HABER yayınları şifreli mi?</h3>
-            <p style="font-size: 14px; color: #475569; margin: 0;">Hayır, tüm spor yayınları resmi YouTube canlı akışları üzerinden şifresiz ve yasal olarak aktarılmaktadır.</p>
-            <h3 style="font-size: 16px; color: #0f172a; margin: 12px 0 4px 0;">Ses kontrolü nasıl çalışıyor?</h3>
-            <p style="font-size: 14px; color: #475569; margin: 0;">Tüm kanallar sayfa açıldığında otomatik ve sessiz başlar. Dilediğiniz yayının kutucuğundaki Sesi Aç düğmesine bastığınızda o kanal dinlenebilir hale gelir ve diğer tüm kanallar otomatik olarak sessize alınır.</p>
-          </div>
+        <section style="margin-bottom: 32px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+          <h2 style="font-size: 20px; color: #0f172a; margin-top: 0; margin-bottom: 16px;">TV Kanalları Listesi & Canlı TV İzleme Rehberi (TRT 1, TV8, Show TV, Star TV, Kanal D, NOW TV, Halk TV, TJK TV, İctimai TV)</h2>
+          <p style="font-size: 14px; color: #475569; margin-bottom: 16px;">Türkiye ve Azerbaycan'ın en çok aranan ulusal, spor, eğlence ve haber kanalları listesi aşağıda yer almaktadır:</p>
+          ${directoryListHtml}
+        </section>
+
+        <section style="margin-bottom: 32px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 20px;">
+          <h2 style="font-size: 18px; color: #065f46; margin-top: 0;">Mobil TV & Televizyon Kanalları Ücretsiz İndir (PWA)</h2>
+          <p style="font-size: 14px; color: #047857; margin: 0 0 10px 0;">VOX Mobil TV uygulamasını Android veya iPhone (iOS) telefonunuza uygulama mağazası aramadan ve tamamen ücretsiz olarak indirebilirsiniz:</p>
+          <ul style="font-size: 14px; color: #065f46; margin: 0; padding-left: 20px; line-height: 1.6;">
+            <li><strong>iPhone (Safari):</strong> Alt kısımdaki Paylaş butonuna basıp <em>"Ana Ekrana Ekle"</em> seçeneğini seçin.</li>
+            <li><strong>Android (Chrome):</strong> Sağ üstteki üç nokta menüsünden <em>"Uygulamayı Yükle"</em> veya <em>"Ana Ekrana Ekle"</em> butonuna dokunun.</li>
+          </ul>
+        </section>
+
+        <section style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+          <h2 style="font-size: 20px; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Google & Gemini AI Uyumlu Sıkça Sorulan Sorular (SSS)</h2>
+          ${faqsHtml}
         </section>
       </div>
     `;
@@ -4828,6 +4891,7 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
       .replace(/<title>.*?<\/title>/, `<title>${tvTitle}</title>`)
       .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${tvTitle}" />`)
       .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${tvDesc}" />`)
+      .replace(/<meta name="keywords" content=".*?" \/>/, `<meta name="keywords" content="${tvKeywords}" />`)
       .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${tvTitle}" />`)
       .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${tvDesc}" />`)
       .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${tvUrl}" />`)
