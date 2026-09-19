@@ -18,6 +18,7 @@ import {
   ChevronRight,
   TrendingUp,
   Globe,
+  BookOpen,
   Maximize2,
   X,
   AlertCircle
@@ -46,7 +47,6 @@ import { ShareModal } from './ShareModal';
 import { INITIAL_ARTICLES } from '../data/defaultArticles';
 import { incrementUserArticlesRead } from '../lib/firebase';
 import { appStorage } from '../lib/storage';
-import { triggerSmartFocusAutoStart } from '../lib/smartFocusService';
 
 interface NewsArticlePageProps {
   articles: Article[];
@@ -103,9 +103,6 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
         incrementUserArticlesRead(userId);
       }
     } catch (e) {}
-
-    // Akıllı Odaklanma: Haber açıldığında otomatik ambiyans sesini başlat
-    triggerSmartFocusAutoStart('read', article);
   }, [article?.id]);
 
   // ESC key listener to immediately close In-App Source Viewer and return to VOX
@@ -637,30 +634,24 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                     }`}>
                       <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 uppercase tracking-wider">
                         <Sparkles className="w-4 h-4" />
-                        <span>VOX 1 Dakikalık Akıllı Brifing</span>
+                        <span>Haber Özeti</span>
                       </div>
 
                       <p className="text-sm sm:text-base leading-relaxed font-normal">
                         {article.summary && article.summary.length > 20
                           ? sanitizeNewsText(article.summary)
-                          : 'Bu haber için 1 dakikalık hap özet ve temel noktalar yapay zeka tarafından derlenmiştir.'}
+                          : 'Bu haberin temel gelişmeleri ve önemli detayları özetlenmiştir.'}
                       </p>
 
-                      <div className={`pt-2.5 border-t text-xs ${
-                        theme === 'light' ? 'border-slate-200 text-slate-500' : 'border-white/10 text-zinc-400'
-                      }`}>
-                        Haberin tüm ayrıntılarına ve kaynak metnine VOX'tan ayrılmadan doğrudan ulaşabilirsiniz:
-                      </div>
-
                       {article.sourceUrl && (
-                        <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                        <div className="flex flex-wrap items-center gap-2.5 pt-1 border-t border-black/5 dark:border-white/5">
                           <button
                             type="button"
                             onClick={() => setIsInAppViewerOpen(true)}
                             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
                           >
-                            <Globe className="w-4 h-4" />
-                            <span>Orijinal Haberi Kaynağında Oku (VOX İçi)</span>
+                            <BookOpen className="w-4 h-4" />
+                            <span>Devamını Oku</span>
                           </button>
 
                           <a
@@ -670,13 +661,13 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                             onClick={() => trackOutboundClick(article, outboundUrl)}
                             className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 ${
                               theme === 'light'
-                                ? 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
-                                : 'bg-white/5 hover:bg-white/10 border-white/15 text-zinc-200'
+                                ? 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700 hover:text-slate-900 shadow-sm'
+                                : 'bg-white/5 hover:bg-white/10 border-white/15 text-zinc-300 hover:text-white'
                             }`}
-                            title="Yeni sekmede aç (VOX açık kalır)"
+                            title="Yeni sekmede aç"
                           >
                             <span>Yeni Sekmede Aç</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <ExternalLink className="w-3.5 h-3.5 opacity-70" />
                           </a>
                         </div>
                       )}
@@ -916,10 +907,10 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                   type="button"
                   onClick={() => setIsInAppViewerOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-black active:scale-95 transition-all shadow-md cursor-pointer"
-                  title="VOX İçi Görüntüleyici ile Oku"
+                  title="Devamını Oku"
                 >
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>Kaynağında Oku</span>
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Devamını Oku</span>
                 </button>
 
                 <a
@@ -932,9 +923,10 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                       ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
                       : 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300'
                   }`}
-                  title="Yeni sekmede aç (VOX sekmesi açık kalır)"
+                  title="Yeni sekmede aç"
                 >
-                  <span className="hidden sm:inline">Yeni Sekme</span>
+                  <span className="hidden sm:inline">Yeni Sekmede Aç</span>
+                  <span className="sm:hidden">Yeni Sekme</span>
                   <ExternalLink className="w-3.5 h-3.5 stroke-[2.2]" />
                 </a>
               </div>

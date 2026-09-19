@@ -43,7 +43,6 @@ import { AmbientChannel, PlaylistInfo } from './components/AmbientMixerSheet';
 import { woodRainSynth } from './lib/audioSynth';
 import { universalSynthService } from './lib/universalSynthService';
 import { ALL_DEFAULT_AMBIENT_CHANNELS, ALL_TRACKS, ALL_SOUND_SHELVES, SoundTrack, isNatureOrLofiTrack } from './lib/soundtrackData';
-import { triggerSmartFocusAutoStart } from './lib/smartFocusService';
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -173,8 +172,6 @@ export default function App() {
   }, []);
 
   const handlePlayArticle = async (article: Article) => {
-    // Smart Focus: otomatik ambiyans sesini başlat
-    triggerSmartFocusAutoStart('listen', article);
     ttsService.loadArticle(article);
     ttsService.play();
 

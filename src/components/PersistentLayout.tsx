@@ -45,7 +45,7 @@ import { useFocus, formatFocusTime } from '../lib/FocusContext';
 import { getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, cleanNewsParagraphs, fetchFullScrapedArticle, enrichArticleWithAI } from '../lib/newsService';
 import { woodRainSynth } from '../lib/audioSynth';
 import { universalSynthService } from '../lib/universalSynthService';
-import { triggerSmartFocusAutoStart, SmartFocusPreset } from '../lib/smartFocusService';
+import { SmartFocusPreset } from '../lib/smartFocusService';
 import { useTheme } from '../lib/ThemeContext';
 import { InfoModal, InfoModalType } from './InfoModal';
 import { LegalDisclaimerModal } from './LegalDisclaimerModal';
@@ -393,13 +393,6 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       unsubscribe();
     };
   }, []);
-
-  // Akıllı Odaklanma (Smart Focus) - Haber açıldığında otomatik ambiyans sesini başlatma
-  useEffect(() => {
-    if (readingArticle && readingArticle.id) {
-      triggerSmartFocusAutoStart('read', readingArticle);
-    }
-  }, [readingArticle?.id]);
 
   useEffect(() => {
     const handleSmartFocusTrigger = (e: any) => {

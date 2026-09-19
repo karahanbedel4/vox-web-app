@@ -108,9 +108,9 @@ export interface SmartFocusSettings {
 export function getSmartFocusSettings(): SmartFocusSettings {
   try {
     const rawEnabled = appStorage.getItemSync(SMART_FOCUS_STORAGE_KEYS.ENABLED);
-    // Default to enabled (true) so the user experiences the smart ambient auto-start right away,
-    // but can easily toggle it off in the settings
-    const enabled = rawEnabled !== null ? rawEnabled === 'true' : true;
+    // Default to false so news browsing stays clean, minimal and peaceful.
+    // Audio will only play when the user explicitly chooses to start music or ambient sounds.
+    const enabled = rawEnabled !== null ? rawEnabled === 'true' : false;
     
     const soundscapeId = appStorage.getItemSync(SMART_FOCUS_STORAGE_KEYS.SOUNDSCAPE_ID) || 'stream-nature-rain';
     
@@ -123,7 +123,7 @@ export function getSmartFocusSettings(): SmartFocusSettings {
     return { enabled, soundscapeId, volume, showToast };
   } catch (e) {
     return {
-      enabled: true,
+      enabled: false,
       soundscapeId: 'stream-nature-rain',
       volume: 50,
       showToast: true
@@ -189,9 +189,15 @@ let lastInitiatedTime: number = 0;
  * when an article is opened to read or listen.
  */
 export function triggerSmartFocusAutoStart(
-  action: 'read' | 'listen',
+  action: 'read' | 'listen' | 'simulate',
   article: { id?: string; title?: string } | null | undefined
 ): boolean {
+  // Haber gezinmesinde veya dinlemede otomatik müzik açılmaz.
+  // Kullanıcı müzik açarsa sayfa/haber geçişlerinde müzik kesilmeden çalmaya devam eder.
+  if (action === 'read' || action === 'listen') {
+    return false;
+  }
+
   if (!article || !article.id) return false;
 
   const settings = getSmartFocusSettings();

@@ -238,7 +238,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const handleSimulateSmartFocus = () => {
     triggerHaptic();
     handleStopPreview();
-    const triggered = triggerSmartFocusAutoStart('read', {
+    const triggered = triggerSmartFocusAutoStart('simulate', {
       id: 'test-article-simulation-' + Date.now(),
       title: 'Örnek Haber: Yapay Zeka ve Zihinsel Odaklanma'
     });

@@ -98,8 +98,10 @@ export const AiSeoKnowledgeSection: React.FC<AiSeoKnowledgeSectionProps> = ({
 
       {/* Target Keywords Clouds */}
       <div className="pt-4 pb-2">
-        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-          Öne Çıkan Gündem, Haber & Arama Terimleri:
+        <div className={`text-[11px] font-bold uppercase tracking-wider mb-2 ${
+          theme === 'light' ? 'text-slate-500' : 'text-zinc-400'
+        }`}>
+          Popüler Başlıklar & Arama Dizini:
         </div>
         <div className="flex flex-wrap gap-1.5">
           {TARGET_KEYWORDS_GUNDEM.map((kw, i) => (

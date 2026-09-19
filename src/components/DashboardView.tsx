@@ -12,7 +12,6 @@ import { XLogoIcon } from './XLogoIcon';
 import { NativeAdCard } from './NativeAdCard';
 import { FeaturedNewsSlider } from './FeaturedNewsSlider';
 import { AiSeoKnowledgeSection } from './AiSeoKnowledgeSection';
-import { TARGET_KEYWORDS_GUNDEM } from '../data/seoKeywordsData';
 
 export type CategoryType = 'Tümü' | 'Gündem' | 'Ekonomi' | 'Teknoloji' | 'Spor' | 'Dünya' | 'Sağlık';
 
@@ -442,37 +441,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           </div>
         )}
-      </div>
-
-      {/* POPULAR SEARCH KEYWORDS STRIP */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px]">
-        <span className={`text-[10px] font-bold uppercase tracking-wider shrink-0 mr-1 ${
-          theme === 'light' ? 'text-slate-400' : 'text-zinc-500'
-        }`}>
-          Popüler Aramalar:
-        </span>
-        {TARGET_KEYWORDS_GUNDEM.map((kw, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => {
-              setSearchQuery(kw);
-              const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-              // Trigger search for this keyword
-              setIsSearchingGoogle(true);
-              searchGoogleNews(kw).then(res => {
-                setGoogleSearchResults(res);
-              }).catch(() => {}).finally(() => setIsSearchingGoogle(false));
-            }}
-            className={`px-2.5 py-0.5 rounded-full font-medium transition-all shrink-0 whitespace-nowrap cursor-pointer ${
-              theme === 'light'
-                ? 'bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 border border-slate-200'
-                : 'bg-white/5 hover:bg-emerald-500/10 hover:text-emerald-400 text-zinc-400 border border-white/5'
-            }`}
-          >
-            #{kw}
-          </button>
-        ))}
       </div>
 
       {/* FLOATING REAL-TIME NEW ARTICLES NOTIFICATION PILL */}
