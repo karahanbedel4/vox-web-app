@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Allow: /canli-tv
 Allow: /gundem
 Allow: /teknoloji
 Allow: /ekonomi
@@ -9,6 +10,7 @@ Allow: /saglik
 Allow: /haber/
 Allow: /odaklan
 Allow: /kitaplik
+Allow: /ayarlar
 Allow: /rehberler
 Allow: /rehber/
 Allow: /hakkimizda
@@ -20,8 +22,33 @@ Allow: /kullanim-kosullari
 Disallow: /api/
 Disallow: /api/*
 
+# AI Search & LLM Web Crawlers (Gemini, ChatGPT, Perplexity, Claude)
+User-agent: GPTBot
+Allow: /
+Allow: /canli-tv
+Allow: /odaklan
+Allow: /haber/
+Allow: /rehber/
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+Allow: /canli-tv
+Allow: /odaklan
+Allow: /haber/
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
 User-agent: Googlebot
 Allow: /
+Allow: /canli-tv
+Allow: /odaklan
 Allow: /haber/
 Allow: /rehber/
 Allow: /rehberler

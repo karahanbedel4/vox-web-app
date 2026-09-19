@@ -67,6 +67,7 @@ import {
 } from '../lib/FocusContext';
 import { ALL_SOUND_SHELVES, MOBILE_SOUND_SHELVES, SoundTrack, getShelfIcon } from '../lib/soundtrackData';
 import { VoxLogo } from './VoxLogo';
+import { AiSeoKnowledgeSection } from './AiSeoKnowledgeSection';
 
 interface FocusTabProps {
   articles: Article[];
@@ -226,6 +227,19 @@ export const FocusTab: React.FC<FocusTabProps> = ({
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Dynamic SEO & Title updates for Pomodoro & Odaklanma Page
+  useEffect(() => {
+    document.title = 'Online Pomodoro Sayacı & Derin Odaklanma Müzikleri | VOX Odaklan';
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', 'Pomodoro çalışmasını nerede yapabilirim diyenler için 25/5 dakikalık ücretsiz online Pomodoro sayacı, Hans Zimmer film müzikleri ve doğa sesleriyle derin odaklanın.');
+    }
+    const metaKeywords = document.querySelector('meta[name="keywords"]');
+    if (metaKeywords) {
+      metaKeywords.setAttribute('content', 'pomodoro çalışması, pomodoro tekniği nerede yapılır, odaklanma müzikleri, film müzikleri ile ders çalışma, çalışma sayacı, derin odaklanma, online pomodoro timer, ders çalışma müzikleri, hans zimmer odaklanma');
+    }
   }, []);
 
   const displayedShelves = isMobileDevice ? MOBILE_SOUND_SHELVES : ALL_SOUND_SHELVES;
@@ -1889,6 +1903,11 @@ export const FocusTab: React.FC<FocusTabProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* AI & GOOGLE SEO KNOWLEDGE SECTION FOR FOCUS & POMODORO */}
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6">
+        <AiSeoKnowledgeSection pageContext="odaklan" />
+      </div>
 
       {/* Pomodoro Session Summary Modal (Fully Closeable & User Controlled) */}
       <AnimatePresence>

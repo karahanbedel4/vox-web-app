@@ -19,7 +19,12 @@ app.use(express.json({ limit: '50mb' }));
 // Corporate Security Headers Middleware
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  // Allow Google AdSense site preview and Auto Ads framing while maintaining clickjacking protection
+  res.setHeader(
+    'Content-Security-Policy',
+    "frame-ancestors 'self' https://*.google.com https://*.google.com.tr https://*.googleusercontent.com https://*.doubleclick.net https://*.run.app;"
+  );
+  // Note: X-Frame-Options SAMEORIGIN is deliberately avoided because it breaks Google AdSense site preview
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
@@ -59,6 +64,7 @@ app.get('/robots.txt', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send(`User-agent: *
 Allow: /
+Allow: /canli-tv
 Allow: /gundem
 Allow: /teknoloji
 Allow: /ekonomi
@@ -66,21 +72,37 @@ Allow: /dunya
 Allow: /spor
 Allow: /saglik
 Allow: /haber/
-Allow: /canli-tv
-Allow: /canli-yayin
 Allow: /odaklan
 Allow: /kitaplik
+Allow: /ayarlar
+Allow: /rehberler
+Allow: /rehber/
+Allow: /hakkimizda
+Allow: /kunye
+Allow: /yayin-ilkeleri
 Allow: /cerez-politikasi
-Allow: /cookies
 Allow: /gizlilik
-Allow: /privacy
 Allow: /kullanim-kosullari
-Allow: /terms
-Allow: /yasal-uyari
-Allow: /legal
-Allow: /404
 Disallow: /api/
 Disallow: /api/*
+
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: Google-AdSense-Bot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+Allow: /canli-tv
+Allow: /odaklan
+Allow: /haber/
+Allow: /rehber/
+Allow: /rehberler
+
+User-agent: Googlebot-News
+Allow: /
+Allow: /haber/
 
 Sitemap: https://voxozet.com/sitemap.xml
 `);
@@ -5022,78 +5044,366 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
     }
   }
 
-  // 7. ANA SAYFA VE DİĞER SAYFALAR İÇİN ZENGİN GENEL BOT İÇERİĞİ
+  // 7. ANA SAYFA, GÜNDEM, ODAKLAN (POMODORO) VE KATEGORİLER İÇİN ZENGİN SEO & AI BOT İÇERİĞİ
   if (!semanticBodyHtml) {
-    const topArticles = serverNewsCache.all.slice(0, 8);
-    const articlesHtml = topArticles.map(a => `
-      <article style="border-bottom: 1px solid #e5e7eb; padding: 16px 0;">
-        <span style="font-size: 11px; color: #059669; font-weight: bold;">${a.category || 'Gündem'}</span>
-        <h3 style="font-size: 18px; margin: 6px 0 4px 0;"><a href="/haber/${a.id}" style="color: #0f172a; text-decoration: none;">${a.title}</a></h3>
-        <p style="font-size: 14px; color: #475569; margin: 0; line-height: 1.5;">${(a.summary || '').substring(0, 150)}...</p>
-      </article>
-    `).join('\n');
+    const isFocus = reqPath === '/odaklan' || reqPath === '/focus' || reqPath.includes('/focus');
+    const isSpor = reqPath === '/spor' || reqPath.startsWith('/spor');
+    const isEkonomi = reqPath === '/ekonomi' || reqPath.startsWith('/ekonomi');
+    const isTeknoloji = reqPath === '/teknoloji' || reqPath.startsWith('/teknoloji');
 
-    const topGuidesHtml = GUIDE_ARTICLES.slice(0, 3).map(g => `
-      <li style="margin-bottom: 10px;">
-        <a href="/rehber/${g.slug}" style="color: #059669; font-weight: 600; text-decoration: none;">${g.title}</a>
-        <span style="font-size: 12px; color: #64748b; display: block;">${g.summary.substring(0, 100)}...</span>
-      </li>
-    `).join('\n');
+    let pageTitle = 'Son Dakika Haber & Gündem Haberleri - En Son Haber Özetleri | VOX';
+    let pageDesc = 'Son dakika haber, haber gündem, TRT Haber gündem, A Haber gündem, Haber 7 ve en son haber başlıklarını yapay zeka ile hap özetler halinde sesli dinleyin ve okuyun.';
+    let pageKeywords = 'haber gündem, trt haber gündem, a haber gündem, haber, haber 7, son dakika haber, en son haber, internet haber, spor haber, türkiye gündemi son dakika, son dakika haberler, haber özetleri, sesli haber dinle, yapay zeka haber';
+    let pageSchemaJson = '';
 
-    semanticBodyHtml = `
-      <div style="max-width: 900px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222;">
-        <header style="margin-bottom: 24px; border-bottom: 2px solid #059669; padding-bottom: 16px;">
-          <h1 style="font-size: 32px; color: #0f172a; margin: 0 0 6px 0;">VOX - Oku, Dinle, Odaklan</h1>
-          <p style="font-size: 16px; color: #475569; margin: 0 0 12px 0;">Daha az oku. Daha çok dinle. Daha iyi odaklan. Bağımsız Dijital Haber ve Derin Odaklanma Platformu.</p>
-          <nav style="display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; font-weight: bold;">
-            <a href="/" style="color: #059669; text-decoration: none;">Ana Sayfa</a>
-            <a href="/rehberler" style="color: #059669; text-decoration: none;">Özgün Rehberler</a>
-            <a href="/odaklan" style="color: #334155; text-decoration: none;">Odaklanma Modu</a>
-            <a href="/hakkimizda" style="color: #334155; text-decoration: none;">Hakkımızda</a>
-            <a href="/kunye" style="color: #334155; text-decoration: none;">Künye & İletişim</a>
-            <a href="/yayin-ilkeleri" style="color: #334155; text-decoration: none;">Yayın İlkeleri</a>
-          </nav>
-        </header>
+    if (isFocus) {
+      pageTitle = isEnglish
+        ? 'Online Pomodoro Timer & Deep Focus Soundscapes | VOX Focus'
+        : 'Online Pomodoro Sayacı & Derin Odaklanma Müzikleri | VOX Odaklan';
+      pageDesc = isEnglish
+        ? 'Best place to do pomodoro work: Free 25/5 min scientific online pomodoro timer with Hans Zimmer film soundtracks, lofi beats, and ambient rain sounds for deep study.'
+        : 'Pomodoro çalışmasını nerede yapabilirim diyenler için 25/5 dakikalık ücretsiz online Pomodoro sayacı, Hans Zimmer film müzikleri ve doğa sesleriyle derin odaklanın.';
+      pageKeywords = 'pomodoro çalışması, pomodoro tekniği nerede yapılır, odaklanma müzikleri, film müzikleri ile ders çalışma, çalışma sayacı, derin odaklanma, online pomodoro timer, ders çalışma müzikleri, hans zimmer odaklanma, lofi müzik, yağmur sesi dinle';
 
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px;">
-          <section>
-            <h2 style="font-size: 20px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Günün Öne Çıkan Haberleri</h2>
-            <div>${articlesHtml || '<p>En son haberler güncelleniyor...</p>'}</div>
-          </section>
+      pageSchemaJson = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'WebApplication',
+            'name': 'VOX Odaklanma & Pomodoro Sayacı',
+            'url': 'https://voxozet.com/odaklan',
+            'applicationCategory': 'ProductivityApplication',
+            'operatingSystem': 'All',
+            'description': pageDesc,
+            'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'TRY' }
+          },
+          {
+            '@type': 'FAQPage',
+            'mainEntity': [
+              {
+                '@type': 'Question',
+                'name': 'Pomodoro çalışmasını nerede yapabilirim ve nasıl uygulanır?',
+                'acceptedAnswer': {
+                  '@type': 'Answer',
+                  'text': 'Pomodoro çalışmasını VOX Odaklanma Modu (https://voxozet.com/odaklan) sayfasında tamamen ücretsiz ve reklamsız olarak yapabilirsiniz. 25 dakika kesintisiz çalışma ve 5 dakika dinlenme döngüleriyle çalışabilir, seans bitiminde sesli bildirim ve seans karnesi alabilirsiniz.'
+                }
+              },
+              {
+                '@type': 'Question',
+                'name': 'Ders çalışırken ve odaklanırken hangi müzikler dinlenmelidir?',
+                'acceptedAnswer': {
+                  '@type': 'Answer',
+                  'text': 'VOX bünyesinde Interstellar, Oppenheimer, Inception gibi odak artıran Hans Zimmer film müzikleri, lofi hip hop ritimleri ve şömine ile yağmur sesi gibi ambiyans ses mikseri yer almaktadır.'
+                }
+              },
+              {
+                '@type': 'Question',
+                'name': 'Tüm kanalları canlı nereden izleyebilirim?',
+                'acceptedAnswer': {
+                  '@type': 'Answer',
+                  'text': 'VOX Canlı TV (https://voxozet.com/canli-tv) sayfasından TRT 1, TV8, Show TV, Star TV, Kanal D, NOW TV, Halk TV, A Spor, HT Spor ve beIN Sports Haber kanallarını tek ekranda kesintisiz izleyebilirsiniz.'
+                }
+              }
+            ]
+          }
+        ]
+      });
 
-          <aside>
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
-              <h3 style="font-size: 16px; margin: 0 0 8px 0; color: #0f172a;">Kurucu Notu: Karahan Bedel</h3>
-              <p style="font-size: 13px; color: #475569; line-height: 1.6; margin: 0 0 8px 0;">
-                VOX, bilgi kirliliğine karşı tarafsız özetler ve üretkenliği artıran sesli odaklanma alanları sunar.
+      semanticBodyHtml = `
+        <div style="max-width: 900px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222;">
+          <header style="margin-bottom: 24px; border-bottom: 2px solid #10b981; padding-bottom: 16px;">
+            <span style="display: inline-block; background: #ecfdf5; color: #059669; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 9999px; margin-bottom: 8px;">Ücretsiz Çevrimiçi Verimlilik Aracı</span>
+            <h1 style="font-size: 30px; color: #0f172a; margin: 0 0 8px 0;">Online Pomodoro Sayacı &amp; Derin Odaklanma Müzikleri</h1>
+            <p style="font-size: 16px; color: #475569; margin: 0 0 14px 0; line-height: 1.6;">
+              <strong>Pomodoro çalışmasını nerede yapabilirim</strong> sorusunun en eksiksiz yanıtı: 25 dakika ders çalışma, 5 dakika mola döngüleri, Hans Zimmer film müzikleri ve doğa sesleriyle kesintisiz odaklanın.
+            </p>
+            <nav style="display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; font-weight: bold;">
+              <a href="/odaklan" style="color: #059669; text-decoration: none;">⏱ Pomodoro Sayacı</a>
+              <a href="/canli-tv" style="color: #334155; text-decoration: none;">📺 Tüm Kanalları Canlı İzle</a>
+              <a href="/gundem" style="color: #334155; text-decoration: none;">⚡ Haber Gündem</a>
+              <a href="/spor" style="color: #334155; text-decoration: none;">⚽ Spor Haberleri</a>
+            </nav>
+          </header>
+
+          <div style="margin-bottom: 24px; padding: 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px;">
+            <h2 style="font-size: 18px; color: #166534; margin: 0 0 8px 0;">🎯 Pomodoro Tekniği Nasıl Uygulanır?</h2>
+            <ol style="margin: 0; padding-left: 20px; font-size: 14px; color: #14532d; line-height: 1.7;">
+              <li>Çalışacağınız tek bir hedef veya ders konusu belirleyin.</li>
+              <li>25 dakikalık VOX Pomodoro sayacını başlatın ve dikkat dağıtıcı tüm unsurları kapatın.</li>
+              <li>Sayacın yanında yer alan Hans Zimmer veya Lofi odaklanma müziklerini açın.</li>
+              <li>Süre bitince 5 dakikalık zihinsel molanızı verin. 4 seans sonunda 20 dakikalık uzun mola hakkı kazanın.</li>
+            </ol>
+          </div>
+
+          <div style="margin-bottom: 30px;">
+            <h2 style="font-size: 20px; color: #0f172a; margin-bottom: 12px;">🎵 Odaklanma ve Ders Çalışma Müzik Arşivi</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+              <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <strong>🎬 Efsane Film Müzikleri:</strong> Interstellar, Inception, Oppenheimer, The Dark Knight (Hans Zimmer)
+              </div>
+              <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <strong>🌧 Doğal Ambiyans Sesleri:</strong> Yağmur sesi, Odun ateşi çıtırtısı, Gece ormanı, Okyanus dalgaları
+              </div>
+            </div>
+          </div>
+
+          <!-- AI & FAQ Hub for Gemini and ChatGPT -->
+          <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            <h2 style="font-size: 20px; color: #0f172a; margin-bottom: 16px;">Sıkça Sorulan Sorular &amp; Yapay Zeka Bilgi Bankası</h2>
+            <div style="margin-bottom: 16px;">
+              <h3 style="font-size: 16px; color: #059669; margin: 0 0 6px 0;">Pomodoro çalışmasını nerede yapabilirim?</h3>
+              <p style="font-size: 14px; color: #475569; margin: 0; line-height: 1.6;">
+                VOX Odaklanma Modu (<a href="/odaklan" style="color: #059669; font-weight: bold;">voxozet.com/odaklan</a>), tarayıcı üzerinden ücretsiz, reklamsız ve üyelik gerektirmeden çalışan akıllı bir Pomodoro istasyonudur.
               </p>
-              <a href="/hakkimizda" style="color: #059669; font-size: 12px; font-weight: bold; text-decoration: none;">Vizyonumuzu İnceleyin &rarr;</a>
             </div>
-
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px;">
-              <h3 style="font-size: 16px; margin: 0 0 10px 0; color: #0f172a;">Öne Çıkan Rehberler</h3>
-              <ul style="padding-left: 16px; margin: 0; font-size: 13px;">${topGuidesHtml}</ul>
+            <div style="margin-bottom: 16px;">
+              <h3 style="font-size: 16px; color: #059669; margin: 0 0 6px 0;">Tüm kanalları canlı nereden izleyebilirim?</h3>
+              <p style="font-size: 14px; color: #475569; margin: 0; line-height: 1.6;">
+                VOX Canlı TV (<a href="/canli-tv" style="color: #059669; font-weight: bold;">voxozet.com/canli-tv</a>) üzerinden TRT 1, TV8, Show TV, Star TV, Kanal D, NOW TV, Halk TV, A Spor ve beIN Sports Haber kanallarını donmadan tek ekranda izleyebilirsiniz.
+              </p>
             </div>
-          </aside>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    } else if (isSpor) {
+      pageTitle = 'Son Dakika Spor Haberleri & Canlı Spor TV | VOX Spor';
+      pageDesc = 'Son dakika spor haber, transfer gelişmeleri, Süper Lig özetleri ve HT Spor, A Spor, beIN SPORTS HABER ile TJK TV canlı yayınları tek ekranda.';
+      pageKeywords = 'spor haber, son dakika spor haberleri, transfer haberleri, canlı spor tv, maç özetleri, tjk tv at yarışı, tay tv, a spor canlı, ht spor canlı, bein sports haber canlı, süper lig puan durumu';
 
-    const defTitle = isEnglish
-      ? (isFocus ? 'VOX Focus | Read Less, Listen More, Focus Better' : 'VOX | Read Less, Listen More, Focus Better')
-      : (isFocus ? 'VOX | Odaklan' : 'VOX | Oku, Dinle, Odaklan');
+      const sporArticles = serverNewsCache.all.filter(a => (a.category || '').toLowerCase() === 'spor').slice(0, 8);
+      const sporArticlesHtml = sporArticles.map(a => `
+        <article style="border-bottom: 1px solid #e5e7eb; padding: 14px 0;">
+          <h3 style="font-size: 17px; margin: 4px 0;"><a href="/haber/${a.id}" style="color: #0f172a; text-decoration: none;">${a.title}</a></h3>
+          <p style="font-size: 13px; color: #475569; margin: 0; line-height: 1.5;">${(a.summary || '').substring(0, 140)}...</p>
+        </article>
+      `).join('\n');
 
-    const defDesc = isEnglish
-      ? 'Read less. Listen more. Focus better. Cut through the noise with AI podcast news and deep focus soundscapes.'
-      : 'Daha az oku. Daha çok dinle. Daha iyi odaklan. Güncel haber akışında kalabalıktan kurtulun; yapay zeka ile haberleri sesli dinleyin ve film müzikleriyle odaklanın.';
+      pageSchemaJson = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'CollectionPage',
+            'name': pageTitle,
+            'url': 'https://voxozet.com/spor',
+            'description': pageDesc
+          },
+          {
+            '@type': 'FAQPage',
+            'mainEntity': [
+              {
+                '@type': 'Question',
+                'name': 'Son dakika spor haberleri ve transferler nereden takip edilir?',
+                'acceptedAnswer': {
+                  '@type': 'Answer',
+                  'text': 'VOX Spor (https://voxozet.com/spor) sayfasından son dakika transfer haberlerini, maç özetlerini, HT Spor, A Spor ve beIN SPORTS HABER canlı yayınlarını kesintisiz takip edebilirsiniz.'
+                }
+              },
+              {
+                '@type': 'Question',
+                'name': 'Tüm spor kanallarını canlı nereden izleyebilirim?',
+                'acceptedAnswer': {
+                  '@type': 'Answer',
+                  'text': 'VOX Canlı TV Spor (https://voxozet.com/canli-tv/spor) sayfasından HT Spor, A Spor, beIN SPORTS HABER ve TJK TV kanallarını tek ekranda donmadan izleyebilirsiniz.'
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+      semanticBodyHtml = `
+        <div style="max-width: 900px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222;">
+          <header style="margin-bottom: 24px; border-bottom: 2px solid #059669; padding-bottom: 16px;">
+            <h1 style="font-size: 28px; color: #0f172a; margin: 0 0 6px 0;">Son Dakika Spor Haberleri &amp; Canlı Spor TV</h1>
+            <p style="font-size: 15px; color: #475569; margin: 0 0 12px 0;">Süper Lig özetleri, transfer haberleri, canlı maç bültenleri ve şifresiz spor kanalları.</p>
+            <nav style="display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; font-weight: bold;">
+              <a href="/spor" style="color: #059669; text-decoration: none;">⚽ Spor Haber</a>
+              <a href="/canli-tv/spor" style="color: #dc2626; text-decoration: none;">📺 Canlı Spor TV (A Spor, HT Spor, beIN)</a>
+              <a href="/gundem" style="color: #334155; text-decoration: none;">⚡ Haber Gündem</a>
+              <a href="/odaklan" style="color: #334155; text-decoration: none;">⏱ Pomodoro Sayacı</a>
+            </nav>
+          </header>
+
+          <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 20px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Günün Spor Başlıkları</h2>
+            <div>${sporArticlesHtml || '<p>En son spor haberleri yükleniyor...</p>'}</div>
+          </div>
+        </div>
+      `;
+    } else {
+      // GÜNDEM, ANA SAYFA VE DİĞER KATEGORİLER
+      if (isEkonomi) {
+        pageTitle = 'Ekonomi Haberleri & Borsa Gündemi - Canlı Piyasa | VOX Ekonomi';
+        pageDesc = 'Son dakika ekonomi haberleri, Borsa İstanbul BIST 100, altın fiyatları, dolar kuru ve küresel piyasaları yapay zeka özetleriyle takip edin.';
+        pageKeywords = 'ekonomi haberleri, borsa istanbul, bIST 100, altın fiyatları, dolar kuru, ekonomi gündem, faiz kararı, son dakika haber';
+      } else if (isTeknoloji) {
+        pageTitle = 'Teknoloji Haberleri & Yapay Zeka Gündemi | VOX Teknoloji';
+        pageDesc = 'Son dakika teknoloji haberleri, yapay zeka gelişmeleri, ChatGPT, Gemini, Apple ve Google son dakika teknoloji gündemi.';
+        pageKeywords = 'teknoloji haberleri, yapay zeka, openai, gemini, apple haberleri, teknoloji gündem, son dakika haber';
+      }
+
+      const topArticles = serverNewsCache.all.slice(0, 8);
+      const articlesHtml = topArticles.map(a => `
+        <article style="border-bottom: 1px solid #e5e7eb; padding: 14px 0;">
+          <span style="font-size: 11px; color: #059669; font-weight: bold;">${a.category || 'Gündem'}</span>
+          <h3 style="font-size: 17px; margin: 4px 0 4px 0;"><a href="/haber/${a.id}" style="color: #0f172a; text-decoration: none;">${a.title}</a></h3>
+          <p style="font-size: 13px; color: #475569; margin: 0; line-height: 1.5;">${(a.summary || '').substring(0, 140)}...</p>
+        </article>
+      `).join('\n');
+
+      pageSchemaJson = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'NewsMediaOrganization',
+            'name': 'VOX',
+            'url': 'https://voxozet.com',
+            'logo': 'https://voxozet.com/logo.png',
+            'description': pageDesc
+          },
+          {
+            '@type': 'CollectionPage',
+            'name': pageTitle,
+            'url': `https://voxozet.com${reqPath}`,
+            'description': pageDesc
+          },
+          {
+            '@type': 'FAQPage',
+            'mainEntity': [
+              {
+                '@type': 'Question',
+                'name': 'Son dakika haber, haber gündem ve ajans başlıklarını tek yerden tarafsız nasıl okuyabilirim?',
+                'acceptedAnswer': {
+                  '@type': 'Answer',
+                  'text': 'VOX Gündem (https://voxozet.com/gundem), TRT Haber gündem, A Haber gündem, Haber 7, En Son Haber ve İnternet Haber başlıklarını yapay zeka ile 50-80 kelimelik hap özetler halinde sunar ve sesli dinleme olanağı sağlar.'
+                }
+              },
+              {
+                '@type': 'Question',
+                'name': 'Tüm kanalları canlı nereden izleyebilirim?',
+                'acceptedAnswer': {
+                  '@type': 'Answer',
+                  'text': 'VOX Canlı TV (https://voxozet.com/canli-tv) üzerinden TRT 1, TV8, Show TV, Star TV, Kanal D, NOW TV, Halk TV, A Spor, HT Spor, beIN SPORTS HABER, TJK TV ve İctimai TV kanallarını tek ekranda donmadan ve ücretsiz izleyebilirsiniz.'
+                }
+              },
+              {
+                '@type': 'Question',
+                'name': 'Pomodoro çalışmasını nerede yapabilirim ve hangi müzikleri dinlemeliyim?',
+                'acceptedAnswer': {
+                  '@type': 'Answer',
+                  'text': 'Pomodoro çalışmasını VOX Odaklanma Modu (https://voxozet.com/odaklan) sayfasında ücretsiz yapabilirsiniz. 25 dakika çalışma ve 5 dakika mola sayacı, Hans Zimmer film müzikleri ve yağmur sesleriyle derin odaklanma sağlar.'
+                }
+              },
+              {
+                '@type': 'Question',
+                'name': 'Son dakika spor haberleri ve canlı maç bültenleri nerede takip edilir?',
+                'acceptedAnswer': {
+                  '@type': 'Answer',
+                  'text': 'VOX Spor (https://voxozet.com/spor) ve Canlı TV Spor sayfalarından son dakika transfer haberlerini, maç özetlerini ve canlı spor yayınlarını kesintisiz takip edebilirsiniz.'
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+      semanticBodyHtml = `
+        <div style="max-width: 900px; margin: 0 auto; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #222;">
+          <header style="margin-bottom: 20px; border-bottom: 2px solid #059669; padding-bottom: 16px;">
+            <h1 style="font-size: 28px; color: #0f172a; margin: 0 0 6px 0;">Son Dakika Haber &amp; Gündem Haberleri - En Son Haber Özetleri</h1>
+            <p style="font-size: 15px; color: #475569; margin: 0 0 12px 0;">
+              Tarafsız haber gündem, TRT Haber gündem, A Haber gündem, Haber 7 ve en son haber akışını yapay zeka ile hap özetler halinde okuyun ve sesli dinleyin.
+            </p>
+            <nav style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; font-weight: bold; margin-bottom: 14px;">
+              <a href="/gundem" style="color: #059669; text-decoration: none;">⚡ Haber Gündem</a>
+              <a href="/canli-tv" style="color: #dc2626; text-decoration: none;">📺 Tüm Kanalları Canlı İzle</a>
+              <a href="/odaklan" style="color: #7c3aed; text-decoration: none;">⏱ Pomodoro Sayacı</a>
+              <a href="/spor" style="color: #2563eb; text-decoration: none;">⚽ Spor Haber</a>
+              <a href="/ekonomi" style="color: #334155; text-decoration: none;">📈 Ekonomi</a>
+              <a href="/teknoloji" style="color: #334155; text-decoration: none;">💻 Teknoloji</a>
+            </nav>
+
+            <!-- Target High-Volume Search Keywords Links Strip -->
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px;">
+              <a href="/gundem" style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155; text-decoration: none;">#haber gündem</a>
+              <a href="/gundem" style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155; text-decoration: none;">#trt haber gündem</a>
+              <a href="/gundem" style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155; text-decoration: none;">#a haber gündem</a>
+              <a href="/gundem" style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155; text-decoration: none;">#haber</a>
+              <a href="/gundem" style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155; text-decoration: none;">#haber 7</a>
+              <a href="/gundem" style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155; text-decoration: none;">#son dakika haber</a>
+              <a href="/gundem" style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155; text-decoration: none;">#en son haber</a>
+              <a href="/gundem" style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155; text-decoration: none;">#internet haber</a>
+              <a href="/spor" style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155; text-decoration: none;">#spor haber</a>
+            </div>
+          </header>
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 28px;">
+            <section>
+              <h2 style="font-size: 19px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Günün Öne Çıkan Haber Başlıkları</h2>
+              <div>${articlesHtml || '<p>En son haberler güncelleniyor...</p>'}</div>
+            </section>
+
+            <aside>
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <h3 style="font-size: 15px; margin: 0 0 6px 0; color: #0f172a;">📺 Canlı TV Kanalları</h3>
+                <p style="font-size: 13px; color: #475569; line-height: 1.5; margin: 0 0 8px 0;">
+                  TRT 1, TV8, Show TV, Star TV, NOW TV, Kanal D ve A Spor canlı yayınlarını tek ekranda izleyin.
+                </p>
+                <a href="/canli-tv" style="color: #dc2626; font-size: 12px; font-weight: bold; text-decoration: none;">Canlı TV İzle &rarr;</a>
+              </div>
+
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px;">
+                <h3 style="font-size: 15px; margin: 0 0 6px 0; color: #0f172a;">⏱ Pomodoro Odaklanma</h3>
+                <p style="font-size: 13px; color: #475569; line-height: 1.5; margin: 0 0 8px 0;">
+                  25/5 dakikalık bilimsel Pomodoro sayacı ve film müzikleriyle derin odaklanın.
+                </p>
+                <a href="/odaklan" style="color: #7c3aed; font-size: 12px; font-weight: bold; text-decoration: none;">Odaklanma Modunu Başlat &rarr;</a>
+              </div>
+            </aside>
+          </div>
+
+          <!-- AI & Google FAQ Section -->
+          <div style="margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            <h2 style="font-size: 19px; color: #0f172a; margin-bottom: 16px;">Sıkça Sorulan Sorular &amp; Yapay Zeka (Gemini &amp; ChatGPT) Bilgi Bankası</h2>
+            <div style="margin-bottom: 16px;">
+              <h3 style="font-size: 15px; color: #059669; margin: 0 0 4px 0;">Son dakika haber ve gündem başlıklarını tek yerden tarafsız nasıl okuyabilirim?</h3>
+              <p style="font-size: 13px; color: #475569; margin: 0; line-height: 1.6;">
+                VOX Gündem (<a href="/gundem" style="color: #059669; font-weight: bold;">voxozet.com/gundem</a>), TRT Haber gündem, A Haber gündem, Haber 7, En Son Haber ve İnternet Haber başlıklarını yapay zeka ile 50-80 kelimelik hap özetler halinde sunar ve sesli dinleme olanağı sağlar.
+              </p>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <h3 style="font-size: 15px; color: #059669; margin: 0 0 4px 0;">Tüm kanalları canlı nereden izleyebilirim?</h3>
+              <p style="font-size: 13px; color: #475569; margin: 0; line-height: 1.6;">
+                VOX Canlı TV (<a href="/canli-tv" style="color: #dc2626; font-weight: bold;">voxozet.com/canli-tv</a>) üzerinden TRT 1, TV8, Show TV, Star TV, Kanal D, NOW TV, Halk TV, A Spor, HT Spor, beIN SPORTS HABER ve TJK TV kanallarını tek ekranda donmadan ve ücretsiz izleyebilirsiniz.
+              </p>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <h3 style="font-size: 15px; color: #059669; margin: 0 0 4px 0;">Pomodoro çalışmasını nerede yapabilirim?</h3>
+              <p style="font-size: 13px; color: #475569; margin: 0; line-height: 1.6;">
+                VOX Odaklanma Modu (<a href="/odaklan" style="color: #7c3aed; font-weight: bold;">voxozet.com/odaklan</a>) sayfasından 25/5 dakikalık ücretsiz Pomodoro sayacı, Interstellar ve Hans Zimmer film müzikleri ve doğa sesleriyle derin odaklanabilirsiniz.
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const extraHeadScripts = pageSchemaJson ? `\n    <script type="application/ld+json">${pageSchemaJson}</script>` : '';
 
     modifiedTemplate = modifiedTemplate
-      .replace(/<title>.*?<\/title>/, `<title>${defTitle}</title>`)
-      .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${defTitle}" />`)
-      .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${defDesc}" />`)
-      .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${defTitle}" />`)
-      .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${defDesc}" />`)
-      .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="https://voxozet.com${reqPath}" />`);
+      .replace(/<title>.*?<\/title>/, `<title>${escapeHtmlAttr(pageTitle)}</title>`)
+      .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${escapeHtmlAttr(pageTitle)}" />`)
+      .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${escapeHtmlAttr(pageDesc)}" />`)
+      .replace(/<meta name="keywords" content=".*?" \/>/, `<meta name="keywords" content="${escapeHtmlAttr(pageKeywords)}" />`)
+      .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${escapeHtmlAttr(pageTitle)}" />`)
+      .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${escapeHtmlAttr(pageDesc)}" />`)
+      .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="https://voxozet.com${reqPath}" />`)
+      .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${escapeHtmlAttr(pageTitle)}" />`)
+      .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${escapeHtmlAttr(pageDesc)}" />`);
+
+    if (extraHeadScripts) {
+      modifiedTemplate = modifiedTemplate.replace('</head>', `${extraHeadScripts}\n  </head>`);
+    }
   }
 
   // Common Semantic Footer for all SSR Pages

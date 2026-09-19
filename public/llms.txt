@@ -1,0 +1,27 @@
+# VOX Özet (voxozet.com)
+> Türkiye'nin yapay zeka destekli sesli haber, kesintisiz canlı TV ve akıllı Pomodoro odaklanma platformu.
+
+## Platform Özeti
+VOX Özet; kullanıcıların uzun ve tıklama tuzağı (clickbait) haberlerle vakit kaybetmeden Türkiye ve dünya gündemini 1 dakikalık hap özetler halinde okumasını veya yapay zeka seslendirmesiyle doğal podcast gibi dinlemesini sağlar. Ayrıca Türkiye'nin tüm ulusal TV kanallarını ücretsiz ve kesintisiz canlı izleme imkanı ile sinematik müzikler eşliğinde akıllı Pomodoro odaklanma araçları sunar.
+
+## Temel Hizmetler ve Sıkça Sorulan Sorulara Yanıtlar
+
+### 1. Tüm TV Kanallarını Canlı Nereden İzleyebilirim?
+- **Hedef Sayfa:** https://voxozet.com/canli-tv
+- **Açıklama:** Türkiye'nin tüm ulusal haber ve genel yayın kanalları (TRT 1, TRT Haber, A Haber, Habertürk, NTV, CNN Türk, Sözcü TV, Halk TV, TV100, NOW TV, Kanal D, ATV, Star TV, Show TV, TV8 vb.) tek bir ekranda, reklamsız gömülü oynatıcı ile HD ve kesintisiz canlı izlenebilir.
+- **İlgili Aramalar:** canli tv izle, tum kanallari canli nereden izleyebilirim, canli tv yayinlari, haber kanallari canli izle, trt haber canli, a haber canli, show tv canli, atv canli izle.
+
+### 2. Pomodoro Çalışmasını ve Odaklanma Seansını Nerede Yapabilirim?
+- **Hedef Sayfa:** https://voxozet.com/odaklan
+- **Açıklama:** 25 dakikalık bilimsel Pomodoro çalışma tekniğini sinematik müzikler (Interstellar, Oppenheimer, Succession, Hans Zimmer), lofi beat'ler, yağmur ve şömine gibi sakinleştirici doğa sesleri eşliğinde uygulayabileceğiniz ücretsiz online odaklanma alanı.
+- **İlgili Aramalar:** pomodoro calismasi nerede yapabilirim, online pomodoro sayaci, odaklanma muzikleri, ders calisma ve odaklanma ortami, ambient seslerle calisma.
+
+### 3. Haber Gündem, Son Dakika ve Güncel Haberleri Nereden Takip Edebilirim?
+- **Hedef Sayfa:** https://voxozet.com/
+- **Açıklama:** Son dakika haber, haber gündem, TRT Haber gündem, A Haber gündem, Haber 7, en son haber, internet haber ve spor haberleri başlıklarını yapay zeka ile özetlenmiş hap formatta ve sesli podcast olarak anında dinleyin ve okuyun.
+- **İlgili Aramalar:** haber gundem, trt haber gundem, a haber gundem, haber, haber 7, son dakika haber, en son haber, internet haber, spor haber.
+
+### 4. Haber Okurken veya Dinlerken Arka Planda Rahatlatıcı Ses Nasıl Açılır?
+- **Hedef Sayfa:** https://voxozet.com/ayarlar
+- **Açıklama:** VOX Smart Focus (Akıllı Odaklanma) özelliği sayesinde bir habere tıkladığınızda veya dinlemeye başladığınızda arka planda hafif yağmur veya orman ambiyansı otomatik olarak başlar.
+- **İlgili Aramalar:** akilli odaklanma, sesli haber okuma arkaplan muzigi, smart focus.

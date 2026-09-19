@@ -20,7 +20,13 @@ import {
   Layers,
   RotateCcw,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  Play,
+  Square,
+  Sliders,
+  SlidersHorizontal,
+  CloudRain,
+  Radio
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { appStorage } from '../lib/storage';
@@ -35,6 +41,17 @@ import {
 } from '../lib/firebase';
 import { AuthModal } from './AuthModal';
 import { Link } from 'react-router-dom';
+import { 
+  SMART_FOCUS_PRESETS, 
+  getSmartFocusSettings, 
+  saveSmartFocusSettings, 
+  SmartFocusSettings, 
+  getSmartFocusPreset, 
+  triggerSmartFocusAutoStart 
+} from '../lib/smartFocusService';
+import { woodRainSynth } from '../lib/audioSynth';
+import { universalSynthService } from '../lib/universalSynthService';
+import { AmbientChannel } from './AmbientMixerSheet';
 
 interface ProfileTabProps {
   user: UserProfile | null;
@@ -46,13 +63,17 @@ interface ProfileTabProps {
   onOpenAmbientMixer?: () => void;
   onOpenPaywall?: () => void;
   onClearAllCache?: () => Promise<void> | void;
+  ambientChannels?: AmbientChannel[];
+  onToggleAmbientChannel?: (id: string) => void;
 }
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
   user,
   onRefreshUser,
   onOpenPaywall,
-  onClearAllCache
+  onClearAllCache,
+  ambientChannels,
+  onToggleAmbientChannel
 }) => {
   // Theme state
   const [themeMode, setThemeMode] = useState<'dark' | 'light' | 'system'>(() => {
@@ -114,9 +135,121 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     return () => window.removeEventListener('vox_auth_changed', handleAuthChange);
   }, []);
 
+  // Smart Focus (Akıllı Odaklanma) state & audio preview
+  const [smartFocus, setSmartFocus] = useState<SmartFocusSettings>(() => getSmartFocusSettings());
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
+  const [smartFocusSuccessToast, setSmartFocusSuccessToast] = useState<string | null>(null);
+  const previewAudioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  // Sync settings if updated from other components
+  useEffect(() => {
+    const handleSettingsChanged = (e: any) => {
+      if (e.detail) {
+        setSmartFocus(e.detail);
+      }
+    };
+    window.addEventListener('vox_smart_focus_settings_changed', handleSettingsChanged);
+    return () => {
+      window.removeEventListener('vox_smart_focus_settings_changed', handleSettingsChanged);
+      if (previewAudioRef.current) {
+        try {
+          previewAudioRef.current.pause();
+          previewAudioRef.current = null;
+        } catch (e) {}
+      }
+      universalSynthService.stopSynthSound('lofi-study-synth');
+    };
+  }, []);
+
   const triggerHaptic = () => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(10);
+    }
+  };
+
+  const handleToggleSmartFocus = () => {
+    triggerHaptic();
+    const nextEnabled = !smartFocus.enabled;
+    const updated = { ...smartFocus, enabled: nextEnabled };
+    setSmartFocus(updated);
+    saveSmartFocusSettings({ enabled: nextEnabled });
+
+    if (!nextEnabled && previewingId) {
+      handleStopPreview();
+    }
+  };
+
+  const handleSelectSoundscape = (id: string) => {
+    triggerHaptic();
+    const updated = { ...smartFocus, soundscapeId: id };
+    setSmartFocus(updated);
+    saveSmartFocusSettings({ soundscapeId: id });
+
+    if (previewingId) {
+      handlePlayPreview(id);
+    }
+  };
+
+  const handleSmartFocusVolumeChange = (newVol: number) => {
+    const updated = { ...smartFocus, volume: newVol };
+    setSmartFocus(updated);
+    saveSmartFocusSettings({ volume: newVol });
+    if (previewAudioRef.current) {
+      previewAudioRef.current.volume = newVol / 100;
+    }
+    if (previewingId) {
+      universalSynthService.playSynthSound(previewingId, newVol);
+    }
+  };
+
+  const handleStopPreview = () => {
+    if (previewAudioRef.current) {
+      try {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      } catch (e) {}
+    }
+    universalSynthService.stopSynthSound('lofi-study-synth');
+    setPreviewingId(null);
+  };
+
+  const handlePlayPreview = (id: string) => {
+    handleStopPreview();
+    triggerHaptic();
+    woodRainSynth.unlockAudioContext();
+    universalSynthService.unlock();
+
+    const preset = getSmartFocusPreset(id);
+    setPreviewingId(id);
+
+    if (preset.type === 'stream' && preset.url) {
+      const audio = new Audio(preset.url);
+      audio.loop = true;
+      audio.volume = smartFocus.volume / 100;
+      audio.play().catch(() => {});
+      previewAudioRef.current = audio;
+    } else if (preset.type === 'synth') {
+      universalSynthService.playSynthSound('lofi-study-synth', smartFocus.volume);
+    } else if (preset.type === 'youtube' && onToggleAmbientChannel) {
+      onToggleAmbientChannel(id);
+    }
+  };
+
+  const handleSimulateSmartFocus = () => {
+    triggerHaptic();
+    handleStopPreview();
+    const triggered = triggerSmartFocusAutoStart('read', {
+      id: 'test-article-simulation-' + Date.now(),
+      title: 'Örnek Haber: Yapay Zeka ve Zihinsel Odaklanma'
+    });
+
+    if (triggered) {
+      const preset = getSmartFocusPreset(smartFocus.soundscapeId);
+      setSmartFocusSuccessToast(`Akıllı Odak başlatıldı: "${preset.name}" arka planda çalıyor.`);
+      setTimeout(() => setSmartFocusSuccessToast(null), 4500);
+    } else {
+      setSmartFocusSuccessToast('Akıllı Odaklanma şu an kapalı. Lütfen önce yukarıdaki butonu açın.');
+      setTimeout(() => setSmartFocusSuccessToast(null), 4000);
     }
   };
 
@@ -618,7 +751,212 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         )}
       </section>
 
-      {/* 4. GÖRÜNÜM & TEMA SEÇİMİ */}
+      {/* 4. AKILLI ODAKLANMA (SMART FOCUS) - HABER OKURKEN VEYA DİNLERKEN OTOMATİK AMBİYANS BAŞLATICI */}
+      <section className="bg-surface-container/90 border border-emerald-500/30 p-5 rounded-3xl shadow-xl space-y-4 relative overflow-hidden">
+        {/* Subtle background glow */}
+        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
+
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <span>Akıllı Odaklanma (Smart Focus)</span>
+              </h3>
+              <p className="text-[10px] text-gray-400">Haber Okuma & Dinleme Ses Alanı</p>
+            </div>
+          </div>
+          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+            smartFocus.enabled 
+              ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/40' 
+              : 'text-gray-400 bg-white/5 border-white/10'
+          }`}>
+            {smartFocus.enabled ? 'Aktif' : 'Kapalı'}
+          </span>
+        </div>
+
+        <p className="text-xs text-gray-300 leading-relaxed relative z-10">
+          Bir haberi <strong>okumaya</strong> (detay sayfasına girdiğinizde) veya <strong>dinlemeye</strong> başladığınızda, zihni sakinleştiren ve derin odaklanmayı sağlayan ambiyans sesini otomatik olarak başlatır.
+        </p>
+
+        {/* Ana Smart Focus Aç/Kapat Toggle Kartı */}
+        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 relative z-10">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-white flex items-center gap-1.5">
+              <Headphones className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Smart Focus Otomatik Başlatıcı</span>
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">
+              {smartFocus.enabled 
+                ? 'Açık: Herhangi bir haber açıldığında veya dinlendiğinde seçili ses otomatik devreye girer.' 
+                : 'Kapalı: Haber açıldığında ortam sesi otomatik başlatılmaz.'}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleToggleSmartFocus}
+            className={`w-13 h-7 rounded-full p-1 transition-all relative cursor-pointer shrink-0 shadow-inner ${
+              smartFocus.enabled ? 'bg-emerald-500' : 'bg-gray-700'
+            }`}
+            title="Akıllı Odaklanmayı Aç veya Kapat"
+            aria-checked={smartFocus.enabled}
+          >
+            <div className={`w-5 h-5 rounded-full bg-white transition-transform duration-200 shadow-md ${
+              smartFocus.enabled ? 'translate-x-6' : 'translate-x-0'
+            }`} />
+          </button>
+        </div>
+
+        {/* Aktif Ayar Paneli: Ses Manzarası Seçimi, Önizleme ve Ses Seviyesi */}
+        {smartFocus.enabled && (
+          <div className="space-y-4 pt-1 relative z-10 animate-in fade-in duration-200">
+            {/* Ön Tanımlı Ses Manzarası Listesi */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <CloudRain className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Ön Tanımlı Ses Manzarası</span>
+                </label>
+                <span className="text-[10px] text-emerald-400 font-semibold">
+                  Otomatik başlayacak ses
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {SMART_FOCUS_PRESETS.map((preset) => {
+                  const isSelected = smartFocus.soundscapeId === preset.id;
+                  const isCurrentlyPreviewing = previewingId === preset.id;
+
+                  return (
+                    <div
+                      key={preset.id}
+                      onClick={() => handleSelectSoundscape(preset.id)}
+                      className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected 
+                          ? 'bg-emerald-500/10 border-emerald-500/40 shadow-sm' 
+                          : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.07] hover:border-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <span className="text-xl shrink-0 select-none">{preset.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-white truncate">
+                              {preset.name}
+                            </span>
+                            {preset.id === 'stream-nature-rain' && (
+                              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                Önerilen
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-gray-400 truncate mt-0.5">
+                            {preset.subtitle}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Önizleme / Dinleme Butonu & Seçim İkonu */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isCurrentlyPreviewing) {
+                              handleStopPreview();
+                            } else {
+                              handlePlayPreview(preset.id);
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 transition-all active:scale-95 ${
+                            isCurrentlyPreviewing 
+                              ? 'bg-red-500/20 text-red-300 border border-red-500/30' 
+                              : 'bg-white/10 hover:bg-white/15 text-gray-200 border border-white/10'
+                          }`}
+                          title={isCurrentlyPreviewing ? 'Önizlemeyi Durdur' : 'Sesi Dinle / Test Et'}
+                        >
+                          {isCurrentlyPreviewing ? (
+                            <>
+                              <Square className="w-2.5 h-2.5 fill-current animate-pulse" />
+                              <span>Durdur</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-2.5 h-2.5 fill-current" />
+                              <span>Dinle</span>
+                            </>
+                          )}
+                        </button>
+
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                          isSelected 
+                            ? 'border-emerald-400 bg-emerald-500 text-slate-950 shadow-sm' 
+                            : 'border-gray-600 bg-black/40'
+                        }`}>
+                          {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Arka Plan Ses Seviyesi Slider'ı */}
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-white flex items-center gap-1.5">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Arka Plan Ses Seviyesi</span>
+                </span>
+                <span className="text-xs font-mono font-bold text-emerald-400">
+                  %{smartFocus.volume}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="100"
+                step="5"
+                value={smartFocus.volume}
+                onChange={(e) => handleSmartFocusVolumeChange(parseInt(e.target.value, 10))}
+                className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+              <p className="text-[10px] text-gray-400 leading-snug">
+                Haber seslendirmesinin (TTS) veya okumanızın arkasında dengeli ve rahatsız etmeyen bir tonda çalar.
+              </p>
+            </div>
+
+            {/* Canlı Simülasyon Butonu */}
+            <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white">Akıllı Odak Deneyimi</p>
+                <p className="text-[10px] text-gray-400">Haber açılışını simüle edip hemen test edin.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSimulateSmartFocus}
+                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Simüle Et</span>
+              </button>
+            </div>
+
+            {smartFocusSuccessToast && (
+              <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-1.5 animate-fade-in">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>{smartFocusSuccessToast}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* 5. GÖRÜNÜM & TEMA SEÇİMİ */}
       <section className="bg-surface-container/90 border border-white/10 p-5 rounded-3xl shadow-xl space-y-3">
         <h3 className="text-xs font-bold text-white uppercase tracking-wider">
           Görünüm Teması

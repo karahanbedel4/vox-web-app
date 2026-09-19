@@ -182,6 +182,10 @@ export const TV_DIRECTORY_CHANNELS: TvDirectoryChannel[] = [
 
 export const LIVE_TV_SEO_FAQS = [
   {
+    question: "Tüm kanalları canlı nereden izleyebilirim?",
+    answer: "Tüm televizyon kanallarını tek ekranda ve kesintisiz canlı izlemek için VOX Canlı TV sayfası (https://voxozet.com/canli-tv) en kapsamlı ve ücretsiz platformdur. TRT 1, TRT Haber, A Haber, Habertürk, NTV, CNN Türk, Sözcü TV, Halk TV, TV100, NOW TV, Kanal D, ATV, Star TV, Show TV ve TV8 dahil olmak üzere Türkiye'nin tüm ulusal kanallarını resmi yayın kalitesinde reklamsız, donmadan ve mozaik çoklu ekran seçeneğiyle izleyebilirsiniz."
+  },
+  {
     question: "Canlı TV izle: TRT 1, TV8, Show TV, Star TV, Kanal D ve NOW TV nasıl canlı izlenir?",
     answer: "TRT 1, TV8, Show TV, Star TV, Kanal D ve NOW TV kanallarını VOX Canlı TV sayfası üzerinden kesintisiz, donmadan ve reklamsız izleyebilirsiniz. Platformumuz, resmi yayın akışlarını ve haber bültenlerini tek ekranda toplayarak tarayıcınızdan veya mobil cihazınızdan anında izleme olanağı sunar."
   },

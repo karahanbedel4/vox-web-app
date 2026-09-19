@@ -31,7 +31,8 @@ import {
   LogOut,
   Tv,
   PanelLeft,
-  PanelLeftClose
+  PanelLeftClose,
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Article, UserProfile, PlaybackState } from '../types';
@@ -43,6 +44,8 @@ import { FocusTopBanner } from './FocusTopBanner';
 import { useFocus, formatFocusTime } from '../lib/FocusContext';
 import { getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, cleanNewsParagraphs, fetchFullScrapedArticle, enrichArticleWithAI } from '../lib/newsService';
 import { woodRainSynth } from '../lib/audioSynth';
+import { universalSynthService } from '../lib/universalSynthService';
+import { triggerSmartFocusAutoStart, SmartFocusPreset } from '../lib/smartFocusService';
 import { useTheme } from '../lib/ThemeContext';
 import { InfoModal, InfoModalType } from './InfoModal';
 import { LegalDisclaimerModal } from './LegalDisclaimerModal';
@@ -391,6 +394,74 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
     };
   }, []);
 
+  // Akıllı Odaklanma (Smart Focus) - Haber açıldığında otomatik ambiyans sesini başlatma
+  useEffect(() => {
+    if (readingArticle && readingArticle.id) {
+      triggerSmartFocusAutoStart('read', readingArticle);
+    }
+  }, [readingArticle?.id]);
+
+  useEffect(() => {
+    const handleSmartFocusTrigger = (e: any) => {
+      const detail = e.detail;
+      if (!detail || !detail.preset) return;
+
+      // Eğer şu anda çalan herhangi bir ortam sesi varsa, kullanıcının mevcut akışını bölme
+      const isAlreadyPlaying = ambientChannels.some(c => c.active && c.volume > 0);
+      if (isAlreadyPlaying) {
+        return;
+      }
+
+      try {
+        woodRainSynth.unlockAudioContext();
+        universalSynthService.unlock();
+      } catch (err) {}
+
+      const preset: SmartFocusPreset = detail.preset;
+      const vol = detail.volume || 50;
+
+      // Seçili kanalı aktive et ve diğerlerini kapatarak temiz bir ses ortamı oluştur
+      setAmbientChannels(prev => {
+        const channelType = preset.type || (preset.url ? 'stream' : (preset.youtubeId ? 'youtube' : 'synth'));
+        const exists = prev.some(c => c.id === preset.id);
+        const baseList = exists ? prev : [...prev, {
+          id: preset.id,
+          name: preset.name,
+          type: channelType,
+          url: preset.url,
+          youtubeId: preset.youtubeId,
+          volume: vol,
+          active: true,
+          category: preset.type === 'synth' ? 'lofi' : (preset.type === 'youtube' ? 'movies' : 'nature')
+        }];
+
+        return baseList.map(ch => {
+          if (ch.id === preset.id) {
+            return {
+              ...ch,
+              active: true,
+              volume: vol,
+              type: channelType,
+              url: preset.url || ch.url,
+              youtubeId: preset.youtubeId || ch.youtubeId
+            };
+          }
+          return { ...ch, active: false };
+        });
+      });
+
+      if (detail.showToast) {
+        setTopNotificationText(`Akıllı Odak: ${preset.name} başlatıldı`);
+        setTimeout(() => {
+          setTopNotificationText(prev => prev?.includes(preset.name) ? null : prev);
+        }, 4500);
+      }
+    };
+
+    window.addEventListener('vox_smart_focus_trigger', handleSmartFocusTrigger);
+    return () => window.removeEventListener('vox_smart_focus_trigger', handleSmartFocusTrigger);
+  }, [ambientChannels, setAmbientChannels]);
+
   const handleTogglePlay = () => {
     if (playbackState.currentArticle) {
       if (playbackState.isPlaying) {
@@ -614,7 +685,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               to="/profil"
               className={({ isActive }) =>
                 `flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold tracking-wide transition-all ${
-                  isActive
+                  isActive && location.pathname === '/profil'
                     ? 'bg-white/10 text-white border border-white/10 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`
@@ -627,6 +698,23 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               {isLoggedIn && (
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               )}
+            </NavLink>
+
+            {/* AYARLAR & AKILLI ODAK */}
+            <NavLink
+              to="/ayarlar"
+              className={({ isActive }) =>
+                `flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold tracking-wide transition-all ${
+                  isActive || location.pathname === '/ayarlar' || location.pathname === '/settings'
+                    ? 'bg-white/10 text-white border border-white/10 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                }`
+              }
+            >
+              <div className="flex items-center gap-2.5">
+                <Settings className="w-4 h-4 text-emerald-400" />
+                <span>AYARLAR</span>
+              </div>
             </NavLink>
           </nav>
 
@@ -989,6 +1077,23 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                       </div>
                     </NavLink>
                   )}
+
+                  <NavLink
+                    to="/ayarlar"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
+                        isActive || location.pathname === '/ayarlar' || location.pathname === '/settings'
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                          : 'text-gray-300 hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Settings className="w-4 h-4 text-emerald-400" />
+                      <span>Ayarlar (Smart Focus)</span>
+                    </div>
+                  </NavLink>
                 </nav>
 
                 {/* Compact Highlights (Mobile App) */}

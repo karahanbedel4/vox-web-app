@@ -10,6 +10,9 @@ import { INITIAL_ARTICLES } from '../data/defaultArticles';
 import { VoxLogo } from './VoxLogo';
 import { XLogoIcon } from './XLogoIcon';
 import { NativeAdCard } from './NativeAdCard';
+import { FeaturedNewsSlider } from './FeaturedNewsSlider';
+import { AiSeoKnowledgeSection } from './AiSeoKnowledgeSection';
+import { TARGET_KEYWORDS_GUNDEM } from '../data/seoKeywordsData';
 
 export type CategoryType = 'Tümü' | 'Gündem' | 'Ekonomi' | 'Teknoloji' | 'Spor' | 'Dünya' | 'Sağlık';
 
@@ -151,6 +154,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     loadCategoryArticles(true);
   }, [activeCategory]);
 
+  // Dynamic SEO & Title updates for Category Changes on Client
+  useEffect(() => {
+    let pageTitle = 'Son Dakika Haber & Gündem Haberleri - En Son Haber Özetleri | VOX';
+    let pageDesc = 'Son dakika haber, haber gündem, TRT Haber gündem, A Haber gündem, Haber 7 ve en son haber başlıklarını yapay zeka ile hap özetler halinde sesli dinleyin ve okuyun.';
+    let pageKeywords = 'haber gündem, trt haber gündem, a haber gündem, haber, haber 7, son dakika haber, en son haber, internet haber, spor haber, türkiye gündemi son dakika';
+
+    if (activeCategory === 'Spor') {
+      pageTitle = 'Son Dakika Spor Haberleri & Canlı Spor TV | VOX Spor';
+      pageDesc = 'Son dakika spor haber, transfer gelişmeleri, Süper Lig özetleri ve HT Spor, A Spor, beIN SPORTS HABER ile TJK TV canlı yayınları tek ekranda.';
+      pageKeywords = 'spor haber, son dakika spor haberleri, transfer haberleri, canlı spor tv, maç özetleri, tjk tv at yarışı, a spor canlı';
+    } else if (activeCategory === 'Ekonomi') {
+      pageTitle = 'Ekonomi Haberleri & Borsa Gündemi - Canlı Piyasa | VOX Ekonomi';
+      pageDesc = 'Son dakika ekonomi haberleri, Borsa İstanbul, altın fiyatları, dolar kuru ve küresel piyasaları yapay zeka özetleriyle takip edin.';
+      pageKeywords = 'ekonomi haberleri, borsa istanbul, bIST 100, altın fiyatları, dolar kuru, ekonomi gündem, faiz kararı';
+    } else if (activeCategory === 'Teknoloji') {
+      pageTitle = 'Teknoloji Haberleri & Yapay Zeka Gündemi | VOX Teknoloji';
+      pageDesc = 'Son dakika teknoloji haberleri, yapay zeka gelişmeleri, ChatGPT, Gemini, Apple ve Google son dakika teknoloji gündemi.';
+      pageKeywords = 'teknoloji haberleri, yapay zeka, openai, gemini, apple haberleri, teknoloji gündem';
+    }
+
+    document.title = pageTitle;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute('content', pageDesc);
+    const metaKeywords = document.querySelector('meta[name="keywords"]');
+    if (metaKeywords) metaKeywords.setAttribute('content', pageKeywords);
+  }, [activeCategory]);
+
   // Background check for new incoming articles (every 30 seconds)
   useEffect(() => {
     if (!latestTimestamp || googleSearchResults !== null) return;
@@ -253,16 +283,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return list;
   }, [googleSearchResults, liveNews, articles, activeCategory, searchQuery]);
 
-  const visibleArticles = useMemo(() => {
-    return displayList.slice(0, visibleCount).map(art => ({
+  const isSearchActive = Boolean(searchQuery.trim() || googleSearchResults !== null);
+  const showFeaturedSlider = !isSearchActive && displayList.length >= 3;
+
+  const streamArticles = useMemo(() => {
+    const startIdx = showFeaturedSlider ? 3 : 0;
+    return displayList.slice(startIdx, startIdx + visibleCount).map(art => ({
       ...art,
       title: sanitizeNewsText(art.title),
       summary: sanitizeNewsText(art.summary),
       author: sanitizeNewsText(art.author)
     }));
-  }, [displayList, visibleCount]);
+  }, [displayList, visibleCount, showFeaturedSlider]);
 
-  const hasMore = visibleCount < displayList.length;
+  const hasMore = showFeaturedSlider
+    ? (3 + visibleCount < displayList.length)
+    : (visibleCount < displayList.length);
+
+  const remainingCount = showFeaturedSlider
+    ? Math.max(0, displayList.length - 3 - visibleCount)
+    : Math.max(0, displayList.length - visibleCount);
 
   const isHotNews = (dateStr?: string) => {
     if (!dateStr) return false;
@@ -404,6 +444,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         )}
       </div>
 
+      {/* POPULAR SEARCH KEYWORDS STRIP */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+        <span className={`text-[10px] font-bold uppercase tracking-wider shrink-0 mr-1 ${
+          theme === 'light' ? 'text-slate-400' : 'text-zinc-500'
+        }`}>
+          Popüler Aramalar:
+        </span>
+        {TARGET_KEYWORDS_GUNDEM.map((kw, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => {
+              setSearchQuery(kw);
+              const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+              // Trigger search for this keyword
+              setIsSearchingGoogle(true);
+              searchGoogleNews(kw).then(res => {
+                setGoogleSearchResults(res);
+              }).catch(() => {}).finally(() => setIsSearchingGoogle(false));
+            }}
+            className={`px-2.5 py-0.5 rounded-full font-medium transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+              theme === 'light'
+                ? 'bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 border border-slate-200'
+                : 'bg-white/5 hover:bg-emerald-500/10 hover:text-emerald-400 text-zinc-400 border border-white/5'
+            }`}
+          >
+            #{kw}
+          </button>
+        ))}
+      </div>
+
       {/* FLOATING REAL-TIME NEW ARTICLES NOTIFICATION PILL */}
       {newArticlesCount > 0 && (
         <div className="sticky top-20 z-30 flex justify-center">
@@ -479,9 +550,49 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       ) : (
         /* NEWS COHESIVE GRID VIEW WITH PROGRESSIVE INFINITE SCROLL & NATIVE ADS */
-        <div className="space-y-4">
+        <div className="space-y-4 sm:space-y-5">
+          {/* BUNDLE-STYLE 3-ITEM FEATURED SLIDER AT THE TOP OF NEWS STREAM */}
+          {showFeaturedSlider && (
+            <div className="space-y-3 sm:space-y-4">
+              <FeaturedNewsSlider
+                articles={displayList.slice(0, 9)}
+                onSelectArticle={handleArticleCardClick}
+              />
+
+              {/* SPONSORED MONETIZATION BANNER (Between Featured Slider & Remaining Stream) */}
+              <NativeAdCard variant="banner" className="my-1" />
+
+              {/* SECTION HEADING FOR THE STREAM ARTICLES STARTING FROM ITEM 3+ */}
+              <div className="flex items-center justify-between pt-2 pb-1 border-b border-black/5 dark:border-white/5">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <h2 className={`text-sm sm:text-base font-black tracking-tight ${
+                    theme === 'light' ? 'text-slate-900' : 'text-white'
+                  }`}>
+                    {activeCategory === 'Tümü' ? 'Son Dakika & Güncel Akış' : `${activeCategory} Gelişmeleri`}
+                  </h2>
+                </div>
+                <span className={`text-xs font-mono font-bold ${
+                  theme === 'light' ? 'text-slate-500' : 'text-zinc-400'
+                }`}>
+                  {Math.max(0, displayList.length - 3)} Haber
+                </span>
+              </div>
+            </div>
+          )}
+
+          {isSearchActive && (
+            <div className="flex items-center justify-between pb-1 border-b border-black/5 dark:border-white/5">
+              <h2 className={`text-sm sm:text-base font-bold tracking-tight ${
+                theme === 'light' ? 'text-slate-900' : 'text-white'
+              }`}>
+                Arama Sonuçları ({displayList.length})
+              </h2>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
-            {visibleArticles.map((article, index) => {
+            {streamArticles.map((article, index) => {
               const isBookmarked = bookmarkedIds.includes(article.id);
               const readingTime = calculateReadingTime(article);
               // Native AdCard inserted every 6 articles for organic monetization
@@ -668,7 +779,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     : 'bg-[#161c23] hover:bg-[#1f2730] text-gray-200 border-white/10 shadow-sm'
                 }`}
               >
-                <span>Daha Fazla Haber Göster ({displayList.length - visibleCount} kalan)</span>
+                <span>Daha Fazla Haber Göster ({remainingCount} kalan)</span>
                 <ChevronDown className="w-4 h-4 text-emerald-400" />
               </button>
             ) : (
@@ -677,6 +788,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </p>
             )}
           </div>
+
+          {/* AI & GOOGLE SEO KNOWLEDGE SECTION */}
+          <AiSeoKnowledgeSection pageContext={activeCategory === 'Spor' ? 'spor' : 'gundem'} />
         </div>
       )}
     </div>

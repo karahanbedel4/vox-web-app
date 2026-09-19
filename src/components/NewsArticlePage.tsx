@@ -46,6 +46,7 @@ import { ShareModal } from './ShareModal';
 import { INITIAL_ARTICLES } from '../data/defaultArticles';
 import { incrementUserArticlesRead } from '../lib/firebase';
 import { appStorage } from '../lib/storage';
+import { triggerSmartFocusAutoStart } from '../lib/smartFocusService';
 
 interface NewsArticlePageProps {
   articles: Article[];
@@ -102,7 +103,22 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
         incrementUserArticlesRead(userId);
       }
     } catch (e) {}
+
+    // Akıllı Odaklanma: Haber açıldığında otomatik ambiyans sesini başlat
+    triggerSmartFocusAutoStart('read', article);
   }, [article?.id]);
+
+  // ESC key listener to immediately close In-App Source Viewer and return to VOX
+  useEffect(() => {
+    if (!isInAppViewerOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsInAppViewerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isInAppViewerOpen]);
 
   // Update document title, meta tags, and JSON-LD for SEO on client-side
   useEffect(() => {
@@ -610,19 +626,59 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                       </div>
                     );
                   }
+
+                  const outboundUrl = article.sourceUrl ? buildOutboundSourceUrl(article.sourceUrl, article) : '';
+
                   return (
-                    <div className="py-4 space-y-3">
-                      <p className="text-sm text-gray-400">Haber detayları hazırlanıyor.</p>
+                    <div className={`p-4 sm:p-5 rounded-2xl border my-4 space-y-3.5 ${
+                      theme === 'light'
+                        ? 'bg-slate-50 border-slate-200 text-slate-800'
+                        : 'bg-white/[0.04] border-white/10 text-zinc-200'
+                    }`}>
+                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 uppercase tracking-wider">
+                        <Sparkles className="w-4 h-4" />
+                        <span>VOX 1 Dakikalık Akıllı Brifing</span>
+                      </div>
+
+                      <p className="text-sm sm:text-base leading-relaxed font-normal">
+                        {article.summary && article.summary.length > 20
+                          ? sanitizeNewsText(article.summary)
+                          : 'Bu haber için 1 dakikalık hap özet ve temel noktalar yapay zeka tarafından derlenmiştir.'}
+                      </p>
+
+                      <div className={`pt-2.5 border-t text-xs ${
+                        theme === 'light' ? 'border-slate-200 text-slate-500' : 'border-white/10 text-zinc-400'
+                      }`}>
+                        Haberin tüm ayrıntılarına ve kaynak metnine VOX'tan ayrılmadan doğrudan ulaşabilirsiniz:
+                      </div>
+
                       {article.sourceUrl && (
-                        <a
-                          href={article.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors"
-                        >
-                          <span>Orijinal Haberi Kaynağında Oku</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                        <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsInAppViewerOpen(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+                          >
+                            <Globe className="w-4 h-4" />
+                            <span>Orijinal Haberi Kaynağında Oku (VOX İçi)</span>
+                          </button>
+
+                          <a
+                            href={outboundUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => trackOutboundClick(article, outboundUrl)}
+                            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 ${
+                              theme === 'light'
+                                ? 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
+                                : 'bg-white/5 hover:bg-white/10 border-white/15 text-zinc-200'
+                            }`}
+                            title="Yeni sekmede aç (VOX açık kalır)"
+                          >
+                            <span>Yeni Sekmede Aç</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
                       )}
                     </div>
                   );
@@ -859,15 +915,11 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsInAppViewerOpen(true)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer active:scale-95 ${
-                    theme === 'light'
-                      ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
-                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300'
-                  }`}
-                  title="VOX'ta Önizle"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-black active:scale-95 transition-all shadow-md cursor-pointer"
+                  title="VOX İçi Görüntüleyici ile Oku"
                 >
-                  <Maximize2 className="w-3.5 h-3.5 opacity-75" />
-                  <span className="hidden sm:inline">Önizle</span>
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>Kaynağında Oku</span>
                 </button>
 
                 <a
@@ -875,13 +927,14 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackOutboundClick(article, outboundUrl)}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-all shadow-sm cursor-pointer border ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer active:scale-95 ${
                     theme === 'light'
-                      ? 'bg-slate-900 hover:bg-slate-800 text-white border-slate-800'
-                      : 'bg-white hover:bg-zinc-100 text-slate-950 border-white'
+                      ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300'
                   }`}
+                  title="Yeni sekmede aç (VOX sekmesi açık kalır)"
                 >
-                  <span>Habere Git</span>
+                  <span className="hidden sm:inline">Yeni Sekme</span>
                   <ExternalLink className="w-3.5 h-3.5 stroke-[2.2]" />
                 </a>
               </div>
@@ -896,15 +949,15 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
         return (
           <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-md flex flex-col animate-in fade-in duration-200">
             {/* Top Toolbar */}
-            <header className="h-14 px-4 bg-[#0d120f] border-b border-white/10 flex items-center justify-between shrink-0 text-white select-none">
-              <div className="flex items-center gap-3 min-w-0">
+            <header className="h-14 px-3 sm:px-4 bg-[#0d120f] border-b border-white/10 flex items-center justify-between shrink-0 text-white select-none">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                 <button
                   onClick={() => setIsInAppViewerOpen(false)}
-                  className="p-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black active:scale-95 transition-all flex items-center gap-1.5 text-xs font-black cursor-pointer shadow-md shrink-0"
                   title="Kapat ve VOX'a Dön"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">VOX'a Dön</span>
+                  <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+                  <span>VOX'a Dön</span>
                 </button>
                 <div className="h-4 w-px bg-white/10 hidden sm:block" />
                 <div className="min-w-0">
@@ -923,11 +976,12 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackOutboundClick(article, outboundUrl)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs transition-all shadow-md"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs transition-all border border-white/10"
                   title="Yeni sekmede tam sayfa aç"
                 >
-                  <span>Yeni Sekmede Aç</span>
-                  <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span className="hidden sm:inline">Yeni Sekmede Aç</span>
+                  <span className="sm:hidden">Yeni Sekme</span>
+                  <ExternalLink className="w-3.5 h-3.5 stroke-[2.2]" />
                 </a>
                 <button
                   onClick={() => setIsInAppViewerOpen(false)}
@@ -953,7 +1007,7 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                 rel="noopener noreferrer"
                 className="underline font-bold text-amber-400 shrink-0 hover:text-white"
               >
-                Sayfa açılmazsa doğrudan sitede açın →
+                Sayfa açılmazsa sitede açın →
               </a>
             </div>
 
@@ -965,6 +1019,17 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
                 className="w-full h-full border-0"
                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
               />
+
+              {/* Floating Return Pill so mobile users can effortlessly tap to return from any scroll depth */}
+              <button
+                type="button"
+                onClick={() => setIsInAppViewerOpen(false)}
+                className="fixed bottom-5 left-4 z-[90] px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs shadow-2xl flex items-center gap-1.5 border border-black/10 active:scale-95 transition-all cursor-pointer"
+                title="VOX'a Dön"
+              >
+                <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+                <span>VOX'a Dön</span>
+              </button>
             </div>
           </div>
         );

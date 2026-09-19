@@ -8,8 +8,8 @@
           "value": "nosniff"
         },
         {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://*.google.com https://*.google.com.tr https://*.googleusercontent.com https://*.doubleclick.net https://*.run.app;"
         },
         {
           "key": "X-XSS-Protection",

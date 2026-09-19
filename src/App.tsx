@@ -43,6 +43,7 @@ import { AmbientChannel, PlaylistInfo } from './components/AmbientMixerSheet';
 import { woodRainSynth } from './lib/audioSynth';
 import { universalSynthService } from './lib/universalSynthService';
 import { ALL_DEFAULT_AMBIENT_CHANNELS, ALL_TRACKS, ALL_SOUND_SHELVES, SoundTrack, isNatureOrLofiTrack } from './lib/soundtrackData';
+import { triggerSmartFocusAutoStart } from './lib/smartFocusService';
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -172,6 +173,8 @@ export default function App() {
   }, []);
 
   const handlePlayArticle = async (article: Article) => {
+    // Smart Focus: otomatik ambiyans sesini başlat
+    triggerSmartFocusAutoStart('listen', article);
     ttsService.loadArticle(article);
     ttsService.play();
 
@@ -596,7 +599,7 @@ export default function App() {
               }
             />
 
-            {/* User Profile Route */}
+            {/* User Profile & Settings Routes */}
             <RouterRoute
               path="/profil"
               element={
@@ -605,6 +608,44 @@ export default function App() {
                   onRefreshUser={handleRefreshUser}
                   isAmbientActive={ambientChannels.some(c => c.active)}
                   activeAmbientName={ambientChannels.filter(c => c.active).map(c => c.name).join(', ')}
+                  ambientChannels={ambientChannels}
+                  onToggleAmbientChannel={handleToggleAmbientChannel}
+                  onToggleAmbient={() => setIsAmbientMixerOpen(true)}
+                  onStopAmbient={() => setAmbientChannels(prev => prev.map(c => ({ ...c, active: false })))}
+                  onOpenAmbientMixer={() => setIsAmbientMixerOpen(true)}
+                  onOpenPaywall={() => handleOpenPaywallModalWithReason('limit_reached')}
+                  onClearAllCache={() => {}}
+                />
+              }
+            />
+            <RouterRoute
+              path="/ayarlar"
+              element={
+                <ProfileTab
+                  user={user}
+                  onRefreshUser={handleRefreshUser}
+                  isAmbientActive={ambientChannels.some(c => c.active)}
+                  activeAmbientName={ambientChannels.filter(c => c.active).map(c => c.name).join(', ')}
+                  ambientChannels={ambientChannels}
+                  onToggleAmbientChannel={handleToggleAmbientChannel}
+                  onToggleAmbient={() => setIsAmbientMixerOpen(true)}
+                  onStopAmbient={() => setAmbientChannels(prev => prev.map(c => ({ ...c, active: false })))}
+                  onOpenAmbientMixer={() => setIsAmbientMixerOpen(true)}
+                  onOpenPaywall={() => handleOpenPaywallModalWithReason('limit_reached')}
+                  onClearAllCache={() => {}}
+                />
+              }
+            />
+            <RouterRoute
+              path="/settings"
+              element={
+                <ProfileTab
+                  user={user}
+                  onRefreshUser={handleRefreshUser}
+                  isAmbientActive={ambientChannels.some(c => c.active)}
+                  activeAmbientName={ambientChannels.filter(c => c.active).map(c => c.name).join(', ')}
+                  ambientChannels={ambientChannels}
+                  onToggleAmbientChannel={handleToggleAmbientChannel}
                   onToggleAmbient={() => setIsAmbientMixerOpen(true)}
                   onStopAmbient={() => setAmbientChannels(prev => prev.map(c => ({ ...c, active: false })))}
                   onOpenAmbientMixer={() => setIsAmbientMixerOpen(true)}
