@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown, Send, Radio, Zap, Clock, Flame } from 'lucide-react';
 import { Article } from '../types';
 import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl, sanitizeNewsText, isDummyArticle, calculateReadingTime } from '../lib/newsService';
@@ -99,12 +99,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Sync search query when URL parameters change
   useEffect(() => {
-    const qParam = searchParams.get('q') || '';
+    const qParam = searchParams.get('q') || searchParams.get('trend') || '';
     if (qParam !== searchQuery) {
       setSearchQuery(qParam);
       setGoogleSearchResults(null);
+      if (qParam) {
+        setActiveCategory('Tümü');
+      }
     }
   }, [searchParams]);
+
+  // Listen for global vox_filter_articles events dispatched by PopularTrends
+  useEffect(() => {
+    const handleFilterEvent = (e: any) => {
+      if (e?.detail) {
+        const q = (e.detail.query || '').trim();
+        setSearchQuery(q);
+        setGoogleSearchResults(null);
+        setActiveCategory('Tümü');
+        if (q) {
+          setSearchParams({ q });
+          setTimeout(() => {
+            const anchor = document.getElementById('articles-feed-start');
+            if (anchor) {
+              anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+              window.scrollTo({ top: 350, behavior: 'smooth' });
+            }
+          }, 80);
+        } else {
+          const next = new URLSearchParams(searchParams);
+          next.delete('q');
+          next.delete('trend');
+          setSearchParams(next);
+        }
+      }
+    };
+
+    window.addEventListener('vox_filter_articles', handleFilterEvent);
+    return () => window.removeEventListener('vox_filter_articles', handleFilterEvent);
+  }, [searchParams, setSearchParams]);
 
   const loadCategoryArticles = async (showFullLoader = true) => {
     if (showFullLoader && liveNews.length === 0) setIsLoading(true);
@@ -654,6 +688,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {streamArticles.map((article, index) => {
               const isBookmarked = bookmarkedIds.includes(article.id);
               const readingTime = calculateReadingTime(article);
+              const isSocialPost = article.sourceType === 'twitter' || article.sourceType === 'telegram';
+              const articleUrl = getArticleUrl(article);
               // Native AdCard inserted every 6 articles for organic monetization
               const isFeedReady = !isLoading && !isSearchingGoogle && displayList.length > 0;
               const showAd = isFeedReady && (index + 1) % 6 === 0;
@@ -667,61 +703,98 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         : 'bg-[#141715] border-white/5 hover:border-white/15'
                     }`}
                   >
-                    {/* Enlarged Editorial Thumbnail Image */}
-                    <div
-                      onClick={() => handleArticleCardClick(article)}
-                      className="relative w-full aspect-[16/10] rounded-xl overflow-hidden shrink-0 bg-slate-900 border border-white/5 cursor-pointer group-hover:scale-[1.01] transition-transform"
-                    >
-                      <img
-                        src={sanitizeImageUrl(article.imageUrl) || getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
-                        alt={article.title}
-                        className="w-full h-full object-cover opacity-95 group-hover:opacity-100 transition-all duration-300"
-                        loading="lazy"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
-                          if (target.src !== fallback) {
-                            target.src = fallback;
-                          }
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
+                    {/* Enlarged Editorial Thumbnail Image (Standard Link for Googlebot & AdSense Vignettes) */}
+                    {isSocialPost ? (
+                      <div
+                        onClick={() => handleArticleCardClick(article)}
+                        className="relative w-full aspect-[16/10] rounded-xl overflow-hidden shrink-0 bg-slate-900 border border-white/5 cursor-pointer group-hover:scale-[1.01] transition-transform"
+                      >
+                        <img
+                          src={sanitizeImageUrl(article.imageUrl) || getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
+                          alt={article.title}
+                          className="w-full h-full object-cover opacity-95 group-hover:opacity-100 transition-all duration-300"
+                          loading="lazy"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                            if (target.src !== fallback) {
+                              target.src = fallback;
+                            }
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
 
-                      {/* Top Badges */}
-                      <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/15 shadow-sm">
-                          {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : article.sourceType === 'telegram' ? 'Telegram Canlı' : (article.category || activeCategory)}
-                        </span>
+                        {/* Top Badges */}
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/15 shadow-sm">
+                            {article.sourceType === 'twitter' ? '𝕏 Canlı Akış' : 'Telegram Canlı'}
+                          </span>
 
-                        {article.sourceType === 'twitter' && (
-                          <span className="text-[10px] font-bold text-white bg-black/85 backdrop-blur-md px-2 py-1 rounded-lg flex items-center gap-1 border border-white/15 shadow-sm">
-                            <XLogoIcon className="w-2.5 h-2.5 text-zinc-300" />
-                            <span>𝕏</span>
+                          {article.sourceType === 'twitter' ? (
+                            <span className="text-[10px] font-bold text-white bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1 border border-white/15 shadow-sm">
+                              <XLogoIcon className="w-2.5 h-2.5 text-zinc-300" />
+                              <span>𝕏</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-white bg-[#229ED9]/90 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1 border border-white/20 shadow-sm">
+                              <Send className="w-2.5 h-2.5 text-white" />
+                              <span>TG</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Bottom Badges */}
+                        <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+                          <span className="text-[10px] font-semibold text-white bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1 border border-white/15 shadow-sm">
+                            <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
+                            <span>{readingTime} dk okuma</span>
                           </span>
-                        )}
-                        {article.sourceType === 'telegram' && (
-                          <span className="text-[10px] font-bold text-white bg-[#229ED9]/90 backdrop-blur-md px-2 py-1 rounded-lg flex items-center gap-1 border border-white/20 shadow-sm">
-                            <Send className="w-2.5 h-2.5 text-white" />
-                            <span>TG</span>
-                          </span>
-                        )}
+                        </div>
                       </div>
+                    ) : (
+                      <Link
+                        to={articleUrl}
+                        className="relative w-full aspect-[16/10] rounded-xl overflow-hidden shrink-0 bg-slate-900 border border-white/5 cursor-pointer group-hover:scale-[1.01] transition-transform block"
+                        title={article.title}
+                      >
+                        <img
+                          src={sanitizeImageUrl(article.imageUrl) || getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE}
+                          alt={article.title}
+                          className="w-full h-full object-cover opacity-95 group-hover:opacity-100 transition-all duration-300"
+                          loading="lazy"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            const fallback = getTopicContextualImage(article.title, article.category) || DEFAULT_VOX_FALLBACK_IMAGE;
+                            if (target.src !== fallback) {
+                              target.src = fallback;
+                            }
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
 
-                      {/* Bottom Badges */}
-                      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
-                        <span className="text-[10px] font-semibold text-white bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1 border border-white/15 shadow-sm">
-                          <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
-                          <span>{readingTime} dk okuma</span>
-                        </span>
-
-                        {isHotNews(article.createdAt) && (
-                          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/85 backdrop-blur-md px-2 py-1 rounded-lg flex items-center gap-1 border border-emerald-500/30 shadow-sm">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            <span>Son Dakika</span>
+                        {/* Top Badges */}
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/15 shadow-sm">
+                            {article.category || activeCategory}
                           </span>
-                        )}
-                      </div>
-                    </div>
+                        </div>
+
+                        {/* Bottom Badges */}
+                        <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+                          <span className="text-[10px] font-semibold text-white bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1 border border-white/15 shadow-sm">
+                            <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
+                            <span>{readingTime} dk okuma</span>
+                          </span>
+
+                          {isHotNews(article.createdAt) && (
+                            <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/85 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1 border border-emerald-500/30 shadow-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span>Son Dakika</span>
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    )}
 
                     {/* News Details */}
                     <div className="flex-1 flex flex-col justify-between space-y-3 min-w-0">
@@ -766,15 +839,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           </button>
                         </div>
 
-                        {/* Article Headline */}
-                        <h3
-                          onClick={() => handleArticleCardClick(article)}
-                          className={`font-display text-base sm:text-lg font-bold group-hover:text-emerald-500 transition-colors cursor-pointer leading-snug line-clamp-2 ${
-                            theme === 'light' ? 'text-slate-900' : 'text-white'
-                          }`}
-                        >
-                          {article.title}
-                        </h3>
+                        {/* Article Headline (Semantic Link) */}
+                        {isSocialPost ? (
+                          <h3
+                            onClick={() => handleArticleCardClick(article)}
+                            className={`font-display text-base sm:text-lg font-bold group-hover:text-emerald-500 transition-colors cursor-pointer leading-snug line-clamp-2 ${
+                              theme === 'light' ? 'text-slate-900' : 'text-white'
+                            }`}
+                          >
+                            {article.title}
+                          </h3>
+                        ) : (
+                          <h3>
+                            <Link
+                              to={articleUrl}
+                              className={`font-display text-base sm:text-lg font-bold hover:text-emerald-500 transition-colors cursor-pointer leading-snug line-clamp-2 block ${
+                                theme === 'light' ? 'text-slate-900' : 'text-white'
+                              }`}
+                            >
+                              {article.title}
+                            </Link>
+                          </h3>
+                        )}
 
                         {/* Article Summary */}
                         <p className={`text-xs sm:text-[13px] line-clamp-2 leading-relaxed ${
@@ -788,17 +874,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className={`pt-3 flex items-center justify-between gap-2 border-t ${
                         theme === 'light' ? 'border-slate-100' : 'border-white/5'
                       }`}>
-                        <button
-                          onClick={() => handleArticleCardClick(article)}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                            theme === 'light'
-                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
-                              : 'bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10'
-                          }`}
-                        >
-                          <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
-                          <span>Haberi Oku</span>
-                        </button>
+                        {isSocialPost ? (
+                          <button
+                            onClick={() => handleArticleCardClick(article)}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                              theme === 'light'
+                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
+                                : 'bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10'
+                            }`}
+                          >
+                            <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>İncele</span>
+                          </button>
+                        ) : (
+                          <Link
+                            to={articleUrl}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                              theme === 'light'
+                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
+                                : 'bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10'
+                            }`}
+                          >
+                            <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>Haberi Oku</span>
+                          </Link>
+                        )}
 
                         <button
                           onClick={() => onOpenPaywall('limit_reached')}

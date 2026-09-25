@@ -1,3 +1,6 @@
+# VOX Özet (voxozet.com) - robots.txt
+# Full crawl permissions for Googlebot, Google AdSense, and Search Indexers
+
 User-agent: *
 Allow: /
 Allow: /canli-tv
@@ -25,21 +28,80 @@ Allow: /app-ads.txt
 Disallow: /api/
 Disallow: /api/*
 
-# AI Search & LLM Web Crawlers (Gemini, ChatGPT, Perplexity, Claude)
-User-agent: GPTBot
+# Explicit full access for Googlebot (Web, News, Media)
+User-agent: Googlebot
 Allow: /
+Allow: /haber/
 Allow: /canli-tv
 Allow: /odaklan
-Allow: /haber/
 Allow: /rehber/
+Allow: /rehberler
+Allow: /ads.txt
+Allow: /adx.txt
+Allow: /app-ads.txt
+
+User-agent: Googlebot-News
+Allow: /
+Allow: /haber/
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Googlebot-Video
+Allow: /
+
+# Explicit full access for Google AdSense & Ad Exchange Crawlers
+User-agent: Mediapartners-Google
+Allow: /
+Allow: /haber/
+Allow: /ads.txt
+Allow: /adx.txt
+Allow: /app-ads.txt
+
+User-agent: Google-Display-Ads-Bot
+Allow: /
+Allow: /ads.txt
+Allow: /adx.txt
+Allow: /app-ads.txt
+
+User-agent: Google-AdSense-Bot
+Allow: /
+Allow: /ads.txt
+Allow: /adx.txt
+Allow: /app-ads.txt
+
+User-agent: AdsBot-Google
+Allow: /
+Allow: /haber/
+Allow: /ads.txt
+Allow: /adx.txt
+Allow: /app-ads.txt
+
+User-agent: AdsBot-Google-Mobile
+Allow: /
+Allow: /haber/
+Allow: /ads.txt
+Allow: /adx.txt
+Allow: /app-ads.txt
+
+User-agent: AdsBot-Google-Mobile-Android
+Allow: /
+Allow: /haber/
+
+User-agent: AdsBot-Google-Mobile-Apps
+Allow: /
+Allow: /haber/
+
+# AI Search & LLM Web Crawlers
+User-agent: GPTBot
+Allow: /
+Allow: /haber/
 
 User-agent: ChatGPT-User
 Allow: /
 
 User-agent: Google-Extended
 Allow: /
-Allow: /canli-tv
-Allow: /odaklan
 Allow: /haber/
 
 User-agent: PerplexityBot
@@ -48,26 +110,6 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
-User-agent: Googlebot
-Allow: /
-Allow: /canli-tv
-Allow: /odaklan
-Allow: /haber/
-Allow: /rehber/
-Allow: /rehberler
-
-User-agent: Googlebot-News
-Allow: /
-Allow: /haber/
-
-User-agent: Mediapartners-Google
-Allow: /
-
-User-agent: Google-Display-Ads-Bot
-Allow: /
-
-User-agent: Google-AdSense-Bot
-Allow: /
-
+# Sitemaps
 Sitemap: https://voxozet.com/sitemap.xml
-
+Sitemap: https://voxozet.com/sitemap-news.xml

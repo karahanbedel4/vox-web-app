@@ -60,60 +60,16 @@ app.all(['/ads.txt', '/adx.txt', '/app-ads.txt', '/ADS.TXT', '/ADX.TXT'], (req, 
   res.send(ADS_TXT_CONTENT);
 });
 
-// Dynamic robots.txt endpoint
+// Dynamic robots.txt endpoint (Serves /public/robots.txt with explicit Googlebot & AdSense crawl rules)
 app.get('/robots.txt', (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
-  res.send(`User-agent: *
-Allow: /
-Allow: /canli-tv
-Allow: /gundem
-Allow: /teknoloji
-Allow: /ekonomi
-Allow: /dunya
-Allow: /spor
-Allow: /saglik
-Allow: /haber/
-Allow: /odaklan
-Allow: /kitaplik
-Allow: /ayarlar
-Allow: /rehberler
-Allow: /rehber/
-Allow: /hakkimizda
-Allow: /kunye
-Allow: /yayin-ilkeleri
-Allow: /cerez-politikasi
-Allow: /gizlilik
-Allow: /kullanim-kosullari
-Allow: /ads.txt
-Allow: /adx.txt
-Allow: /app-ads.txt
-Disallow: /api/
-Disallow: /api/*
-
-User-agent: Mediapartners-Google
-Allow: /
-
-User-agent: Google-Display-Ads-Bot
-Allow: /
-
-User-agent: Google-AdSense-Bot
-Allow: /
-
-User-agent: Googlebot
-Allow: /
-Allow: /canli-tv
-Allow: /odaklan
-Allow: /haber/
-Allow: /rehber/
-Allow: /rehberler
-
-User-agent: Googlebot-News
-Allow: /
-Allow: /haber/
-
-Sitemap: https://voxozet.com/sitemap.xml
-`);
+  const robotsPath = path.join(process.cwd(), 'public', 'robots.txt');
+  if (fs.existsSync(robotsPath)) {
+    res.sendFile(robotsPath);
+  } else {
+    res.send(`User-agent: *\nAllow: /\nAllow: /ads.txt\n\nUser-agent: Googlebot\nAllow: /\n\nUser-agent: Mediapartners-Google\nAllow: /\n\nUser-agent: Google-Display-Ads-Bot\nAllow: /\n\nUser-agent: Google-AdSense-Bot\nAllow: /\n\nUser-agent: AdsBot-Google\nAllow: /\n\nSitemap: https://voxozet.com/sitemap.xml\n`);
+  }
 });
 
 // Lazy initialization of Gemini API client server-side
@@ -3869,65 +3825,6 @@ app.get('/:key([a-f0-9]{32}).txt', (req, res, next) => {
     return res.send(INDEXNOW_KEY);
   }
   next();
-});
-
-// Dynamic Robots.txt Endpoint
-app.get('/robots.txt', (req, res) => {
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=86400');
-  res.send(`User-agent: *
-Allow: /
-Allow: /gundem
-Allow: /teknoloji
-Allow: /ekonomi
-Allow: /dunya
-Allow: /spor
-Allow: /saglik
-Allow: /haber/
-Allow: /canli-tv
-Allow: /canli-yayin
-Allow: /odaklan
-Allow: /kitaplik
-Disallow: /api/
-Disallow: /api/*
-
-User-agent: Googlebot
-Allow: /
-Allow: /haber/
-
-User-agent: Googlebot-News
-Allow: /
-Allow: /haber/
-
-User-agent: Bingbot
-Allow: /
-Allow: /haber/
-
-User-agent: Twitterbot
-Allow: /
-Allow: /haber/
-
-User-agent: facebookexternalhit
-Allow: /
-Allow: /haber/
-
-User-agent: WhatsApp
-Allow: /
-Allow: /haber/
-
-User-agent: TelegramBot
-Allow: /
-Allow: /haber/
-
-User-agent: Mediapartners-Google
-Allow: /
-
-User-agent: Google-AdSense-Bot
-Allow: /
-
-Sitemap: https://voxozet.com/sitemap.xml
-Sitemap: https://voxozet.com/sitemap-news.xml
-`);
 });
 
 // Dynamic /ads.txt and /adx.txt Endpoint for Google AdSense & AdX

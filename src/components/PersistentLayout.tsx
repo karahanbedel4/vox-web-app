@@ -259,10 +259,27 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
     } catch (e) {}
   }, [location.pathname, location.search]);
 
-  // Cookie Consent State
+  // Cookie Consent State (Hidden in iframes, AdSense preview, and for search/ad crawlers to prevent covering ad slots)
   const [showCookieBanner, setShowCookieBanner] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
+      // 1. Never show inside an iframe (e.g. Google AdSense preview tool, embedders)
+      if (window.self !== window.top) return false;
+
+      // 2. Never show for search engine and ad bots / crawlers (prevents covering AdSense ads during crawler review)
+      const ua = (navigator.userAgent || '').toLowerCase();
+      if (/bot|googlebot|crawler|spider|robot|crawling|mediapartners-google|adsbot|google-display-ads-bot|google-adsense-bot|headlesschrome|lighthouse/i.test(ua)) {
+        return false;
+      }
+
+      // 3. Never show if Google preview query parameters or referrers are present
+      const href = (window.location.href || '').toLowerCase();
+      const ref = (document.referrer || '').toLowerCase();
+      if (/google_preview|google_ad_preview|googleads|_ga|ad_preview/i.test(href) || /google\.com\/adsense|googleads/i.test(ref)) {
+        return false;
+      }
+
+      // 4. Check if already accepted
       const stored = appStorage.getItemSync('vox_cookie_consent');
       const cookie = getCookie('vox_cookie_consent');
       return !(stored === 'accepted' || cookie === 'accepted');
@@ -1318,9 +1335,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             : 'bg-[#0d120f] border-white/10 text-gray-300'
         }`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {/* Popüler Trendler & Arama Başlıkları (Footer SEO & Bilgilendirme - Tıklanamaz Etiketler) */}
+            {/* Popüler Trendler & Arama Başlıkları (Footer Bölümü - Tıklanabilir Yerel Arama Etiketleri) */}
             <div className="mb-8">
-              <PopularTrends />
+              <PopularTrends variant="footer" />
             </div>
 
             {/* Footer Navigation, Brand Info & Legal Columns */}
@@ -1822,22 +1839,36 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.25 }}
-            className="fixed bottom-24 md:bottom-20 left-4 z-50 max-w-sm rounded-2xl bg-surface-variant/95 backdrop-blur-md border border-white/10 shadow-xl p-4 text-white"
+            className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto sm:max-w-md z-[99999] rounded-2xl bg-zinc-900/95 dark:bg-[#121614]/95 backdrop-blur-xl border border-white/15 shadow-2xl p-4 text-white pointer-events-auto select-none"
           >
             <div className="flex items-start gap-3">
               <span className="text-xl shrink-0 mt-0.5" role="img" aria-label="cookie">🍪</span>
-              <div className="space-y-3 min-w-0 flex-1">
-                <p className="text-xs text-gray-200 leading-relaxed font-medium">
-                  Size daha iyi bir deneyim sunmak için çerezleri kullanıyoruz.
-                </p>
+              <div className="space-y-2.5 min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-xs text-gray-200 leading-relaxed font-medium">
+                    Size daha iyi bir deneyim sunmak ve reklam tercihlerini optimize etmek için çerezleri kullanıyoruz.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleAcceptCookies}
+                    onTouchEnd={handleAcceptCookies}
+                    aria-label="Kapat"
+                    className="p-1 -mr-1 -mt-1 text-gray-400 hover:text-white transition-colors cursor-pointer rounded-lg hover:bg-white/10 shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
                 <div className="flex items-center gap-3">
                   <button
+                    type="button"
                     onClick={handleAcceptCookies}
-                    className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-zinc-100 text-slate-950 font-bold text-xs active:scale-95 transition-all shadow-sm cursor-pointer"
+                    onTouchEnd={handleAcceptCookies}
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs active:scale-95 transition-all shadow-sm cursor-pointer"
                   >
                     Kabul Et
                   </button>
                   <button
+                    type="button"
                     onClick={() => setInfoModalType('privacy')}
                     className="text-xs text-gray-400 hover:text-white underline transition-colors cursor-pointer"
                   >

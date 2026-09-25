@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Sparkles, ChevronLeft, ChevronRight, Play, Clock, Zap } from 'lucide-react';
 import { Article } from '../types';
 import { useTheme } from '../lib/ThemeContext';
@@ -144,12 +145,8 @@ export const FeaturedNewsSlider: React.FC<FeaturedNewsSliderProps> = ({
               key={article.id || idx}
               className="w-[82vw] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-11px)] shrink-0 snap-start flex flex-col group cursor-pointer"
             >
-              <a
-                href={articleUrl}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onSelectArticle(article);
-                }}
+              <Link
+                to={articleUrl}
                 className="flex flex-col h-full select-none"
                 title={article.title}
               >
@@ -211,7 +208,7 @@ export const FeaturedNewsSlider: React.FC<FeaturedNewsSliderProps> = ({
                 }`}>
                   {sanitizeNewsText(article.title)}
                 </h3>
-              </a>
+              </Link>
             </article>
           );
         })}
