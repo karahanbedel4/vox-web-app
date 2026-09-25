@@ -51,11 +51,13 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   next(err);
 });
 
-// Google AdSense ads.txt explicit endpoint
-app.get('/ads.txt', (req, res) => {
+// Google AdSense & AdX ads.txt / adx.txt / app-ads.txt explicit endpoint
+const ADS_TXT_CONTENT = 'google.com, pub-4663082689738592, DIRECT, f08c47fec0942fa0\n';
+
+app.all(['/ads.txt', '/adx.txt', '/app-ads.txt', '/ADS.TXT', '/ADX.TXT'], (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
-  res.send('google.com, pub-4663082689738592, DIRECT, f08c47fec0942fa0\n');
+  res.send(ADS_TXT_CONTENT);
 });
 
 // Dynamic robots.txt endpoint
@@ -83,10 +85,16 @@ Allow: /yayin-ilkeleri
 Allow: /cerez-politikasi
 Allow: /gizlilik
 Allow: /kullanim-kosullari
+Allow: /ads.txt
+Allow: /adx.txt
+Allow: /app-ads.txt
 Disallow: /api/
 Disallow: /api/*
 
 User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: Google-Display-Ads-Bot
 Allow: /
 
 User-agent: Google-AdSense-Bot
@@ -3922,8 +3930,8 @@ Sitemap: https://voxozet.com/sitemap-news.xml
 `);
 });
 
-// Dynamic /ads.txt Endpoint for Google AdSense
-app.get('/ads.txt', (req, res) => {
+// Dynamic /ads.txt and /adx.txt Endpoint for Google AdSense & AdX
+app.all(['/ads.txt', '/adx.txt', '/app-ads.txt'], (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send(`google.com, pub-4663082689738592, DIRECT, f08c47fec0942fa0\n`);

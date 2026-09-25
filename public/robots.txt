@@ -19,6 +19,9 @@ Allow: /yayin-ilkeleri
 Allow: /cerez-politikasi
 Allow: /gizlilik
 Allow: /kullanim-kosullari
+Allow: /ads.txt
+Allow: /adx.txt
+Allow: /app-ads.txt
 Disallow: /api/
 Disallow: /api/*
 
@@ -58,6 +61,9 @@ Allow: /
 Allow: /haber/
 
 User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: Google-Display-Ads-Bot
 Allow: /
 
 User-agent: Google-AdSense-Bot

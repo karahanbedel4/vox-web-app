@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown, Send, Radio, Zap, Clock } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Newspaper, Cpu, Coins, RefreshCw, BookOpen, Lock, Sparkles, ChevronRight, Play, Bookmark, Search, X, Globe, ArrowUp, ChevronDown, Send, Radio, Zap, Clock, Flame } from 'lucide-react';
 import { Article } from '../types';
 import { fetchNewsByCategory, searchGoogleNews, checkNewNewsUpdates, getTopicContextualImage, sanitizeImageUrl, DEFAULT_VOX_FALLBACK_IMAGE, getArticleUrl, sanitizeNewsText, isDummyArticle, calculateReadingTime } from '../lib/newsService';
 import { getArticlesPaginated } from '../lib/firebase';
@@ -44,6 +44,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenPaywall
 }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { theme } = useTheme();
 
   const handleArticleCardClick = (art: Article) => {
@@ -90,9 +91,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [latestTimestamp, setLatestTimestamp] = useState<string>('');
 
   // Search filter states
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>(() => {
+    return searchParams.get('q') || searchParams.get('trend') || '';
+  });
   const [isSearchingGoogle, setIsSearchingGoogle] = useState<boolean>(false);
   const [googleSearchResults, setGoogleSearchResults] = useState<Article[] | null>(null);
+
+  // Sync search query when URL parameters change
+  useEffect(() => {
+    const qParam = searchParams.get('q') || '';
+    if (qParam !== searchQuery) {
+      setSearchQuery(qParam);
+      setGoogleSearchResults(null);
+    }
+  }, [searchParams]);
 
   const loadCategoryArticles = async (showFullLoader = true) => {
     if (showFullLoader && liveNews.length === 0) setIsLoading(true);
@@ -241,6 +253,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const handleClearSearch = () => {
     setSearchQuery('');
     setGoogleSearchResults(null);
+    const next = new URLSearchParams(searchParams);
+    next.delete('q');
+    next.delete('trend');
+    setSearchParams(next);
   };
 
   // Apply new live articles and scroll to top
@@ -257,7 +273,49 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
     let list = liveNews.length > 0 ? liveNews : articles;
 
-    // Apply active category filter
+    const trimmedQuery = searchQuery.trim();
+
+    // If search or popular trend query is active, filter locally across existing articles
+    if (trimmedQuery) {
+      const q = trimmedQuery.toLowerCase();
+      const terms = q.split(/\s+/).filter(t => t.length > 1);
+
+      // Priority 1: Exact matches in title, summary, category or author
+      const exactMatches = list.filter(a => {
+        const title = (a.title || '').toLowerCase();
+        const summary = (a.summary || '').toLowerCase();
+        const cat = (a.category || '').toLowerCase();
+        const author = (a.author || '').toLowerCase();
+        return title.includes(q) || summary.includes(q) || cat.includes(q) || author.includes(q);
+      });
+
+      if (exactMatches.length > 0) {
+        return exactMatches;
+      }
+
+      // Priority 2: Articles matching all split terms
+      if (terms.length > 1) {
+        const allTermsMatches = list.filter(a => {
+          const text = `${a.title || ''} ${a.summary || ''} ${a.category || ''}`.toLowerCase();
+          return terms.every(t => text.includes(t));
+        });
+        if (allTermsMatches.length > 0) {
+          return allTermsMatches;
+        }
+      }
+
+      // Priority 3: Fallback match with significant terms (>= 3 chars) to avoid empty states
+      const partialMatches = list.filter(a => {
+        const text = `${a.title || ''} ${a.summary || ''} ${a.category || ''}`.toLowerCase();
+        return terms.some(t => t.length >= 3 && text.includes(t));
+      });
+
+      if (partialMatches.length > 0) {
+        return partialMatches;
+      }
+    }
+
+    // Apply active category filter when no search query overrides it
     if (activeCategory && activeCategory !== 'Tümü') {
       const targetCat = activeCategory.trim().toLowerCase();
       const filtered = list.filter(a => {
@@ -267,16 +325,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       if (filtered.length > 0) {
         list = filtered;
       }
-    }
-
-    // Apply local query search filter if user typed without submitting
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(a =>
-        a.title?.toLowerCase().includes(q) ||
-        a.summary?.toLowerCase().includes(q) ||
-        a.category?.toLowerCase().includes(q)
-      );
     }
 
     return list;
@@ -519,6 +567,49 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       ) : (
         /* NEWS COHESIVE GRID VIEW WITH PROGRESSIVE INFINITE SCROLL & NATIVE ADS */
         <div className="space-y-4 sm:space-y-5">
+          {/* ANCHOR TARGET FOR SMOOTH SCROLLING ON SEARCH & TREND FILTERING */}
+          <div id="articles-feed-start" className="scroll-mt-24" />
+
+          {/* ACTIVE SEARCH FILTER NOTIFICATION BANNER */}
+          {searchQuery && (
+            <div className={`p-3.5 sm:p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-3 transition-all ${
+              theme === 'light'
+                ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950 shadow-sm'
+                : 'bg-emerald-950/30 border-emerald-500/30 text-emerald-100 shadow-md'
+            }`}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="p-1.5 rounded-xl bg-emerald-500/20 text-emerald-500 shrink-0">
+                  <Search className="w-4 h-4 text-emerald-500" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold flex items-center gap-1.5 truncate">
+                    <span>Arama Sonuçları:</span>
+                    <span className="text-emerald-500 dark:text-emerald-400 font-extrabold underline underline-offset-2">
+                      "{searchQuery}"
+                    </span>
+                  </p>
+                  <p className="text-[11px] opacity-75 mt-0.5">
+                    {displayList.length > 0 
+                      ? `Mevcut akışta ${displayList.length} ilgili haber listeleniyor`
+                      : 'Eşleşen haber bulunamadı, aramayı temizleyebilirsiniz'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleClearSearch}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95 ${
+                  theme === 'light'
+                    ? 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300 shadow-sm'
+                    : 'bg-white/10 hover:bg-white/15 text-white border-white/10'
+                }`}
+                title="Aramayı Temizle"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Aramayı Temizle</span>
+              </button>
+            </div>
+          )}
           {/* BUNDLE-STYLE 3-ITEM FEATURED SLIDER AT THE TOP OF NEWS STREAM */}
           {showFeaturedSlider && (
             <div className="space-y-3 sm:space-y-4">

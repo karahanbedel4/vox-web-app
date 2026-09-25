@@ -30,7 +30,7 @@
       ]
     },
     {
-      "source": "/ads.txt",
+      "source": "/(ads|adx|app-ads).txt",
       "headers": [
         {
           "key": "Content-Type",
@@ -74,7 +74,7 @@
       "destination": "/api/news"
     },
     {
-      "source": "/((?!api/|sitemap\\.xml|robots\\.txt|ads\\.txt|.*\\..*).*)",
+      "source": "/((?!api/|sitemap\\.xml|robots\\.txt|ads\\.txt|adx\\.txt|app-ads\\.txt|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

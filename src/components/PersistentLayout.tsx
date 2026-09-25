@@ -52,6 +52,7 @@ import { LegalDisclaimerModal } from './LegalDisclaimerModal';
 import { AuthModal } from './AuthModal';
 import { VoxLogo } from './VoxLogo';
 import { XLogoIcon } from './XLogoIcon';
+import { PopularTrends } from './PopularTrends';
 import { appStorage, getCookie, setCookie } from '../lib/storage';
 import { incrementUserArticlesRead } from '../lib/firebase';
 
@@ -1309,6 +1310,84 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         theme === 'light' ? 'bg-[#f4f6f8] text-slate-900' : 'bg-[#0a0d0b] text-gray-200'
       }`}>
         <Outlet />
+
+        {/* DEDICATED BOTTOM BAR & SITE FOOTER SECTION */}
+        <footer className={`border-t transition-colors mt-12 ${
+          theme === 'light'
+            ? 'bg-white/90 border-slate-200 text-slate-700'
+            : 'bg-[#0d120f] border-white/10 text-gray-300'
+        }`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Popüler Trendler & Arama Başlıkları (Footer SEO & Bilgilendirme - Tıklanamaz Etiketler) */}
+            <div className="mb-8">
+              <PopularTrends />
+            </div>
+
+            {/* Footer Navigation, Brand Info & Legal Columns */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-black/5 dark:border-white/10">
+              <div className="md:col-span-2 space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <VoxLogo className="h-6 w-auto" />
+                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    Akıllı Haber & Odaklanma
+                  </span>
+                </div>
+                <p className={`text-xs leading-relaxed max-w-md ${
+                  theme === 'light' ? 'text-slate-600' : 'text-gray-400'
+                }`}>
+                  VOX, internetteki haber kalabalığını ve tık tuzaklarını yapay zeka ile 1 dakikalık hap özetlere dönüştürür. Kesintisiz doğa sesleri ve derin odaklanma müzikleri ile dikkatinizi dağıtmadan güncel kalın.
+                </p>
+                <div className="flex items-center gap-2 pt-1 text-xs text-gray-400">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Google AI & Gemini destekli doğal özetleme</span>
+                </div>
+              </div>
+
+              <div>
+                <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 ${
+                  theme === 'light' ? 'text-slate-900' : 'text-white'
+                }`}>
+                  Hızlı Erişim
+                </h4>
+                <ul className="space-y-2 text-xs">
+                  <li><Link to="/" className="hover:text-emerald-500 transition-colors">Son Dakika & Gündem</Link></li>
+                  <li><Link to="/canli-tv" className="hover:text-emerald-500 transition-colors">Canlı TV Kanalları</Link></li>
+                  <li><Link to="/odaklan" className="hover:text-emerald-500 transition-colors">Odaklan (Pomodoro & Ambiyans)</Link></li>
+                  <li><Link to="/kitaplik" className="hover:text-emerald-500 transition-colors">Kitaplık & Arşiv</Link></li>
+                  <li><Link to="/canli-tv/spor" className="hover:text-emerald-500 transition-colors">Canlı Spor TV</Link></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 ${
+                  theme === 'light' ? 'text-slate-900' : 'text-white'
+                }`}>
+                  Kurumsal & Yasal
+                </h4>
+                <ul className="space-y-2 text-xs">
+                  <li><Link to="/hakkimizda" className="hover:text-emerald-500 transition-colors">Hakkımızda</Link></li>
+                  <li><Link to="/kunye" className="hover:text-emerald-500 transition-colors">Künye & İletişim</Link></li>
+                  <li><Link to="/yayin-ilkeleri" className="hover:text-emerald-500 transition-colors">Yayın İlkeleri & Doğruluk</Link></li>
+                  <li><Link to="/gizlilik-politikasi" className="hover:text-emerald-500 transition-colors">Gizlilik Politikası</Link></li>
+                  <li><Link to="/kullanim-kosullari" className="hover:text-emerald-500 transition-colors">Kullanım Koşulları</Link></li>
+                  <li><Link to="/cerez-politikasi" className="hover:text-emerald-500 transition-colors">Çerez Politikası</Link></li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Copyright & Disclaimer */}
+            <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400">
+              <p className="text-[11px] text-center sm:text-left">
+                © 2026 VOX. Tüm hakları saklıdır. 5651 Sayılı Kanun kapsamında yer sağlayıcı olarak hizmet vermektedir.
+              </p>
+              <div className="flex items-center gap-4 text-[11px]">
+                <a href="https://x.com/voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">𝕏 Twitter</a>
+                <a href="https://instagram.com/voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Instagram</a>
+                <a href="https://linkedin.com/company/voxozet" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">LinkedIn</a>
+              </div>
+            </div>
+          </div>
+        </footer>
       </main>
 
       {/* INFORMATIONAL POPUP MODAL */}
