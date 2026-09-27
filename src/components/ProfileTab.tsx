@@ -33,7 +33,6 @@ import { appStorage } from '../lib/storage';
 import { 
   signOutApp, 
   signInWithGoogle, 
-  signInWithGoogleRedirect, 
   robustEmailSignIn, 
   robustEmailSignUp,
   updateUserCommunicationConsent, 
@@ -265,42 +264,40 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     }
   };
 
-  // Google ile Giriş (Pop-up'sız, aynı sekmede doğrudan yönlendirme)
-  const handleGoogleRedirectSignIn = async () => {
-    triggerHaptic();
-    setIsRedirecting(true);
-    setInlineAuthError(null);
-    setInlineAuthSuccess('Google oturum sayfasına yönlendiriliyorsunuz (pop-up açılmaz)...');
-    try {
-      await signInWithGoogleRedirect(true);
-    } catch (err: any) {
-      console.warn('Google redirect notice:', err);
-      setIsRedirecting(false);
-      setInlineAuthError('Yönlendirme başlatılamadı. Sayfa içi hızlı giriş seçeneğini kullanabilirsiniz.');
-    }
-  };
-
-  const handleDirectGoogleSignIn = async () => {
+  // Google ile Giriş Yap (Standart Firebase Popup ve güvenli oturum)
+  const handleGoogleSignIn = async () => {
     triggerHaptic();
     setIsGoogleSigningIn(true);
     setInlineAuthError(null);
+    setInlineAuthSuccess(null);
     try {
       const res: any = await signInWithGoogle(true);
-      if (res?.redirected) {
-        setInlineAuthSuccess('Yönlendirme yapılıyor...');
-        return;
+      if (res?.user || res?.profile) {
+        setInlineAuthSuccess('Google ile başarıyla giriş yapıldı.');
+        onRefreshUser();
       }
-      onRefreshUser();
     } catch (err: any) {
-      console.warn('Google sign-in fallback notice:', err);
-      // If popup was blocked or failed, give clear feedback and show in-page options
-      if (err?.message?.includes('engelledi') || err?.message?.includes('popup') || err?.code === 'auth/popup-blocked') {
-        setInlineAuthError('Tarayıcınız pop-up penceresini engelledi. Aşağıdaki "Sayfa İçi Hızlı Giriş" butonunu kullanarak anında oturum açabilirsiniz.');
+      console.warn('Google sign-in error:', err);
+      const code = err?.code || '';
+      const msg = err?.message || '';
+
+      if (code === 'auth/popup-closed-by-user' || msg.includes('kapatıldı')) {
+        setInlineAuthError('Giriş penceresi kapatıldı.');
+      } else if (code === 'auth/popup-blocked' || msg.includes('popup') || msg.includes('engelledi')) {
+        setInlineAuthError('Tarayıcınız açılır pencereyi (pop-up) engelledi. Lütfen adres çubuğundaki kilit/pop-up simgesine tıklayıp izin verin veya aşağıdaki "E-posta ile Giriş Yap" seçeneğini kullanın.');
+      } else if (code === 'auth/unauthorized-domain' || msg.includes('yetkili alan')) {
+        setInlineAuthError('Bu test/önizleme adresi henüz Firebase yetkili alan adları listesinde kayıtlı değil. Aşağıdaki "E-posta ile Giriş Yap" butonunu kullanarak doğrudan oturum açabilirsiniz.');
+        setShowInlineEmailForm(true);
+      } else if (code === 'auth/operation-not-supported-in-this-environment') {
+        setInlineAuthError('Önizleme penceresinde (iframe) doğrudan Google yönlendirmesi desteklenmiyor. Aşağıdaki "E-posta ile Giriş Yap" seçeneğini kullanabilirsiniz.');
+        setShowInlineEmailForm(true);
       } else {
-        setInlineAuthError(err?.message || 'Google ile giriş açılamadı. Sayfa içi giriş ile devam edebilirsiniz.');
+        setInlineAuthError(msg || 'Google ile giriş açılamadı. E-posta ile giriş yapabilirsiniz.');
+        setShowInlineEmailForm(true);
       }
     } finally {
       setIsGoogleSigningIn(false);
+      setIsRedirecting(false);
     }
   };
 
@@ -507,12 +504,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               {/* 1. Google ile Giriş Butonu */}
               <button
                 type="button"
-                onClick={handleGoogleRedirectSignIn}
-                disabled={isRedirecting || isGoogleSigningIn}
-                className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-gray-100 active:bg-gray-200 text-slate-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleSigningIn}
+                className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-gray-100 active:bg-gray-200 text-slate-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-70"
                 title="Google hesabınız ile güvenli ve hızlı oturum açın"
               >
-                {isRedirecting ? (
+                {isGoogleSigningIn ? (
                   <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
@@ -522,7 +519,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                   </svg>
                 )}
-                <span>Google ile Giriş Yap</span>
+                <span>{isGoogleSigningIn ? 'Google Açılıyor...' : 'Google ile Giriş Yap'}</span>
               </button>
 
               {/* 2. E-posta ile Giriş Seçeneği */}

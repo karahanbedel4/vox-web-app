@@ -96,12 +96,13 @@ export async function signInWithGoogleRedirect(communicationConsent: boolean = t
   return await signInWithRedirect(auth, googleProvider);
 }
 
-// Unified Google Sign In Helper (Popup with automatic fallback to Redirect if blocked)
+// Unified Google Sign In Helper
 export async function signInWithGoogle(communicationConsent: boolean = true, preferRedirect: boolean = false) {
   const consentDate = new Date().toISOString();
+  const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
 
-  // If environment or user explicitly prefers redirect, use redirect
-  if (preferRedirect) {
+  // In standard browser tabs (not iframes), redirect can be preferred if requested
+  if (preferRedirect && !isInsideIframe) {
     return await signInWithGoogleRedirect(communicationConsent);
   }
 
@@ -120,22 +121,31 @@ export async function signInWithGoogle(communicationConsent: boolean = true, pre
   } catch (err: any) {
     console.warn('signInWithPopup notice:', err?.code, err?.message || err);
 
-    // If popup was blocked by browser, attempt redirect in same window
+    // If popup was blocked and we are NOT in an iframe, attempt redirect
     if (
-      err?.code === 'auth/popup-blocked' ||
-      err?.code === 'auth/cancelled-popup-request' ||
-      (err?.message && err.message.toLowerCase().includes('popup'))
+      !isInsideIframe &&
+      (err?.code === 'auth/popup-blocked' ||
+       err?.code === 'auth/cancelled-popup-request' ||
+       (err?.message && err.message.toLowerCase().includes('popup')))
     ) {
       console.log('Pop-up engellendiği tespit edildi, aynı sayfada yönlendirme başlatılıyor...');
       return await signInWithGoogleRedirect(communicationConsent);
     }
 
     if (err?.code === 'auth/popup-closed-by-user') {
-      throw new Error('Giriş penceresi kullanıcı tarafından kapatıldı.');
+      throw new Error('Giriş penceresi kapatıldı.');
+    }
+
+    if (err?.code === 'auth/popup-blocked') {
+      throw new Error('Tarayıcınız açılır pencereyi (pop-up) engelledi. Lütfen adres çubuğundan pop-up izni verin veya e-posta ile giriş yapın.');
     }
 
     if (err?.code === 'auth/unauthorized-domain') {
-      throw new Error('Bu alan adı Firebase Auth yetkili alan adları listesinde bulunamadı. Lütfen Firebase konsolundan alan adını ekleyin.');
+      throw new Error('Bu önizleme alan adı henüz Firebase yetkili alan adları listesine eklenmemiş. Lütfen E-posta ile Giriş Yap seçeneğini kullanın.');
+    }
+
+    if (err?.code === 'auth/operation-not-supported-in-this-environment') {
+      throw new Error('Önizleme çerçevesinde (iframe) doğrudan Google yönlendirmesi desteklenmiyor. Lütfen e-posta ile giriş yapın veya uygulamayı yeni sekmede açın.');
     }
 
     throw err;
