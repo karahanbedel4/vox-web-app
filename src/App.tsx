@@ -19,6 +19,7 @@ import { GuidesPage } from './components/GuidesPage';
 import { GuideDetailPage } from './components/GuideDetailPage';
 import { LiveTvPage } from './components/LiveTvPage';
 import { NotFoundPage } from './components/NotFoundPage';
+import { InstallPwaModal } from './components/InstallPwaModal';
 
 import { Article, UserProfile } from './types';
 import { useSubscription } from './hooks/useSubscription';
@@ -448,6 +449,7 @@ export default function App() {
     <ThemeProvider>
       <FocusProvider>
         <Router>
+          <InstallPwaModal />
           <RouterRoutes>
           <RouterRoute
             element={
