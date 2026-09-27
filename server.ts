@@ -10,6 +10,14 @@ import { JSDOM } from 'jsdom';
 import * as cheerio from 'cheerio';
 import { GUIDE_ARTICLES } from './src/data/guides';
 import { INITIAL_ARTICLES } from './src/data/defaultArticles';
+import { deduplicateNewsArticles, generateDailyDigestHtml } from './src/lib/newsletterDigest';
+import { 
+  addSubscriber, 
+  removeSubscriber, 
+  loadSubscribers, 
+  sendNewsletterDailyDigest, 
+  getLastSentDigestLog 
+} from './src/serverEmailService';
 
 const app = express();
 const PORT = 3000;
@@ -3582,6 +3590,173 @@ app.get('/api/news/check-new', (req, res) => {
     res.json({ hasNew: false, count: 0 });
   }
 });
+
+// --- VOX DAILY NEWSLETTER & DEDUPLICATION DIGEST API ---
+
+// 1. Subscribe to Daily Newsletter
+app.post('/api/newsletter/subscribe', (req, res) => {
+  try {
+    const { email, source } = req.body || {};
+    if (!email || typeof email !== 'string' || !email.includes('@') || !email.includes('.')) {
+      return res.status(400).json({ success: false, message: 'Lütfen geçerli bir e-posta adresi girin.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const result = addSubscriber(cleanEmail, source || 'web_footer');
+    res.json({
+      success: true,
+      message: result.isNew 
+        ? 'VOX Günlük Bülten aboneliğiniz başarıyla başlatıldı! Her sabah en çok paylaşılan 10 haber e-postanıza gelecek.' 
+        : 'Aboneliğiniz zaten aktif.',
+      email: cleanEmail
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err?.message || 'Abonelik işlemi sırasında bir hata oluştu.' });
+  }
+});
+
+// 2. Unsubscribe
+app.post('/api/newsletter/unsubscribe', (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ success: false, message: 'E-posta gerekli.' });
+    const success = removeSubscriber(email);
+    res.json({ success, message: success ? 'Bülten aboneliğiniz iptal edildi.' : 'Kayıt bulunamadı.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err?.message || 'İşlem başarısız.' });
+  }
+});
+
+// 3. Get Active Subscribers Count & Status
+app.get('/api/newsletter/subscribers', (req, res) => {
+  try {
+    const list = loadSubscribers();
+    const active = list.filter(s => s.isActive);
+    const lastLog = getLastSentDigestLog();
+    res.json({
+      success: true,
+      totalActiveCount: active.length,
+      lastSent: lastLog,
+      recentSubscribers: active.slice(-10).map(s => ({
+        email: s.email.replace(/(.{2})(.*)(?=@)/, '$1***'), // Masked for privacy
+        subscribedAt: s.subscribedAt
+      }))
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err?.message });
+  }
+});
+
+// 4. Preview Deduplicated Daily Newsletter Digest (With 10 Curated Articles)
+app.get('/api/newsletter/preview', (req, res) => {
+  try {
+    const baseUrl = process.env.APP_URL || 'https://voxozet.com';
+    const articlesPool = serverNewsCache.all.length > 0 ? serverNewsCache.all : INITIAL_ARTICLES;
+
+    // Run semantic deduplication algorithm
+    const digestData = deduplicateNewsArticles(articlesPool, baseUrl, 10);
+    const { subject, html } = generateDailyDigestHtml(digestData, { baseUrl });
+
+    if (req.query.format === 'html') {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(html);
+    }
+
+    res.json({
+      success: true,
+      subject,
+      totalScannedCount: digestData.totalScannedCount,
+      uniqueTopicCount: digestData.uniqueTopicCount,
+      reductionPercentage: digestData.reductionPercentage,
+      articles: digestData.top10Articles.map((t, idx) => ({
+        index: idx + 1,
+        title: t.article.title,
+        summary: t.article.summary,
+        category: t.article.category,
+        sources: t.sources,
+        coverageCount: t.coverageCount,
+        voxUrl: t.voxUrl,
+        imageUrl: t.article.imageUrl
+      })),
+      htmlPreview: html
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err?.message });
+  }
+});
+
+// 5. Trigger Sending Daily Digest Email (Manual or Test Dispatch)
+app.post('/api/newsletter/send-digest', async (req, res) => {
+  try {
+    const { targetEmail, sendToAll } = req.body || {};
+    const baseUrl = process.env.APP_URL || 'https://voxozet.com';
+    const articlesPool = serverNewsCache.all.length > 0 ? serverNewsCache.all : INITIAL_ARTICLES;
+
+    // Run deduplication clustering
+    const digestData = deduplicateNewsArticles(articlesPool, baseUrl, 10);
+
+    let recipients: string[] = [];
+    if (targetEmail) {
+      recipients.push(targetEmail.trim().toLowerCase());
+    } else if (sendToAll) {
+      const subscribers = loadSubscribers().filter(s => s.isActive);
+      recipients = subscribers.map(s => s.email);
+    }
+
+    if (recipients.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Gönderilecek geçerli bir e-posta adresi veya aktif abone bulunamadı.'
+      });
+    }
+
+    console.log(`[Newsletter] Dispatching daily digest (${digestData.top10Articles.length} unique articles from ${digestData.totalScannedCount} scanned) to:`, recipients);
+
+    const sendResult = await sendNewsletterDailyDigest(recipients, digestData, baseUrl);
+
+    res.json({
+      success: sendResult.success,
+      sentCount: sendResult.sentCount,
+      previewUrl: sendResult.previewUrl || null,
+      messageId: sendResult.messageId || null,
+      error: sendResult.error || null,
+      deduplicationStats: {
+        totalScanned: digestData.totalScannedCount,
+        selectedTopicsCount: digestData.top10Articles.length,
+        reductionPercentage: digestData.reductionPercentage
+      }
+    });
+  } catch (err: any) {
+    console.error('Send digest error:', err);
+    res.status(500).json({ success: false, message: err?.message || 'Bülten gönderimi başarısız.' });
+  }
+});
+
+// Automated Daily Digest Dispatch Worker (Runs every 30 minutes, checks for 08:00 AM dispatch)
+let lastAutomatedDigestDate = '';
+setInterval(async () => {
+  try {
+    const now = new Date();
+    // Use Turkey time (UTC+3)
+    const trHour = (now.getUTCHours() + 3) % 24;
+    const todayDateStr = now.toISOString().split('T')[0];
+
+    // Trigger daily morning dispatch between 08:00 and 09:00 AM
+    if (trHour >= 8 && lastAutomatedDigestDate !== todayDateStr) {
+      const activeSubs = loadSubscribers().filter(s => s.isActive);
+      if (activeSubs.length > 0) {
+        lastAutomatedDigestDate = todayDateStr;
+        console.log(`[Newsletter Cron] Triggering morning daily digest for ${activeSubs.length} subscribers on ${todayDateStr}...`);
+        const baseUrl = process.env.APP_URL || 'https://voxozet.com';
+        const articlesPool = serverNewsCache.all.length > 0 ? serverNewsCache.all : INITIAL_ARTICLES;
+        const digestData = deduplicateNewsArticles(articlesPool, baseUrl, 10);
+        await sendNewsletterDailyDigest(activeSubs.map(s => s.email), digestData, baseUrl);
+      }
+    }
+  } catch (e) {
+    console.warn('[Newsletter Cron] Error during scheduled check:', e);
+  }
+}, 30 * 60 * 1000);
 
 // Dynamic SEO Sitemap.xml Endpoint (Google News + Standard XML Sitemap)
 app.get(['/sitemap.xml', '/sitemap'], (req, res) => {

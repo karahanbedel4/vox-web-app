@@ -64,6 +64,32 @@
         "savedAt": { "type": "string" }
       },
       "required": ["userId", "articleId"]
+    },
+    "newsletter_subscribers": {
+      "title": "Newsletter Subscribers",
+      "description": "Subscribers for the daily VOX deduplicated news digest",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "subscribedAt": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "frequency": { "type": "string" },
+        "lastSentAt": { "type": "string" }
+      },
+      "required": ["email", "isActive"]
+    },
+    "newsletter_issues": {
+      "title": "Newsletter Issues Archive",
+      "description": "Archived daily news digest issues and sent statistics",
+      "type": "object",
+      "properties": {
+        "issueDate": { "type": "string" },
+        "sentAt": { "type": "string" },
+        "recipientCount": { "type": "number" },
+        "deduplicatedArticleCount": { "type": "number" },
+        "totalScannedCount": { "type": "number" }
+      },
+      "required": ["issueDate", "sentAt"]
     }
   }
 }

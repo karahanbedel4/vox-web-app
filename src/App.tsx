@@ -98,6 +98,17 @@ export default function App() {
 
   // Firebase Auth sync
   useEffect(() => {
+    // Purge any legacy insecure test sessions from previous debug runs
+    try {
+      const cached = appStorage.getItemSync('vox_local_email_user');
+      if (cached && (cached.includes('karahan_bedel_master_user') || cached.includes('karahanbedel@gmail.com'))) {
+        appStorage.removeItem('vox_local_email_user');
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('vox_local_email_user');
+        }
+      }
+    } catch (e) {}
+
     const handleAuthEvent = (e: any) => {
       if (e?.detail) {
         setUser(e.detail);

@@ -86,33 +86,22 @@ if (auth) {
     });
 }
 
-// Google ile Aynı Sayfada Yönlendirmeli Giriş (POP-UP AÇMAZ - Tarayıcı pop-up engelleyicisine takılmaz)
+// Google ile Aynı Sayfada Yönlendirmeli Giriş
 export async function signInWithGoogleRedirect(communicationConsent: boolean = true) {
   try {
     sessionStorage.setItem('vox_auth_redirect_pending', '1');
     sessionStorage.setItem('vox_consent', communicationConsent ? '1' : '0');
   } catch (e) {}
 
-  try {
-    return await signInWithRedirect(auth, googleProvider);
-  } catch (err: any) {
-    console.warn('signInWithRedirect failed or sandboxed:', err);
-    // If redirect cannot be initiated (e.g. inside strict iframe sandbox), fall back to safe in-page sign-in
-    const fallbackProfile = await quickSignInAsUser('karahanbedel@gmail.com', 'Karahan Bedel');
-    fallbackProfile.communicationConsent = communicationConsent;
-    return { profile: fallbackProfile, user: { uid: fallbackProfile.uid, email: fallbackProfile.email, displayName: fallbackProfile.displayName } };
-  }
+  return await signInWithRedirect(auth, googleProvider);
 }
 
 // Unified Google Sign In Helper (Popup with automatic fallback to Redirect if blocked)
 export async function signInWithGoogle(communicationConsent: boolean = true, preferRedirect: boolean = false) {
   const consentDate = new Date().toISOString();
 
-  // Detect if running inside iframe or if redirect/in-page is preferred
-  const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
-
-  // If user or environment prefers redirect (or in iframe where popups are blocked), use redirect or in-page
-  if (preferRedirect || isInsideIframe) {
+  // If environment or user explicitly prefers redirect, use redirect
+  if (preferRedirect) {
     return await signInWithGoogleRedirect(communicationConsent);
   }
 
@@ -129,87 +118,28 @@ export async function signInWithGoogle(communicationConsent: boolean = true, pre
     }
     return res;
   } catch (err: any) {
-    console.warn('signInWithPopup notice on Web:', err?.code, err?.message || err);
+    console.warn('signInWithPopup notice:', err?.code, err?.message || err);
 
-    // If popup was blocked by browser or window couldn't be opened, switch to redirect / in-page automatically
+    // If popup was blocked by browser, attempt redirect in same window
     if (
       err?.code === 'auth/popup-blocked' ||
       err?.code === 'auth/cancelled-popup-request' ||
       (err?.message && err.message.toLowerCase().includes('popup'))
     ) {
-      console.log('Pop-up engellendiği tespit edildi, aynı sayfada yönlendirme/sayfa içi giriş başlatılıyor...');
-      try {
-        return await signInWithGoogleRedirect(communicationConsent);
-      } catch (redirectErr: any) {
-        console.warn('Redirect fallback error:', redirectErr);
-        // Fallback to in-page sign-in so user is never blocked
-        const fallback = await quickSignInAsUser('karahanbedel@gmail.com', 'Karahan Bedel');
-        return { profile: fallback, user: { uid: fallback.uid, email: fallback.email, displayName: fallback.displayName } };
-      }
+      console.log('Pop-up engellendiği tespit edildi, aynı sayfada yönlendirme başlatılıyor...');
+      return await signInWithGoogleRedirect(communicationConsent);
+    }
+
+    if (err?.code === 'auth/popup-closed-by-user') {
+      throw new Error('Giriş penceresi kullanıcı tarafından kapatıldı.');
     }
 
     if (err?.code === 'auth/unauthorized-domain') {
-      throw new Error('Bu alan adı Firebase Auth yetkili alan adlarında bulunamadı. Lütfen sayfa içi hızlı giriş seçeneğini kullanın.');
-    } else if (err?.code === 'auth/popup-closed-by-user') {
-      throw new Error('Giriş penceresi kapatıldı.');
+      throw new Error('Bu alan adı Firebase Auth yetkili alan adları listesinde bulunamadı. Lütfen Firebase konsolundan alan adını ekleyin.');
     }
+
     throw err;
   }
-}
-
-// Sayfa İçi Tek Tıkla Hızlı ve Güvenilir Giriş (Pop-up YOK, yönlendirme YOK, %100 Çalışır)
-export async function quickSignInAsUser(
-  email: string = 'karahanbedel@gmail.com',
-  displayName: string = 'Karahan Bedel',
-  photoURL: string = ''
-): Promise<UserProfile> {
-  const cleanEmail = email.trim().toLowerCase();
-  const uid = `google_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`;
-
-  let localStats = { totalListenedSeconds: 0, totalArticlesRead: 0 };
-  try {
-    const s = appStorage.getItemSync('vox_user_stats');
-    if (s) localStats = JSON.parse(s);
-  } catch (e) {}
-
-  const isKarahan = cleanEmail === 'karahanbedel@gmail.com' || cleanEmail === 'karahan@gmail.com';
-
-  const fullProfile: UserProfile = {
-    uid: isKarahan ? 'karahan_bedel_master_user' : uid,
-    displayName: isKarahan ? 'Karahan Bedel' : (displayName || cleanEmail.split('@')[0]),
-    email: cleanEmail,
-    photoURL: photoURL || (isKarahan ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80' : ''),
-    birthdate: '1995-01-01',
-    authProvider: 'google',
-    isPremium: isKarahan,
-    subscriptionTier: isKarahan ? 'premium_yearly' : 'free',
-    dailyQuotaUsed: 0,
-    lastQuotaResetDate: new Date().toISOString().split('T')[0],
-    focusScore: isKarahan ? 98 : 92,
-    streakCount: isKarahan ? 5 : 1,
-    weeklyMinutes: isKarahan ? 120 : 25,
-    totalArticlesRead: Math.max(localStats.totalArticlesRead || 0, isKarahan ? 14 : 1),
-    totalListenedMinutes: Math.max(Math.round((localStats.totalListenedSeconds || 0) / 60), isKarahan ? 180 : 15),
-    communicationConsent: true,
-    communicationConsentDate: new Date().toISOString(),
-    createdAt: new Date().toISOString()
-  };
-
-  // Sync with Firestore if possible
-  try {
-    const userRef = doc(db, 'users', fullProfile.uid);
-    await setDoc(userRef, fullProfile, { merge: true });
-  } catch (e) {
-    console.warn('Firestore quick user sync notice:', e);
-  }
-
-  // Persist locally & notify app
-  appStorage.setItemSync('vox_local_email_user', JSON.stringify(fullProfile));
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('vox_local_email_user', JSON.stringify(fullProfile));
-  }
-  window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: fullProfile }));
-  return fullProfile;
 }
 
 export async function signOutApp() {
@@ -226,176 +156,75 @@ export async function signOutApp() {
 
 export { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously, signInWithPopup, signOut, onAuthStateChanged };
 
-// Robust Email Sign In Helper (Supports karahan@gmail.com / 12345678 and auto-fallback)
+// Standard Secure Email Sign In Helper
 export async function robustEmailSignIn(emailInput: string, passwordInput: string): Promise<UserProfile> {
   const cleanEmail = emailInput.trim().toLowerCase();
   const password = passwordInput.trim();
 
-  // Special Predefined Credentials Handler
-  if ((cleanEmail === 'karahanbedel@gmail.com' || cleanEmail === 'karahan@gmail.com') && (password === '12345678' || password.length >= 6)) {
-    try {
-      let cred;
-      try {
-        cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
-      } catch (signInErr) {
-        cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
-      }
-      if (cred?.user) {
-        const profile = await syncUserProfile(cred.user);
-        const fullProfile: UserProfile = {
-          ...profile,
-          displayName: profile.displayName || 'Karahan Bedel',
-          email: cleanEmail,
-          authProvider: 'email'
-        };
-        appStorage.setItemSync('vox_local_email_user', JSON.stringify(fullProfile));
-        window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: fullProfile }));
-        return fullProfile;
-      }
-    } catch (fbErr) {
-      console.warn('Firebase Auth email sign in fallback for predefined user:', fbErr);
-    }
-
-    const localProfile: UserProfile = {
-      uid: 'karahan_bedel_master_user',
-      displayName: 'Karahan Bedel',
-      email: cleanEmail,
-      photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-      birthdate: '1995-01-01',
-      authProvider: 'email',
-      isPremium: true,
-      subscriptionTier: 'premium_yearly',
-      dailyQuotaUsed: 0,
-      lastQuotaResetDate: new Date().toISOString().split('T')[0],
-      focusScore: 98,
-      streakCount: 5,
-      weeklyMinutes: 120,
-      totalArticlesRead: 14,
-      totalListenedMinutes: 180,
-      createdAt: new Date().toISOString()
-    };
-
-    appStorage.setItemSync('vox_local_email_user', JSON.stringify(localProfile));
-    window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: localProfile }));
-    return localProfile;
+  if (!cleanEmail || !password) {
+    throw new Error('Lütfen e-posta ve şifrenizi girin.');
   }
 
-  // Standard Email Sign In
   try {
-    let cred;
-    try {
-      cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
-    } catch (signInErr: any) {
-      if (
-        signInErr.code === 'auth/user-not-found' || 
-        signInErr.code === 'auth/invalid-credential' ||
-        signInErr.code === 'auth/wrong-password'
-      ) {
-        // Try creating account if sign-in failed due to missing user
-        try {
-          cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
-        } catch (createErr: any) {
-          if (createErr.code === 'auth/wrong-password' || signInErr.code === 'auth/wrong-password') {
-            throw new Error('Girdiğiniz şifre hatalı. Lütfen tekrar deneyin.');
-          }
-          throw signInErr;
-        }
-      } else {
-        throw signInErr;
-      }
-    }
-
+    const cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
     if (cred?.user) {
       const profile = await syncUserProfile(cred.user);
       appStorage.setItemSync('vox_local_email_user', JSON.stringify(profile));
       window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: profile }));
       return profile;
     }
-  } catch (err: any) {
-    console.warn('Firebase Auth error, creating local email session:', err);
-    if (err.message && err.message.includes('hatalı')) {
-      throw err;
+  } catch (signInErr: any) {
+    if (
+      signInErr.code === 'auth/user-not-found' || 
+      signInErr.code === 'auth/invalid-credential' ||
+      signInErr.code === 'auth/wrong-password'
+    ) {
+      throw new Error('E-posta adresi veya şifre hatalı.');
     }
-    const localUid = `user_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`;
-    const displayName = cleanEmail.split('@')[0];
-    const fallbackProfile: UserProfile = {
-      uid: localUid,
-      displayName: displayName.charAt(0).toUpperCase() + displayName.slice(1),
-      email: cleanEmail,
-      photoURL: '',
-      birthdate: '1998-05-14',
-      authProvider: 'email',
-      isPremium: false,
-      subscriptionTier: 'free',
-      dailyQuotaUsed: 0,
-      lastQuotaResetDate: new Date().toISOString().split('T')[0],
-      focusScore: 90,
-      streakCount: 1,
-      weeklyMinutes: 15,
-      totalArticlesRead: 1,
-      totalListenedMinutes: 10,
-      createdAt: new Date().toISOString()
-    };
-    appStorage.setItemSync('vox_local_email_user', JSON.stringify(fallbackProfile));
-    window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: fallbackProfile }));
-    return fallbackProfile;
+    if (signInErr.code === 'auth/invalid-email') {
+      throw new Error('Geçersiz e-posta adresi formatı.');
+    }
+    if (signInErr.code === 'auth/too-many-requests') {
+      throw new Error('Çok fazla başarısız deneme yapıldı. Lütfen biraz bekleyin.');
+    }
+    throw signInErr;
   }
 
   throw new Error('Giriş yapılırken bir hata oluştu.');
 }
 
-// Robust Email Sign Up Helper
+// Standard Secure Email Sign Up Helper
 export async function robustEmailSignUp(emailInput: string, passwordInput: string): Promise<UserProfile> {
   const cleanEmail = emailInput.trim().toLowerCase();
   const password = passwordInput.trim();
 
-  if (cleanEmail === 'karahan@gmail.com' && password === '12345678') {
-    return robustEmailSignIn(cleanEmail, password);
+  if (!cleanEmail || !password) {
+    throw new Error('Lütfen e-posta ve şifrenizi girin.');
+  }
+
+  if (password.length < 6) {
+    throw new Error('Şifre en az 6 karakter olmalıdır.');
   }
 
   try {
-    let cred;
-    try {
-      cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
-    } catch (signUpErr: any) {
-      if (signUpErr.code === 'auth/email-already-in-use') {
-        cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
-      } else {
-        throw signUpErr;
-      }
-    }
-
+    const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
     if (cred?.user) {
       const profile = await syncUserProfile(cred.user);
       appStorage.setItemSync('vox_local_email_user', JSON.stringify(profile));
       window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: profile }));
       return profile;
     }
-  } catch (err: any) {
-    console.warn('Firebase SignUp error, creating local email session:', err);
-    const localUid = `user_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`;
-    const displayName = cleanEmail.split('@')[0];
-    const fallbackProfile: UserProfile = {
-      uid: localUid,
-      displayName: displayName.charAt(0).toUpperCase() + displayName.slice(1),
-      email: cleanEmail,
-      photoURL: '',
-      birthdate: '1998-05-14',
-      authProvider: 'email',
-      isPremium: false,
-      subscriptionTier: 'free',
-      dailyQuotaUsed: 0,
-      lastQuotaResetDate: new Date().toISOString().split('T')[0],
-      focusScore: 90,
-      streakCount: 1,
-      weeklyMinutes: 15,
-      totalArticlesRead: 1,
-      totalListenedMinutes: 10,
-      createdAt: new Date().toISOString()
-    };
-    appStorage.setItemSync('vox_local_email_user', JSON.stringify(fallbackProfile));
-    window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: fallbackProfile }));
-    return fallbackProfile;
+  } catch (signUpErr: any) {
+    if (signUpErr.code === 'auth/email-already-in-use') {
+      throw new Error('Bu e-posta adresi ile kayıtlı bir hesap zaten var. Lütfen giriş yapın.');
+    }
+    if (signUpErr.code === 'auth/weak-password') {
+      throw new Error('Şifre çok zayıf. Lütfen en az 6 karakterlik güçlü bir şifre girin.');
+    }
+    if (signUpErr.code === 'auth/invalid-email') {
+      throw new Error('Geçersiz e-posta adresi formatı.');
+    }
+    throw signUpErr;
   }
 
   throw new Error('Kayıt oluşturulurken bir hata oluştu.');

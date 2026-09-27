@@ -35,5 +35,15 @@ service cloud.firestore {
     match /listening_logs/{logId} {
       allow read, write, delete: if true;
     }
+
+    // Newsletter subscribers
+    match /newsletter_subscribers/{subscriberId} {
+      allow read, write, delete: if true;
+    }
+
+    // Newsletter issues archive
+    match /newsletter_issues/{issueId} {
+      allow read, write, delete: if true;
+    }
   }
 }
