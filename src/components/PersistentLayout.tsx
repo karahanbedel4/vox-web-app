@@ -55,6 +55,7 @@ import { XLogoIcon } from './XLogoIcon';
 import { PopularTrends } from './PopularTrends';
 import { NewsletterSection } from './NewsletterSection';
 import { MarketTickerBar } from './MarketTickerBar';
+import { CurrencyCalculatorModal } from './CurrencyCalculatorModal';
 import { appStorage, getCookie, setCookie } from '../lib/storage';
 import { incrementUserArticlesRead } from '../lib/firebase';
 
@@ -172,6 +173,20 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isLoadingFullContent, setIsLoadingFullContent] = useState<boolean>(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [calculatorAssetId, setCalculatorAssetId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const handleOpenCalc = (e: CustomEvent<any>) => {
+      const assetId = e.detail?.assetId;
+      if (assetId) setCalculatorAssetId(assetId);
+      setIsCalculatorOpen(true);
+    };
+    window.addEventListener('vox_open_currency_calculator' as any, handleOpenCalc);
+    return () => {
+      window.removeEventListener('vox_open_currency_calculator' as any, handleOpenCalc);
+    };
+  }, []);
   const modalScrollRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLElement>(null);
 
@@ -1917,6 +1932,28 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
         onPrevTrack={onPrevAmbientTrack}
         onTrackEnded={onAmbientTrackEnded}
         playlistInfo={playlistInfo}
+      />
+
+      {/* FLOATING CURRENCY CALCULATOR BUTTON */}
+      <button
+        type="button"
+        onClick={() => {
+          setCalculatorAssetId(undefined);
+          setIsCalculatorOpen(true);
+        }}
+        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-500 hover:to-blue-600 text-white p-3 md:px-4 md:py-2.5 rounded-full shadow-2xl flex items-center gap-2 text-xs font-bold transition-all transform hover:scale-105 active:scale-95 cursor-pointer border border-sky-400/30"
+        title="Döviz & Altın Çevirici"
+        aria-label="Çevirici"
+      >
+        <span className="text-base">💱</span>
+        <span className="hidden md:inline">Döviz Çevirici</span>
+      </button>
+
+      {/* CURRENCY CALCULATOR POPUP MODAL */}
+      <CurrencyCalculatorModal
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
+        initialAssetId={calculatorAssetId}
       />
     </div>
   );

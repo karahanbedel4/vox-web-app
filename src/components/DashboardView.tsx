@@ -12,7 +12,7 @@ import { XLogoIcon } from './XLogoIcon';
 import { NativeAdCard } from './NativeAdCard';
 import { FeaturedNewsSlider } from './FeaturedNewsSlider';
 import { AiSeoKnowledgeSection } from './AiSeoKnowledgeSection';
-import { CurrencyCalculatorWidget } from './CurrencyCalculatorWidget';
+
 
 export type CategoryType = 'Tümü' | 'Gündem' | 'Ekonomi' | 'Teknoloji' | 'Spor' | 'Dünya' | 'Sağlık';
 
@@ -526,8 +526,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         )}
       </div>
 
-      {/* GÜNCEL KURLAR & DÖVİZ / ALTIN / KRİPTO ÇEVİRİCİ WIDGET (Image 2) */}
-      <CurrencyCalculatorWidget className="my-2 sm:my-3" />
+
 
       {/* FLOATING REAL-TIME NEW ARTICLES NOTIFICATION PILL */}
       {newArticlesCount > 0 && (
