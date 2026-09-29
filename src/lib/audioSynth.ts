@@ -116,7 +116,7 @@ export class WoodRainSynthEngine {
     audio.setAttribute('playsinline', 'true');
     audio.setAttribute('webkit-playsinline', 'true');
     audio.crossOrigin = 'anonymous';
-    audio.preload = 'auto';
+    audio.preload = 'none';
     this.channelAudios.set(channelId, audio);
   }
 }

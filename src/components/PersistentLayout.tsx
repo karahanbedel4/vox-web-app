@@ -54,6 +54,7 @@ import { VoxLogo } from './VoxLogo';
 import { XLogoIcon } from './XLogoIcon';
 import { PopularTrends } from './PopularTrends';
 import { NewsletterSection } from './NewsletterSection';
+import { MarketTickerBar } from './MarketTickerBar';
 import { appStorage, getCookie, setCookie } from '../lib/storage';
 import { incrementUserArticlesRead } from '../lib/firebase';
 
@@ -1327,6 +1328,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
       <main ref={mainContentRef} className={`flex-1 ${isSidebarHidden ? 'ml-0' : 'ml-0 md:ml-72 lg:ml-80'} pt-14 md:pt-0 pb-20 md:pb-12 min-h-screen overflow-y-auto transition-all duration-300 ${
         theme === 'light' ? 'bg-[#f4f6f8] text-slate-900' : 'bg-[#0a0d0b] text-gray-200'
       }`}>
+        {/* CANLI PİYASA VE DÖVİZ KURLARI BARI (TCMB & Piyasa) */}
+        <MarketTickerBar />
+
         <Outlet />
 
         {/* DEDICATED BOTTOM BAR & SITE FOOTER SECTION */}

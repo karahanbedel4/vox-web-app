@@ -6,6 +6,7 @@ import {
   signInWithRedirect,
   getRedirectResult,
   GoogleAuthProvider, 
+  signInWithCredential,
   signOut,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
@@ -96,6 +97,71 @@ export async function signInWithGoogleRedirect(communicationConsent: boolean = t
   return await signInWithRedirect(auth, googleProvider);
 }
 
+// Google Identity Services (GIS) fallback for preview domains (*.run.app)
+export async function signInWithGoogleGIS(communicationConsent: boolean = true) {
+  const consentDate = new Date().toISOString();
+  const clientId = (firebaseConfig as any).oAuthClientId || '890842275987-rd9l3ups221qge9sna5ne9bskdab5ubh.apps.googleusercontent.com';
+
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      reject(new Error('Tarayıcı ortamı gereklidir.'));
+      return;
+    }
+
+    const runGIS = () => {
+      try {
+        const client = (window as any).google?.accounts?.oauth2?.initTokenClient({
+          client_id: clientId,
+          scope: 'email profile openid',
+          callback: async (response: any) => {
+            if (response.error) {
+              reject(new Error(response.error_description || 'Google oturum açma iptal edildi veya hata oluştu.'));
+              return;
+            }
+            try {
+              const accessToken = response.access_token;
+              const credential = GoogleAuthProvider.credential(null, accessToken);
+              const res = await signInWithCredential(auth, credential);
+              if (res?.user) {
+                const profile = await syncUserProfile(res.user, {
+                  communicationConsent,
+                  communicationConsentDate: consentDate
+                });
+                appStorage.setItemSync('vox_local_email_user', JSON.stringify(profile));
+                window.dispatchEvent(new CustomEvent('vox_auth_changed', { detail: profile }));
+                resolve({ user: res.user, profile });
+              } else {
+                resolve(res);
+              }
+            } catch (err: any) {
+              reject(err);
+            }
+          }
+        });
+        if (client) {
+          client.requestAccessToken();
+        } else {
+          reject(new Error('Google kimlik doğrulama istemcisi başlatılamadı.'));
+        }
+      } catch (err: any) {
+        reject(err);
+      }
+    };
+
+    if (!(window as any).google?.accounts?.oauth2) {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => runGIS();
+      script.onerror = () => reject(new Error('Google Giriş betiği yüklenemedi.'));
+      document.head.appendChild(script);
+    } else {
+      runGIS();
+    }
+  });
+}
+
 // Unified Google Sign In Helper
 export async function signInWithGoogle(communicationConsent: boolean = true, preferRedirect: boolean = false) {
   const consentDate = new Date().toISOString();
@@ -121,6 +187,12 @@ export async function signInWithGoogle(communicationConsent: boolean = true, pre
   } catch (err: any) {
     console.warn('signInWithPopup notice:', err?.code, err?.message || err);
 
+    // If unauthorized-domain (e.g. preview run.app domain), automatically fallback to Google GIS token flow
+    if (err?.code === 'auth/unauthorized-domain' || (err?.message && err.message.includes('yetkili alan'))) {
+      console.log('Unauthorized domain detected. Falling back to Google GIS flow...');
+      return await signInWithGoogleGIS(communicationConsent);
+    }
+
     // If popup was blocked and we are NOT in an iframe, attempt redirect
     if (
       !isInsideIframe &&
@@ -138,10 +210,6 @@ export async function signInWithGoogle(communicationConsent: boolean = true, pre
 
     if (err?.code === 'auth/popup-blocked') {
       throw new Error('Tarayıcınız açılır pencereyi (pop-up) engelledi. Lütfen adres çubuğundan pop-up izni verin veya e-posta ile giriş yapın.');
-    }
-
-    if (err?.code === 'auth/unauthorized-domain') {
-      throw new Error('Bu önizleme alan adı henüz Firebase yetkili alan adları listesine eklenmemiş. Lütfen E-posta ile Giriş Yap seçeneğini kullanın.');
     }
 
     if (err?.code === 'auth/operation-not-supported-in-this-environment') {

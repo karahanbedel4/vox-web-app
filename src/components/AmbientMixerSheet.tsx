@@ -229,7 +229,7 @@ export const AmbientMixerSheet: React.FC<AmbientMixerSheetProps> = ({
           audio.loop = isNatureOrLofi;
           audio.setAttribute('playsinline', 'true');
           audio.setAttribute('webkit-playsinline', 'true');
-          audio.preload = 'auto';
+          audio.preload = 'none';
           audio.crossOrigin = 'anonymous';
 
           audio.onended = () => {
