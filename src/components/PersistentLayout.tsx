@@ -747,15 +747,20 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           </nav>
 
           {/* COMPACT MOBILE APP INDICATOR */}
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5 text-[11px] text-gray-400">
-            <span className="flex items-center gap-1.5 font-medium">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('vox_open_pwa_install'))}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] active:scale-95 border border-white/5 text-[11px] text-gray-300 transition-all cursor-pointer text-left group"
+            title="Ana Ekrana Ekle"
+          >
+            <span className="flex items-center gap-1.5 font-medium group-hover:text-white">
               <span>📱</span>
               <span>Mobil Uygulama</span>
             </span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
-              Yakında
+            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full group-hover:bg-emerald-500/25">
+              Yükle
             </span>
-          </div>
+          </button>
         </div>
 
         {/* BOTTOM SECTION: THEME TOGGLE, SOCIAL, INFO LINKS & POWERED BY GOOGLE AI STUDIO */}
@@ -1126,14 +1131,21 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
 
                 {/* Compact Highlights (Mobile App) */}
                 <div className="pt-1">
-                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-gray-400">
-                    <span className="flex items-center gap-1.5 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileDrawerOpen(false);
+                      window.dispatchEvent(new CustomEvent('vox_open_pwa_install'));
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] active:scale-95 border border-white/5 text-[11px] text-gray-300 transition-all cursor-pointer text-left group"
+                  >
+                    <span className="flex items-center gap-1.5 font-medium group-hover:text-white">
                       <span>📱 Mobil Uygulama</span>
                     </span>
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                      Yakında
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                      Yükle
                     </span>
-                  </div>
+                  </button>
                 </div>
               </div>
 
