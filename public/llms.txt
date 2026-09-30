@@ -1,18 +1,20 @@
-# VOX Özet - Son Dakika Haber & Gündem Özetleri
+# VOX Özet - Son Dakika Haber, Özel Analizler & Odaklanma Platformu
 
-> VOX Özet, Türkiye ve dünya gündemindeki son dakika haberlerini, spor, ekonomi ve teknoloji gelişmelerini yapay zeka ile kısa özetler halinde sunan, sesli dinleme ve Pomodoro odaklanma araçları içeren modern bir web uygulamasıdır.
+> VOX Özet, Türkiye ve dünya gündemindeki son dakika gelişmelerini yapay zeka ve editoryal insan denetimi ile tarafsız hap özetler halinde sunan; aynı zamanda derinlemesine araştırmacı dosya makaleleri, sesli dinleme ve Pomodoro odaklanma araçları içeren yeni nesil bir dijital medya platformudur.
 
-## Başlıca Özellikler
-- **Haber Özetleri:** En güncel haberlerin hızlı ve tarafsız yapay zeka özetleri.
-- **Sesli Dinleme:** Haberleri sesli olarak dinleme imkanı.
+## Başlıca Bölümler ve Özellikler
+- **Haber Akışı & Özetler:** En güncel gelişmelerin hızlı, tarafsız ve teyitli editoryal özetleri.
+- **VOX Özel Analizler & Dosya Haberler:** Ekonomi, teknoloji, yapay zeka, jeopolitik ve üretkenlik alanlarında uzman yazarlar tarafından hazırlanan 600-1200+ kelimelik özgün derin araştırmalar.
 - **Canlı TV:** Kesintisiz ulusal ve haber kanalı canlı yayınları.
-- **Pomodoro Odak Modu:** Çalışma ve odaklanma seansları için ambient ses manzaraları.
-- **Canlı Kurlar & Çevirici:** Döviz, altın ve kripto para anlık takip araçları.
+- **Pomodoro Odak Modu:** Çalışma ve odaklanma seansları için ambient ses manzaraları ve bilimsel odaklanma müzikleri.
+- **Canlı Finans & Kurlar:** TCMB, BIST 100, Serbest Piyasa ve kripto varlık canlı kur takip ve anlık çevirici aracı.
 
-## Sayfalar ve Bölümler
-- [Ana Sayfa / Gündem](https://voxozet.com/)
-- [Haberler / Kütüphane](https://voxozet.com/library)
-- [Canlı TV](https://voxozet.com/live-tv)
-- [Odak / Pomodoro](https://voxozet.com/focus)
-- [Hakkımızda](https://voxozet.com/about)
-- [İletişim](https://voxozet.com/contact)
+## Editoryal ve Kurumsal Bağlantılar
+- [Ana Sayfa](https://voxozet.com/)
+- [Özel Analizler & Dosyalar](https://voxozet.com/analiz)
+- [Rehberler](https://voxozet.com/rehberler)
+- [Hakkımızda](https://voxozet.com/hakkimizda)
+- [Künye](https://voxozet.com/kunye)
+- [Yayın İlkeleri & Teyit Politikası](https://voxozet.com/yayin-ilkeleri)
+- [Gizlilik Politikası](https://voxozet.com/gizlilik)
+- [Kullanım Koşulları](https://voxozet.com/kullanim-kosullari)

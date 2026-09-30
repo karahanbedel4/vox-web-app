@@ -49,14 +49,9 @@ export const MarketTickerBar: React.FC<MarketTickerBarProps> = ({ onSelectAsset 
     if (onSelectAsset) {
       onSelectAsset(item.id);
     } else {
-      // Dispatch global event so calculator anywhere can listen and scroll into view
-      window.dispatchEvent(new CustomEvent('vox_select_currency_calculator', { 
+      window.dispatchEvent(new CustomEvent('vox_open_currency_calculator', { 
         detail: { assetId: item.id, code: item.code } 
       }));
-      const calcEl = document.getElementById('vox-currency-calculator-widget');
-      if (calcEl) {
-        calcEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
     }
   };
 
@@ -139,10 +134,7 @@ export const MarketTickerBar: React.FC<MarketTickerBarProps> = ({ onSelectAsset 
           <button
             type="button"
             onClick={() => {
-              const calcEl = document.getElementById('vox-currency-calculator-widget');
-              if (calcEl) {
-                calcEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
+              window.dispatchEvent(new CustomEvent('vox_open_currency_calculator'));
             }}
             className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#13376e] hover:bg-[#1a478b] text-[#c0dcff] hover:text-white text-[11px] font-bold border border-[#234e94] transition-all cursor-pointer shadow-sm active:scale-95"
             title="Döviz ve Altın Çeviriciyi Aç"

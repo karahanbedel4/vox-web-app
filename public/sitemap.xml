@@ -12,9 +12,19 @@
     <priority>0.95</priority>
   </url>
   <url>
+    <loc>https://voxozet.com/analiz</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/rehberler</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
     <loc>https://voxozet.com/odaklan</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://voxozet.com/teknoloji</loc>
@@ -41,16 +51,95 @@
     <changefreq>hourly</changefreq>
     <priority>0.80</priority>
   </url>
+
+  <!-- Deep Dossiers & Original Research Articles (High E-E-A-T Value for Google AdSense & SEO) -->
   <url>
-    <loc>https://voxozet.com/rehberler</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://voxozet.com/ayarlar</loc>
+    <loc>https://voxozet.com/analiz/dijital-bilgi-zehirlenmesi-ve-zihinsel-berraklik</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.60</priority>
+    <priority>0.90</priority>
   </url>
+  <url>
+    <loc>https://voxozet.com/analiz/pomodoro-teknigi-ve-derin-calisma-rehberi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/film-muzikleri-ve-odaklanmanin-norolojisi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/yapay-zekanin-medyadaki-donusumu-algoritmik-habercilik</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/2026-kuresel-para-politikalari-ve-turkiye-ekonomisi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/buyuk-dil-modelleri-ve-otonom-yazilim-ajanlari-2026</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/yeni-nesil-ticaret-koridorlari-ve-turkiyenin-jeopolitik-rolu</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/dijital-cagda-dezenformasyonla-mucadele-ve-dogruluk-teyidi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/biyoteknoloji-ve-yapay-zeka-destekli-erken-teshis-cagi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/surdurulebilir-enerji-ve-turkiyenin-karbon-ayak-izi-vizyonu</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/surekli-cevrimici-olma-hali-fomo-ve-dijital-detoks</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/enflasyonist-donemde-finansal-okuryazarlik-ve-portfoy-yonetimi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/gelecegin-meslekleri-yapay-zeka-caginda-insan-yetkinlikleri</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/elektrikli-araclar-ve-yeni-nesil-kati-hal-batarya-devrimi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/yeni-uzay-yarisi-ay-usleri-ve-alcak-yorunge-ekonomisi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/kisa-video-algoritmalari-ve-dikkat-suresi-zihinsel-egitim</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://voxozet.com/analiz/merkez-bankasi-dijital-para-birimleri-cbdc-ve-nakitsiz-toplum</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <!-- Legal & Transparency Pages -->
   <url>
     <loc>https://voxozet.com/hakkimizda</loc>
     <changefreq>monthly</changefreq>

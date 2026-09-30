@@ -12,6 +12,7 @@ import { XLogoIcon } from './XLogoIcon';
 import { NativeAdCard } from './NativeAdCard';
 import { FeaturedNewsSlider } from './FeaturedNewsSlider';
 import { AiSeoKnowledgeSection } from './AiSeoKnowledgeSection';
+import { EditorialDossierSection } from './EditorialDossierSection';
 
 
 export type CategoryType = 'Tümü' | 'Gündem' | 'Ekonomi' | 'Teknoloji' | 'Spor' | 'Dünya' | 'Sağlık';
@@ -950,6 +951,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </p>
             )}
           </div>
+
+          {/* VOX ÖZGÜN DOSYA VE ANALİZLER (ADSENSE VE E-E-A-T İÇERİK DEĞERİ) */}
+          <EditorialDossierSection />
 
           {/* AI & GOOGLE SEO KNOWLEDGE SECTION */}
           <AiSeoKnowledgeSection pageContext={activeCategory === 'Spor' ? 'spor' : 'gundem'} />

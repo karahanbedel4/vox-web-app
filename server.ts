@@ -294,6 +294,38 @@ async function fetchLiveMarketRatesServer(): Promise<any> {
     // console.warn('TCMB XML fetch notice');
   }
 
+  // 1.5. Secondary Fallback: Open Exchange Rates (Global Real-Time Forex)
+  try {
+    const erRes = await fetch('https://open.er-api.com/v6/latest/USD', {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(3500)
+    });
+    if (erRes.ok) {
+      const erData = await erRes.json();
+      const tryRate = erData?.rates?.TRY;
+      if (tryRate && tryRate > 10) {
+        if (!usdTry || usdTry === 48.9827) {
+          usdTry = tryRate;
+          currencyRates.USD = tryRate;
+        }
+        // Calculate all currencies relative to TRY
+        const rates = erData.rates;
+        if (rates.EUR) currencyRates.EUR = tryRate / rates.EUR;
+        if (rates.GBP) currencyRates.GBP = tryRate / rates.GBP;
+        if (rates.CHF) currencyRates.CHF = tryRate / rates.CHF;
+        if (rates.CAD) currencyRates.CAD = tryRate / rates.CAD;
+        if (rates.AUD) currencyRates.AUD = tryRate / rates.AUD;
+        if (rates.JPY) currencyRates.JPY = tryRate / rates.JPY;
+        if (rates.SAR) currencyRates.SAR = tryRate / rates.SAR;
+        if (rates.AED) currencyRates.AED = tryRate / rates.AED;
+        if (rates.KWD) currencyRates.KWD = tryRate / rates.KWD;
+        if (rates.QAR) currencyRates.QAR = tryRate / rates.QAR;
+      }
+    }
+  } catch (e) {
+    // console.warn('Open ER API fallback notice');
+  }
+
   // 2. Fetch Yahoo Chart for Market Index & Commodities
   try {
     const fetchYahooSymbol = async (symbol: string) => {

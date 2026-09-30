@@ -56,6 +56,7 @@ import { PopularTrends } from './PopularTrends';
 import { NewsletterSection } from './NewsletterSection';
 import { MarketTickerBar } from './MarketTickerBar';
 import { CurrencyCalculatorModal } from './CurrencyCalculatorModal';
+import { EditorialContextCard } from './EditorialContextCard';
 import { appStorage, getCookie, setCookie } from '../lib/storage';
 import { incrementUserArticlesRead } from '../lib/firebase';
 
@@ -691,6 +692,26 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
               </span>
             </NavLink>
 
+            {/* ÖZGÜN ANALİZ & DERİN DOSYA */}
+            <NavLink
+              to="/analiz"
+              className={({ isActive }) =>
+                `flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-bold tracking-wide transition-all ${
+                  isActive || location.pathname.startsWith('/analiz') || location.pathname.startsWith('/rehber') || location.pathname.startsWith('/dosya')
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                }`
+              }
+            >
+              <div className="flex items-center gap-2.5">
+                <BookOpen className="w-4 h-4 text-emerald-400" />
+                <span>ANALİZLER</span>
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                ÖZEL
+              </span>
+            </NavLink>
+
             {/* ODAKLAN */}
             <NavLink
               to="/odaklan"
@@ -1072,6 +1093,26 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     <span className="flex items-center gap-1.5 bg-red-600/20 text-red-400 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                       CANLI
+                    </span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/analiz"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
+                        isActive || location.pathname.startsWith('/analiz') || location.pathname.startsWith('/rehber')
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                          : 'text-gray-300 hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <BookOpen className="w-4 h-4 text-emerald-400" />
+                      <span>Özel Analizler & Dosya</span>
+                    </div>
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      ÖZEL
                     </span>
                   </NavLink>
 
@@ -1809,6 +1850,9 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                             <span>Haberin detayları yükleniyor...</span>
                           </div>
                         )}
+
+                        {/* VOX EDİTÖRYAL ANALİZ & PERSPEKTİF (ADSENSE ÖZGÜN DEĞER KARTI) */}
+                        <EditorialContextCard article={readingArticle} />
 
                         {/* Clean original source link at bottom of article */}
                         {readingArticle.sourceUrl && (

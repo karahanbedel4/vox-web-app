@@ -689,6 +689,11 @@ export default function App() {
           <RouterRoute path="/rehberler" element={<GuidesPage />} />
           <RouterRoute path="/rehber" element={<GuidesPage />} />
           <RouterRoute path="/rehber/:slug" element={<GuideDetailPage />} />
+          <RouterRoute path="/analiz" element={<GuidesPage />} />
+          <RouterRoute path="/analizler" element={<GuidesPage />} />
+          <RouterRoute path="/analiz/:slug" element={<GuideDetailPage />} />
+          <RouterRoute path="/dosya" element={<GuidesPage />} />
+          <RouterRoute path="/dosya/:slug" element={<GuideDetailPage />} />
 
           {/* Dedicated 404 Not Found Route */}
           <RouterRoute path="/404" element={<NotFoundPage />} />
