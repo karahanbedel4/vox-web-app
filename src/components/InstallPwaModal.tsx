@@ -9,7 +9,14 @@ import {
   Sparkles, 
   Zap, 
   WifiOff, 
-  ArrowDown 
+  ArrowDown,
+  ArrowUp,
+  Monitor,
+  MoreVertical,
+  Layers,
+  Check,
+  Compass,
+  Bell
 } from 'lucide-react';
 import { appStorage } from '../lib/storage';
 import { triggerHapticImpact } from '../lib/haptics';
@@ -19,12 +26,16 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+type DevicePlatform = 'android' | 'ios' | 'desktop';
+
 export const InstallPwaModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isIOS, setIsIOS] = useState(false);
+  const [detectedPlatform, setDetectedPlatform] = useState<DevicePlatform>('android');
+  const [activeTab, setActiveTab] = useState<DevicePlatform>('android');
   const [isStandalone, setIsStandalone] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [browserName, setBrowserName] = useState<string>('Tarayıcı');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -38,20 +49,33 @@ export const InstallPwaModal: React.FC = () => {
       return; // Already running as native PWA, no prompt needed
     }
 
-    // 2. Detect iOS device (iPhone, iPad, iPod)
+    // 2. Intelligent Device and Browser Detection
     const ua = navigator.userAgent || '';
-    const isIosDevice = 
-      /iPad|iPhone|iPod/.test(ua) || 
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    setIsIOS(isIosDevice);
+    const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(ua);
+    const isDesktop = !isIos && !isAndroid && !/Mobile|Tablet/i.test(ua);
+
+    let platform: DevicePlatform = 'android';
+    if (isIos) platform = 'ios';
+    else if (isDesktop) platform = 'desktop';
+    else platform = 'android';
+
+    setDetectedPlatform(platform);
+    setActiveTab(platform);
+
+    // Browser detection
+    if (/CriOS|Chrome/i.test(ua) && !/Edg/i.test(ua)) setBrowserName('Chrome');
+    else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) setBrowserName('Safari');
+    else if (/Edg/i.test(ua)) setBrowserName('Edge');
+    else if (/SamsungBrowser/i.test(ua)) setBrowserName('Samsung İnternet');
+    else if (/Firefox|FxiOS/i.test(ua)) setBrowserName('Firefox');
+    else setBrowserName('Tarayıcı');
 
     // 3. Listen for beforeinstallprompt (Android, Chrome, Edge, Chromium)
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent browser's default banner so WE control the timing
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
-      // Keep in window so other buttons can access if needed
       (window as any).__vox_deferred_prompt = promptEvent;
     };
 
@@ -73,8 +97,7 @@ export const InstallPwaModal: React.FC = () => {
     };
     window.addEventListener('vox_open_pwa_install', handleManualOpen);
 
-    // 6. DELAY RULE: Show strictly 30 seconds after opening the site
-    // Check if dismissed recently (within 7 days)
+    // 6. DELAY RULE: Show 30 seconds after opening the site
     const dismissedTimeStr = appStorage.getItemSync('vox_pwa_dismissed_at');
     const hasInstalledBefore = appStorage.getItemSync('vox_pwa_installed') === 'true';
     
@@ -88,7 +111,6 @@ export const InstallPwaModal: React.FC = () => {
     }
 
     if (!isRecentlyDismissed && !hasInstalledBefore) {
-      // Exactly 30 seconds timer (30000 ms)
       timerRef.current = setTimeout(() => {
         setIsOpen(true);
       }, 30000);
@@ -109,12 +131,10 @@ export const InstallPwaModal: React.FC = () => {
     triggerHapticImpact('medium');
     setIsInstalling(true);
 
-    // Check if deferredPrompt is ready
     const prompt = deferredPrompt || (window as any).__vox_deferred_prompt;
 
     if (prompt) {
       try {
-        // Trigger the browser native installation prompt directly!
         await prompt.prompt();
         const { outcome } = await prompt.userChoice;
         if (outcome === 'accepted') {
@@ -129,16 +149,14 @@ export const InstallPwaModal: React.FC = () => {
         setIsInstalling(false);
       }
     } else {
-      // Fallback for browsers without direct prompt event
+      // If direct prompt is unavailable, provide quick feedback
       setIsInstalling(false);
-      setIsOpen(false);
     }
   };
 
   const handleDismiss = () => {
     triggerHapticImpact('light');
     setIsOpen(false);
-    // Dismiss for 7 days
     appStorage.setItemSync('vox_pwa_dismissed_at', Date.now().toString());
   };
 
@@ -148,18 +166,18 @@ export const InstallPwaModal: React.FC = () => {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
       role="dialog"
       aria-modal="true"
       aria-labelledby="pwa-install-title"
     >
       <div 
-        className="w-full max-w-md bg-[#12151a] border border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl text-white relative animate-slideUp overflow-hidden"
+        className="w-full max-w-lg bg-[#12151a] border border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl text-white relative animate-slideUp overflow-hidden max-h-[90vh] overflow-y-auto scrollbar-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Subtle decorative glow */}
         <div className="absolute -top-16 -right-16 w-36 h-36 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Close Button */}
         <button
@@ -170,59 +188,174 @@ export const InstallPwaModal: React.FC = () => {
           <X className="w-4 h-4" />
         </button>
 
-        {/* Header with App Icon */}
-        <div className="flex items-center gap-3.5 mb-4">
-          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-sky-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-inner">
+        {/* Header with App Icon & Device Detection Status */}
+        <div className="flex items-center gap-3.5 mb-3">
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-inner">
             <img 
               src="/logo.png" 
               alt="VOX Logo" 
               className="w-9 h-9 object-contain rounded-xl"
               onError={(e) => {
-                // Fallback to Smartphone icon if logo not loaded
                 (e.target as HTMLElement).style.display = 'none';
               }} 
             />
           </div>
           <div>
-            <div className="flex items-center gap-1.5 mb-0.5">
+            <div className="flex items-center gap-2 mb-0.5">
               <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400">
-                VOX Özet Uygulaması
+                VOX Mobil Uygulama
               </span>
               <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Ücretsiz
+                PWA • Ücretsiz
               </span>
             </div>
-            <h3 id="pwa-install-title" className="text-lg font-black text-white leading-tight">
-              {isIOS ? "iPhone'unuza Ekleyin" : "Ana Ekrana Ekle"}
+            <h3 id="pwa-install-title" className="text-lg sm:text-xl font-black text-white leading-tight">
+              {activeTab === 'ios' && "iPhone & iPad'inize Ekleyin"}
+              {activeTab === 'android' && "Android Cihazınıza Yükleyin"}
+              {activeTab === 'desktop' && "Masaüstü Bilgisayarınıza Kurun"}
             </h3>
           </div>
         </div>
 
-        {/* Quick Value Highlights */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="bg-white/[0.03] border border-white/5 rounded-xl p-2 text-center">
-            <Zap className="w-4 h-4 text-amber-400 mx-auto mb-1" />
-            <span className="text-[10px] font-bold text-gray-200 block leading-tight">1 Tıkla Erişim</span>
+        {/* INTERACTIVE DEVICE SELECTOR TABS (Proves active device detection to user) */}
+        <div className="mb-4">
+          <div className="text-[11px] font-bold text-zinc-400 mb-1.5 flex items-center justify-between">
+            <span>Cihazınıza Özel Kurulum Rehberi:</span>
+            <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {detectedPlatform === 'ios' ? 'iPhone algılandı' : detectedPlatform === 'android' ? 'Android algılandı' : 'Bilgisayar algılandı'}
+            </span>
           </div>
-          <div className="bg-white/[0.03] border border-white/5 rounded-xl p-2 text-center">
-            <WifiOff className="w-4 h-4 text-sky-400 mx-auto mb-1" />
-            <span className="text-[10px] font-bold text-gray-200 block leading-tight">Çevrimdışı Oku</span>
-          </div>
-          <div className="bg-white/[0.03] border border-white/5 rounded-xl p-2 text-center">
-            <Smartphone className="w-4 h-4 text-emerald-400 mx-auto mb-1" />
-            <span className="text-[10px] font-bold text-gray-200 block leading-tight">Tam Ekran</span>
+
+          <div className="grid grid-cols-3 gap-1.5 p-1 bg-white/[0.04] border border-white/10 rounded-2xl">
+            <button
+              type="button"
+              onClick={() => setActiveTab('android')}
+              className={`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'android'
+                  ? 'bg-emerald-500 text-black shadow-md font-black'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Android</span>
+              {detectedPlatform === 'android' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-black ml-0.5" title="Mevcut cihazınız" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('ios')}
+              className={`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'ios'
+                  ? 'bg-emerald-500 text-black shadow-md font-black'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>iPhone (iOS)</span>
+              {detectedPlatform === 'ios' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-black ml-0.5" title="Mevcut cihazınız" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('desktop')}
+              className={`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'desktop'
+                  ? 'bg-emerald-500 text-black shadow-md font-black'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Monitor className="w-3.5 h-3.5" />
+              <span>Masaüstü</span>
+              {detectedPlatform === 'desktop' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-black ml-0.5" title="Mevcut cihazınız" />
+              )}
+            </button>
           </div>
         </div>
 
-        {/* ------------------------------------------------------------- */}
-        {/* CASE 1: ANDROID / CHROME / EDGE (DIRECT 1-CLICK NATIVE PROMPT) */}
-        {/* ------------------------------------------------------------- */}
-        {!isIOS && (
-          <div className="space-y-4">
-            <p className="text-xs text-gray-300 leading-relaxed">
-              VOX Özet'i ana ekranınıza ekleyerek haberleri kesintisiz takip edin, yapay zeka özetlerini ve canlı TV'yi tam ekran deneyimleyin.
-            </p>
+        {/* Quick Value Highlights */}
+        <div className="grid grid-cols-4 gap-1.5 mb-4">
+          <div className="bg-white/[0.03] border border-white/5 rounded-xl p-2 text-center">
+            <Zap className="w-3.5 h-3.5 text-amber-400 mx-auto mb-1" />
+            <span className="text-[9px] sm:text-[10px] font-bold text-gray-200 block leading-tight">Tek Tıkla Giriş</span>
+          </div>
+          <div className="bg-white/[0.03] border border-white/5 rounded-xl p-2 text-center">
+            <WifiOff className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-1" />
+            <span className="text-[9px] sm:text-[10px] font-bold text-gray-200 block leading-tight">Çevrimdışı Oku</span>
+          </div>
+          <div className="bg-white/[0.03] border border-white/5 rounded-xl p-2 text-center">
+            <Layers className="w-3.5 h-3.5 text-teal-400 mx-auto mb-1" />
+            <span className="text-[9px] sm:text-[10px] font-bold text-gray-200 block leading-tight">Tam Ekran</span>
+          </div>
+          <div className="bg-white/[0.03] border border-white/5 rounded-xl p-2 text-center">
+            <Bell className="w-3.5 h-3.5 text-rose-400 mx-auto mb-1" />
+            <span className="text-[9px] sm:text-[10px] font-bold text-gray-200 block leading-tight">Hızlı Bildirim</span>
+          </div>
+        </div>
 
+        {/* ============================================================= */}
+        {/* TAB 1: ANDROID REHBERİ (GÖRSEL ŞEMA + 1-TIK YÜKLEME)         */}
+        {/* ============================================================= */}
+        {activeTab === 'android' && (
+          <div className="space-y-3.5">
+            {/* Visual Android Chrome Browser Bar Mockup */}
+            <div className="bg-black/50 border border-white/10 rounded-2xl p-3 relative overflow-hidden">
+              <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400 mb-2 flex items-center justify-between">
+                <span>Android {browserName} Arayüzü</span>
+                <span className="text-zinc-500 font-mono">voxozet.com</span>
+              </div>
+
+              {/* Mockup Address Bar */}
+              <div className="bg-white/[0.06] rounded-xl px-3 py-2 flex items-center justify-between border border-white/10">
+                <div className="flex items-center gap-2 text-xs text-zinc-300">
+                  <span className="text-emerald-400 font-bold">🔒</span>
+                  <span className="font-mono text-zinc-200 text-xs">voxozet.com</span>
+                </div>
+
+                {/* Highlighted 3-dots with pulsing radar effect */}
+                <div className="relative">
+                  <span className="animate-ping absolute -inset-1 rounded-full bg-emerald-400 opacity-60"></span>
+                  <div className="relative w-7 h-7 rounded-lg bg-emerald-500 text-black flex items-center justify-center font-bold shadow-lg">
+                    <MoreVertical className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Mockup Dropdown Menu Preview */}
+              <div className="mt-2.5 bg-[#181c22] border border-white/10 rounded-xl p-2 space-y-1.5 shadow-xl">
+                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
+                  <div className="flex items-center gap-2">
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Uygulamayı Yükle / Ana Ekrana Ekle</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase bg-emerald-500 text-black px-1.5 py-0.5 rounded">
+                    BURAYA DOKUNUN
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 px-2.5 py-1 text-zinc-500 text-[11px]">
+                  <span>⭐ Yer İşareti Ekle</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Step text summary */}
+            <div className="space-y-2 bg-white/[0.02] p-3 rounded-2xl border border-white/5 text-xs text-zinc-300">
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                <p>Sağ üstteki <strong>üç nokta (⋮)</strong> menüsüne dokunun.</p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                <p><strong>"Uygulamayı Yükle"</strong> veya <strong>"Ana Ekrana Ekle"</strong> butonuna basın.</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
             <div className="flex items-center gap-3 pt-1">
               <button
                 type="button"
@@ -236,47 +369,73 @@ export const InstallPwaModal: React.FC = () => {
                 type="button"
                 onClick={handleDirectInstall}
                 disabled={isInstalling}
-                className="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs transition-all shadow-lg shadow-emerald-900/40 cursor-pointer flex items-center justify-center gap-2 border border-emerald-400/30"
+                className="flex-1 py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-black font-black text-xs transition-all shadow-lg shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2 border border-emerald-300"
               >
                 <Download className={`w-4 h-4 ${isInstalling ? 'animate-bounce' : ''}`} />
-                <span>{isInstalling ? 'Yükleniyor...' : 'Ana Ekrana Ekle'}</span>
+                <span>{isInstalling ? 'Yükleniyor...' : 'Hemen Yükle'}</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* ------------------------------------------------------------- */}
-        {/* CASE 2: IPHONE / IPAD (IOS SAFARI STREAMLINED 2-STEP GUIDE)   */}
-        {/* ------------------------------------------------------------- */}
-        {isIOS && (
-          <div className="space-y-4">
-            <p className="text-xs text-gray-300 leading-relaxed">
-              Safari'de 2 kolay adımda ana ekranınıza ekleyip bağımsız bir mobil uygulama gibi kullanabilirsiniz:
-            </p>
-
-            <div className="space-y-2.5 bg-black/40 p-3.5 rounded-2xl border border-white/5">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 font-black text-xs flex items-center justify-center shrink-0">
-                  1
-                </div>
-                <p className="text-xs text-gray-200 leading-snug">
-                  Safari'nin alt menüsündeki <span className="inline-flex items-center font-bold text-sky-400 px-1 bg-sky-500/10 rounded mx-0.5"><Share className="w-3 h-3 inline mr-1" /> Paylaş</span> simgesine dokunun.
-                </p>
+        {/* ============================================================= */}
+        {/* TAB 2: IPHONE / IPAD (IOS SAFARI GÖRSEL ŞEMASI)              */}
+        {/* ============================================================= */}
+        {activeTab === 'ios' && (
+          <div className="space-y-3.5">
+            {/* Visual iOS Safari Bottom Bar Mockup */}
+            <div className="bg-black/50 border border-white/10 rounded-2xl p-3 relative overflow-hidden">
+              <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400 mb-2 flex items-center justify-between">
+                <span>iPhone / iPad Safari Menüsü</span>
+                <span className="text-zinc-500 font-mono">iOS 14+</span>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0">
-                  2
+              {/* Mockup Safari Bottom Toolbar */}
+              <div className="bg-white/[0.06] rounded-xl px-4 py-2.5 flex items-center justify-around border border-white/10">
+                <span className="text-zinc-500 text-sm font-bold">‹</span>
+                <span className="text-zinc-500 text-sm font-bold">›</span>
+
+                {/* Highlighted Share Button with Pulsing Beacon */}
+                <div className="relative">
+                  <span className="animate-ping absolute -inset-1.5 rounded-full bg-emerald-400 opacity-60"></span>
+                  <div className="relative w-8 h-8 rounded-xl bg-emerald-500 text-black flex items-center justify-center font-bold shadow-lg">
+                    <Share className="w-4 h-4" />
+                  </div>
                 </div>
-                <p className="text-xs text-gray-200 leading-snug">
-                  Açılan menüde aşağı kaydırıp <span className="inline-flex items-center font-bold text-emerald-400 px-1 bg-emerald-500/10 rounded mx-0.5"><PlusSquare className="w-3 h-3 inline mr-1" /> Ana Ekrana Ekle</span> seçeneğine dokunun.
-                </p>
+
+                <span className="text-zinc-500 text-xs">📖</span>
+                <span className="text-zinc-500 text-xs">📑</span>
+              </div>
+
+              {/* Mockup Action Sheet Preview */}
+              <div className="mt-2.5 bg-[#181c22] border border-white/10 rounded-xl p-2 space-y-1.5 shadow-xl">
+                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
+                  <div className="flex items-center gap-2">
+                    <PlusSquare className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Ana Ekrana Ekle</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase bg-emerald-500 text-black px-1.5 py-0.5 rounded">
+                    2. ADIM
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Visual bouncing pointer towards bottom bar on iPhone */}
-            <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400 font-medium py-1 animate-pulse">
-              <ArrowDown className="w-3.5 h-3.5 text-sky-400" />
+            {/* 2-Step iOS instructions */}
+            <div className="space-y-2 bg-white/[0.02] p-3 rounded-2xl border border-white/5 text-xs text-zinc-300">
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                <p>Safari'nin altındaki <strong className="text-white">Paylaş (<Share className="w-3 h-3 inline mx-0.5" />)</strong> butonuna dokunun.</p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                <p>Açılan menüde aşağı kaydırıp <strong className="text-white">"Ana Ekrana Ekle" (<PlusSquare className="w-3 h-3 inline mx-0.5" />)</strong> seçeneğine dokunun.</p>
+              </div>
+            </div>
+
+            {/* Pointer note */}
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-emerald-400 font-semibold py-0.5 animate-pulse">
+              <ArrowDown className="w-3.5 h-3.5 text-emerald-400" />
               <span>Safari'nin altındaki paylaş simgesi</span>
             </div>
 
@@ -292,10 +451,80 @@ export const InstallPwaModal: React.FC = () => {
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs transition-all shadow-lg shadow-emerald-900/40 cursor-pointer flex items-center justify-center gap-2 border border-emerald-400/30"
+                className="flex-1 py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-black font-black text-xs transition-all shadow-lg shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2 border border-emerald-300"
               >
                 <CheckCircle className="w-4 h-4" />
                 <span>Anladım</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================= */}
+        {/* TAB 3: MASAÜSTÜ BİLGİSAYAR (CHROME, EDGE, MAC, WINDOWS)       */}
+        {/* ============================================================= */}
+        {activeTab === 'desktop' && (
+          <div className="space-y-3.5">
+            {/* Visual Desktop Address Bar Mockup */}
+            <div className="bg-black/50 border border-white/10 rounded-2xl p-3 relative overflow-hidden">
+              <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400 mb-2 flex items-center justify-between">
+                <span>Masaüstü {browserName} Adres Çubuğu</span>
+                <span className="text-zinc-500 font-mono">Windows / Mac</span>
+              </div>
+
+              {/* Mockup Desktop URL bar */}
+              <div className="bg-white/[0.06] rounded-xl px-3 py-2 flex items-center justify-between border border-white/10">
+                <div className="flex items-center gap-2 text-xs text-zinc-300">
+                  <span className="text-emerald-400 font-bold">🔒</span>
+                  <span className="font-mono text-zinc-200 text-xs">https://voxozet.com</span>
+                </div>
+
+                {/* Highlighted install icon in URL bar */}
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <span className="animate-ping absolute -inset-1 rounded-full bg-emerald-400 opacity-60"></span>
+                    <div className="relative px-2 py-1 rounded-lg bg-emerald-500 text-black text-xs font-black flex items-center gap-1 shadow-lg">
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Yükle</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 text-center text-[11px] text-zinc-400 font-mono">
+                Adres çubuğundaki yükleme simgesiyle tarayıcısız bağımsız uygulama
+              </div>
+            </div>
+
+            {/* Desktop instructions */}
+            <div className="space-y-2 bg-white/[0.02] p-3 rounded-2xl border border-white/5 text-xs text-zinc-300">
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                <p>Aşağıdaki <strong>"Bilgisayara Yükle"</strong> butonuna basın veya tarayıcınızın adres çubuğunun en sağındaki <strong>(⊕ Yükle)</strong> simgesine tıklayın.</p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                <p>VOX, masaüstünüzde ayrı bir pencerede bağımsız bir uygulama olarak açılır.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="flex-1 py-3 px-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 text-gray-300 font-bold text-xs transition-all cursor-pointer border border-white/5"
+              >
+                Daha Sonra
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDirectInstall}
+                disabled={isInstalling}
+                className="flex-1 py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-black font-black text-xs transition-all shadow-lg shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2 border border-emerald-300"
+              >
+                <Download className={`w-4 h-4 ${isInstalling ? 'animate-bounce' : ''}`} />
+                <span>{isInstalling ? 'Yükleniyor...' : 'Bilgisayara Yükle'}</span>
               </button>
             </div>
           </div>

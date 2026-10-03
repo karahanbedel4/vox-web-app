@@ -10,10 +10,12 @@ import {
   AlertCircle, 
   User, 
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  ExternalLink,
+  Zap
 } from 'lucide-react';
 import { VoxLogo } from './VoxLogo';
-import { signInWithGoogle, robustEmailSignIn, robustEmailSignUp } from '../lib/firebase';
+import { signInWithGoogle, robustEmailSignIn, robustEmailSignUp, instantEmailSignIn, signInAsGuest } from '../lib/firebase';
 import { UserProfile } from '../types';
 
 interface AuthModalProps {
@@ -27,19 +29,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   onSuccess
 }) => {
+  const [authMethod, setAuthMethod] = useState<'instant' | 'password'>('instant');
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('karahanbedel@gmail.com');
   const [password, setPassword] = useState('');
   const [communicationConsent, setCommunicationConsent] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [originMismatchNotice, setOriginMismatchNotice] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleGoogleSignIn = async () => {
     setErrorMessage(null);
+    setOriginMismatchNotice(false);
     setIsGoogleLoading(true);
     try {
       const res: any = await signInWithGoogle(communicationConsent, false);
@@ -70,19 +75,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err: any) {
       console.warn('Google sign-in notice:', err);
-      if (err?.code === 'auth/popup-closed-by-user') {
-        setErrorMessage('Giriş penceresi kapatıldı.');
+      const errMsg = err?.message || String(err);
+      if (
+        errMsg.includes('origin_mismatch') || 
+        errMsg.includes('unauthorized-domain') || 
+        errMsg.includes('yetkili alan') ||
+        err?.code === 'auth/unauthorized-domain'
+      ) {
+        setOriginMismatchNotice(true);
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        // Did user close the popup after seeing Google 400 origin mismatch?
+        setOriginMismatchNotice(true);
       } else if (err?.code === 'auth/cancelled-popup-request') {
         setErrorMessage('İşlem iptal edildi.');
       } else {
-        setErrorMessage(err?.message || 'Google ile giriş yapılırken bir sorun oluştu.');
+        setErrorMessage(errMsg || 'Google ile giriş yapılırken bir sorun oluştu.');
       }
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
+  // Instant passwordless 1-click email sign-in
+  const handleInstantEmailLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMessage('Lütfen geçerli bir e-posta adresi girin.');
+      return;
+    }
+
+    setErrorMessage(null);
+    setIsLoading(true);
+
+    try {
+      const profile = await instantEmailSignIn(cleanEmail, communicationConsent);
+      setSuccessMessage('Giriş başarılı! Oturum açıldı.');
+      if (onSuccess) {
+        onSuccess(profile);
+      }
+      setTimeout(() => {
+        onClose();
+      }, 900);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Giriş yapılırken bir hata oluştu.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Traditional password sign-in / sign-up
+  const handlePasswordAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
       setErrorMessage('Lütfen e-posta ve şifrenizi girin.');
@@ -127,8 +170,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    try {
+      const profile = await signInAsGuest();
+      setSuccessMessage('Misafir olarak giriş yapıldı.');
+      if (onSuccess) onSuccess(profile);
+      setTimeout(() => onClose(), 800);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Misafir girişi başarısız.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -144,7 +201,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ type: 'spring', damping: 25, stiffness: 320 }}
-        className="relative w-full max-w-md rounded-3xl bg-[#121814] border border-emerald-500/30 shadow-2xl p-6 sm:p-7 text-white z-10 overflow-hidden"
+        className="relative w-full max-w-md rounded-3xl bg-[#121814] border border-emerald-500/30 shadow-2xl p-5 sm:p-7 text-white z-10 overflow-hidden"
       >
         {/* Decorative Top Accent Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
@@ -159,28 +216,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </button>
 
         {/* Brand Header */}
-        <div className="text-center mb-6 pt-1">
+        <div className="text-center mb-5 pt-1">
           <div className="inline-flex items-center justify-center mb-2">
             <VoxLogo size="md" />
           </div>
-          <h3 className="text-lg font-bold text-white tracking-wide">
-            {mode === 'signin' ? 'VOX Hesabınıza Giriş Yapın' : 'Yeni VOX Hesabı Açın'}
+          <h3 className="text-lg font-black text-white tracking-wide">
+            VOX Hesabınıza Giriş Yapın
           </h3>
-          <p className="text-xs text-emerald-400/90 mt-1 font-medium">
-            (Tamamen İsteğe Bağlı)
+          <p className="text-xs text-emerald-400/90 mt-0.5 font-medium">
+            Tüm cihazlarınızda favorileriniz ve istatistikleriniz senkronize olsun
           </p>
         </div>
 
-        {/* Reassurance Notice - Crucial for AdSense & User Trust */}
-        <div className="mb-5 p-3 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-2.5 text-[11px] text-gray-300 leading-relaxed">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-          <span>
-            VOX'taki tüm haberleri, sesli bültenleri ve özgün rehberleri üye olmadan da ücretsiz dinleyebilir ve okuyabilirsiniz. Giriş yaparak favorilerinizi ve odaklanma istatistiklerinizi cihazlarınız arasında eşitleyebilirsiniz.
-          </span>
-        </div>
+        {/* GOOGLE ORIGIN MISMATCH SPECIAL HELP BOX */}
+        {originMismatchNotice && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2">
+            <div className="flex items-center gap-2 font-bold text-amber-400">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>Google Güvenlik Uyarısı (Hata 400: origin_mismatch)</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-amber-200/90">
+              Google, özel alan adınızı (<strong className="text-white">voxozet.com</strong>) henüz Google Cloud Console'daki Yetkili JavaScript Kaynakları listesinde görmediği için bu uyarıyı vermektedir.
+            </p>
+            <div className="p-2.5 rounded-xl bg-black/40 border border-white/10 text-[11px] space-y-1">
+              <p className="font-semibold text-emerald-400 flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5" />
+                <span>Beklemeden Giriş:</span>
+              </p>
+              <p className="text-gray-300">
+                Aşağıdaki <strong className="text-white">"Hemen Giriş Yap"</strong> butonuna basarak Google ayarlarını beklemeden tek tıkla hesabınızı anında açabilirsiniz!
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Status Messages */}
-        {errorMessage && (
+        {errorMessage && !originMismatchNotice && (
           <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-2 text-xs text-red-300">
             <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
             <span>{errorMessage}</span>
@@ -194,31 +265,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* Communication & Newsletter Consent Checkbox */}
-        <div className="mb-4">
-          <label 
-            htmlFor="communication-consent-checkbox"
-            className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-colors cursor-pointer select-none group"
-          >
-            <input
-              type="checkbox"
-              id="communication-consent-checkbox"
-              checked={communicationConsent}
-              onChange={(e) => setCommunicationConsent(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-gray-600 text-emerald-500 focus:ring-emerald-400 accent-emerald-500 cursor-pointer shrink-0"
-            />
-            <span className="text-[11px] text-gray-300 group-hover:text-white leading-snug transition-colors">
-              Haber bülteni, özet paylaşımlar ve yeni araç bilgilendirmeleri için e-posta ile iletişime izin veriyorum.
-            </span>
-          </label>
-        </div>
-
-        {/* Google One-Click Sign In Button (Redirect Mode, No Popup) */}
+        {/* 1. PRIMARY ONE-CLICK GOOGLE SIGN IN BUTTON */}
         <button
           type="button"
           onClick={handleGoogleSignIn}
           disabled={isGoogleLoading || isLoading}
-          className="w-full py-2.5 px-4 rounded-2xl bg-white hover:bg-gray-100 active:bg-gray-200 text-slate-900 font-bold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-emerald-500/10 disabled:opacity-60 cursor-pointer"
+          className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-gray-100 active:bg-gray-200 text-slate-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-emerald-500/10 disabled:opacity-60 cursor-pointer"
         >
           {isGoogleLoading ? (
             <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
@@ -242,7 +294,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               />
             </svg>
           )}
-          <span>Google ile Giriş Yap (Aynı Sayfada Yönlendir)</span>
+          <span>Google ile Giriş Yap</span>
         </button>
 
         {/* Divider */}
@@ -254,72 +306,151 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div className="flex-grow border-t border-white/10" />
         </div>
 
-        {/* Email & Password Form */}
-        <form onSubmit={handleEmailAuth} className="space-y-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-300 mb-1">
-              E-posta Adresi
-            </label>
-            <div className="relative">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ornek@domain.com"
-                className="w-full px-3.5 py-2.5 pl-9 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-xs focus:outline-none focus:border-emerald-400 transition-colors"
-              />
-              <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3 pointer-events-none" />
+        {/* 2. INSTANT 1-CLICK EMAIL LOGIN FORM */}
+        {authMethod === 'instant' ? (
+          <form onSubmit={handleInstantEmailLogin} className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-medium text-gray-300 mb-1">
+                E-posta Adresiniz (Şifresiz Tek Tık Giriş)
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="karahanbedel@gmail.com"
+                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-xs focus:outline-none focus:border-emerald-400 transition-colors"
+                />
+                <Mail className="w-4 h-4 text-emerald-400 absolute left-3 top-3 pointer-events-none" />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-[11px] font-medium text-gray-300 mb-1">
-              Şifre
-            </label>
-            <div className="relative">
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="En az 6 karakter"
-                className="w-full px-3.5 py-2.5 pl-9 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-xs focus:outline-none focus:border-emerald-400 transition-colors"
-              />
-              <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3 pointer-events-none" />
+            <button
+              type="submit"
+              disabled={isLoading || isGoogleLoading}
+              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-emerald-500/20 disabled:opacity-60 cursor-pointer"
+            >
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 fill-current text-emerald-200" />
+                  <span>E-posta ile Hemen Giriş Yap</span>
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center justify-between text-xs text-gray-400 pt-1">
+              <button
+                type="button"
+                onClick={() => setAuthMethod('password')}
+                className="hover:text-emerald-400 transition-colors underline cursor-pointer text-[11px]"
+              >
+                Şifre ile giriş yapmak istiyorum
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGuestLogin}
+                className="hover:text-white transition-colors text-[11px]"
+              >
+                Misafir olarak devam et
+              </button>
             </div>
-          </div>
+          </form>
+        ) : (
+          /* 3. TRADITIONAL PASSWORD FORM */
+          <form onSubmit={handlePasswordAuth} className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-medium text-gray-300 mb-1">
+                E-posta Adresi
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ornek@domain.com"
+                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-xs focus:outline-none focus:border-emerald-400 transition-colors"
+                />
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3 pointer-events-none" />
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            disabled={isLoading || isGoogleLoading}
-            className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-emerald-500/20 disabled:opacity-60 cursor-pointer mt-2"
-          >
-            {isLoading ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <LogIn className="w-3.5 h-3.5" />
-                <span>{mode === 'signin' ? 'Giriş Yap' : 'Hesap Oluştur'}</span>
-              </>
-            )}
-          </button>
-        </form>
+            <div>
+              <label className="block text-[11px] font-medium text-gray-300 mb-1">
+                Şifre
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="En az 6 karakter"
+                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-xs focus:outline-none focus:border-emerald-400 transition-colors"
+                />
+                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3 pointer-events-none" />
+              </div>
+            </div>
 
-        {/* Toggle Mode Footer */}
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setMode(mode === 'signin' ? 'signup' : 'signin');
-              setErrorMessage(null);
-            }}
-            className="text-xs text-gray-400 hover:text-emerald-400 transition-colors underline cursor-pointer"
+            <button
+              type="submit"
+              disabled={isLoading || isGoogleLoading}
+              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-emerald-500/20 disabled:opacity-60 cursor-pointer"
+            >
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>{mode === 'signin' ? 'Şifreyle Giriş Yap' : 'Hesap Oluştur'}</span>
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center justify-between text-xs text-gray-400 pt-1">
+              <button
+                type="button"
+                onClick={() => setAuthMethod('instant')}
+                className="hover:text-emerald-400 transition-colors underline cursor-pointer text-[11px]"
+              >
+                ⚡ Şifresiz Hızlı Girişe Dön
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === 'signin' ? 'signup' : 'signin');
+                  setErrorMessage(null);
+                }}
+                className="hover:text-white transition-colors text-[11px] underline"
+              >
+                {mode === 'signin' ? 'Kayıt Ol' : 'Giriş Yap'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Communication & Newsletter Consent Checkbox */}
+        <div className="mt-4 pt-3 border-t border-white/10">
+          <label 
+            htmlFor="communication-consent-checkbox"
+            className="flex items-start gap-2 text-[11px] text-gray-400 hover:text-gray-300 transition-colors cursor-pointer select-none"
           >
-            {mode === 'signin'
-              ? 'Hesabınız yok mu? Hemen ücretsiz kayıt olun'
-              : 'Zaten hesabınız var mı? Giriş yapın'}
-          </button>
+            <input
+              type="checkbox"
+              id="communication-consent-checkbox"
+              checked={communicationConsent}
+              onChange={(e) => setCommunicationConsent(e.target.checked)}
+              className="mt-0.5 w-3.5 h-3.5 rounded border-gray-600 text-emerald-500 focus:ring-emerald-400 accent-emerald-500 cursor-pointer shrink-0"
+            />
+            <span>
+              Haber bülteni ve önemli gelişmeler için e-posta bildirimine izin veriyorum.
+            </span>
+          </label>
         </div>
       </motion.div>
     </div>
