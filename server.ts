@@ -192,9 +192,9 @@ const serverMarketCache: ServerMarketRatesCache = {
   lastFetched: 0,
 };
 
-async function fetchLiveMarketRatesServer(): Promise<any> {
-  // If cache is fresh (< 60s), return it directly
-  if (serverMarketCache.data && Date.now() - serverMarketCache.lastFetched < 60000) {
+async function fetchLiveMarketRatesServer(forceFresh = false): Promise<any> {
+  // If cache is fresh (< 15s) and not forced, return it directly
+  if (!forceFresh && serverMarketCache.data && Date.now() - serverMarketCache.lastFetched < 15000) {
     return serverMarketCache.data;
   }
 
@@ -603,8 +603,11 @@ async function fetchLiveMarketRatesServer(): Promise<any> {
 
 app.get('/api/market-rates', async (req, res) => {
   try {
-    const data = await fetchLiveMarketRatesServer();
-    res.setHeader('Cache-Control', 'public, max-age=30');
+    const forceFresh = req.query.refresh === '1' || req.query.force === 'true';
+    const data = await fetchLiveMarketRatesServer(forceFresh);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.json(data);
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message || 'Piyasa verileri alınamadı.' });

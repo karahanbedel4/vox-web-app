@@ -202,5 +202,24 @@ input, textarea, [contenteditable="true"], .selectable-text, article p, article 
 .animate-eq-3 { animation: eqBar3 0.85s ease-in-out infinite; }
 .animate-eq-4 { animation: eqBar4 0.65s ease-in-out infinite; }
 
+/* Continuous Smooth Financial Ticker Animation */
+@keyframes voxTickerSlide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-vox-ticker {
+  display: flex;
+  width: max-content;
+  animation: voxTickerSlide 55s linear infinite;
+  will-change: transform;
+}
+
+.animate-vox-ticker:hover,
+.animate-vox-ticker:active,
+.animate-vox-ticker:focus-within {
+  animation-play-state: paused;
+}
+
 
 

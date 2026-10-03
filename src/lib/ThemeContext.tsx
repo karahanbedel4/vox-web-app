@@ -32,11 +32,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     if (theme === 'light') {
-      document.documentElement.classList.add('light-mode');
-      document.documentElement.classList.remove('dark-mode');
+      document.documentElement.classList.add('light', 'light-mode');
+      document.documentElement.classList.remove('dark', 'dark-mode');
     } else {
-      document.documentElement.classList.add('dark-mode');
-      document.documentElement.classList.remove('light-mode');
+      document.documentElement.classList.add('dark', 'dark-mode');
+      document.documentElement.classList.remove('light', 'light-mode');
     }
   }, [theme]);
 
