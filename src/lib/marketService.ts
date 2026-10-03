@@ -154,6 +154,8 @@ export const DEFAULT_MARKET_DATA: MarketDataResponse = {
     { code: 'USD', name: 'Amerikan Doları', symbol: '$', flag: '🇺🇸', rateToTRY: 48.9827, rateToUSD: 1 },
     { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺', rateToTRY: 55.7720, rateToUSD: 55.7720 / 48.9827 },
     { code: 'TRY', name: 'Türk Lirası', symbol: '₺', flag: '🇹🇷', rateToTRY: 1, rateToUSD: 1 / 48.9827 },
+    { code: 'GLD', name: 'Gram Altın (24A)', symbol: 'g', flag: '🪙', rateToTRY: 6534.62, rateToUSD: 6534.62 / 48.9827 },
+    { code: 'CEYREK', name: 'Çeyrek Altın', symbol: 'ç', flag: '🪙', rateToTRY: 6534.62 * 1.635, rateToUSD: (6534.62 * 1.635) / 48.9827 },
     { code: 'GBP', name: 'İngiliz Sterlini', symbol: '£', flag: '🇬🇧', rateToTRY: 65.0475, rateToUSD: 65.0475 / 48.9827 },
     { code: 'CHF', name: 'İsviçre Frangı', symbol: '₣', flag: '🇨🇭', rateToTRY: 57.8500, rateToUSD: 57.8500 / 48.9827 },
     { code: 'CAD', name: 'Kanada Doları', symbol: 'C$', flag: '🇨🇦', rateToTRY: 34.9200, rateToUSD: 34.9200 / 48.9827 },
@@ -427,6 +429,9 @@ async function fetchDirectFreeCurrencyData(): Promise<MarketDataResponse | null>
     const currencies: CurrencyRate[] = [
       { code: 'USD', name: 'Amerikan Doları', symbol: '$', flag: '🇺🇸', rateToTRY: usdTry, rateToUSD: 1.0 },
       { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺', rateToTRY: eurTry, rateToUSD: eurTry / usdTry },
+      { code: 'TRY', name: 'Türk Lirası', symbol: '₺', flag: '🇹🇷', rateToTRY: 1.0, rateToUSD: 1 / usdTry },
+      { code: 'GLD', name: 'Gram Altın (24A)', symbol: 'g', flag: '🪙', rateToTRY: gramGoldTry, rateToUSD: gramGoldTry / usdTry },
+      { code: 'CEYREK', name: 'Çeyrek Altın', symbol: 'ç', flag: '🪙', rateToTRY: gramGoldTry * 1.635, rateToUSD: (gramGoldTry * 1.635) / usdTry },
       { code: 'GBP', name: 'İngiliz Sterlini', symbol: '£', flag: '🇬🇧', rateToTRY: gbpTry, rateToUSD: gbpTry / usdTry },
       { code: 'CHF', name: 'İsviçre Frangı', symbol: 'CHF', flag: '🇨🇭', rateToTRY: chfTry, rateToUSD: chfTry / usdTry },
       { code: 'CAD', name: 'Kanada Doları', symbol: 'C$', flag: '🇨🇦', rateToTRY: cadTry, rateToUSD: cadTry / usdTry },

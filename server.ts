@@ -550,11 +550,13 @@ async function fetchLiveMarketRatesServer(forceFresh = false): Promise<any> {
     }
   ];
 
-  // Currency list for calculator
+  // Currency list for calculator (including Gram Altın directly in currency dropdown)
   const currencies = [
     { code: 'USD', name: 'Amerikan Doları', symbol: '$', flag: '🇺🇸', rateToTRY: usdTry, rateToUSD: 1 },
     { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺', rateToTRY: eurTry, rateToUSD: eurTry / usdTry },
     { code: 'TRY', name: 'Türk Lirası', symbol: '₺', flag: '🇹🇷', rateToTRY: 1, rateToUSD: 1 / usdTry },
+    { code: 'GLD', name: 'Gram Altın (24A)', symbol: 'g', flag: '🪙', rateToTRY: gramGoldTry, rateToUSD: gramGoldTry / usdTry },
+    { code: 'CEYREK', name: 'Çeyrek Altın', symbol: 'ç', flag: '🪙', rateToTRY: gramGoldTry * 1.635, rateToUSD: (gramGoldTry * 1.635) / usdTry },
     { code: 'GBP', name: 'İngiliz Sterlini', symbol: '£', flag: '🇬🇧', rateToTRY: gbpTry, rateToUSD: gbpTry / usdTry },
     { code: 'CHF', name: 'İsviçre Frangı', symbol: '₣', flag: '🇨🇭', rateToTRY: currencyRates.CHF || 57.85, rateToUSD: (currencyRates.CHF || 57.85) / usdTry },
     { code: 'CAD', name: 'Kanada Doları', symbol: 'C$', flag: '🇨🇦', rateToTRY: currencyRates.CAD || 34.92, rateToUSD: (currencyRates.CAD || 34.92) / usdTry },

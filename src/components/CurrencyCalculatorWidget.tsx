@@ -78,11 +78,19 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
       const { assetId, code } = e.detail || {};
       if (!assetId && !code) return;
 
-      if (assetId === 'gram-altin' || assetId === 'ceyrek-altin' || assetId === 'gumus') {
+      if (assetId === 'gram-altin' || code === 'GLD') {
+        setActiveTab('forex');
+        setFromCurrency('GLD');
+        setToCurrency('TRY');
+        setFromAmount('1');
+      } else if (assetId === 'ceyrek-altin' || code === 'CEYREK') {
+        setActiveTab('forex');
+        setFromCurrency('CEYREK');
+        setToCurrency('TRY');
+        setFromAmount('1');
+      } else if (assetId === 'gumus') {
         setActiveTab('gold');
-        if (assetId === 'gumus') setSelectedGoldId('gumus-gram');
-        else if (assetId === 'ceyrek-altin') setSelectedGoldId('ceyrek-altin');
-        else setSelectedGoldId('gram-altin');
+        setSelectedGoldId('gumus-gram');
       } else if (assetId === 'bitcoin' || code === 'BTC') {
         setActiveTab('crypto');
         setSelectedCryptoSymbol('BTC');
@@ -117,11 +125,19 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
   // Set initial asset if passed via prop
   useEffect(() => {
     if (initialAssetId) {
-      if (initialAssetId === 'gram-altin' || initialAssetId === 'ceyrek-altin' || initialAssetId === 'gumus') {
+      if (initialAssetId === 'gram-altin' || initialAssetId === 'GLD') {
+        setActiveTab('forex');
+        setFromCurrency('GLD');
+        setToCurrency('TRY');
+        setFromAmount('1');
+      } else if (initialAssetId === 'ceyrek-altin' || initialAssetId === 'CEYREK') {
+        setActiveTab('forex');
+        setFromCurrency('CEYREK');
+        setToCurrency('TRY');
+        setFromAmount('1');
+      } else if (initialAssetId === 'gumus') {
         setActiveTab('gold');
-        if (initialAssetId === 'gumus') setSelectedGoldId('gumus-gram');
-        else if (initialAssetId === 'ceyrek-altin') setSelectedGoldId('ceyrek-altin');
-        else setSelectedGoldId('gram-altin');
+        setSelectedGoldId('gumus-gram');
       } else if (initialAssetId === 'bitcoin') {
         setActiveTab('crypto');
         setSelectedCryptoSymbol('BTC');
@@ -384,7 +400,7 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
                 >
                   {marketData.currencies.map(c => (
                     <option key={c.code} value={c.code} className="bg-[#12161a] text-white">
-                      {c.flag} {c.code}
+                      {c.flag} {c.code} - {c.name}
                     </option>
                   ))}
                 </select>
@@ -440,7 +456,7 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
                 >
                   {marketData.currencies.map(c => (
                     <option key={c.code} value={c.code} className="bg-[#12161a] text-white">
-                      {c.flag} {c.code}
+                      {c.flag} {c.code} - {c.name}
                     </option>
                   ))}
                 </select>
@@ -458,14 +474,19 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
               </span>
             </div>
             <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-              {[10, 50, 100, 500, 1000].map(amt => (
+              {(fromCurrency === 'GLD' 
+                ? [1, 2.5, 5, 10, 25] 
+                : fromCurrency === 'CEYREK' 
+                ? [1, 2, 4, 10, 20] 
+                : [10, 50, 100, 500, 1000]
+              ).map(amt => (
                 <button
                   key={amt}
                   type="button"
                   onClick={() => handlePresetClick(amt)}
                   className="py-1.5 px-1 rounded-xl bg-white/[0.05] hover:bg-emerald-500/20 text-zinc-300 hover:text-emerald-300 border border-white/10 font-mono text-xs font-bold transition-all text-center active:scale-95 cursor-pointer"
                 >
-                  {amt} {fromCurrency}
+                  {amt} {fromCurrency === 'GLD' ? 'Gr' : fromCurrency === 'CEYREK' ? 'Adet' : fromCurrency}
                 </button>
               ))}
             </div>
