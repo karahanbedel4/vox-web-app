@@ -56,7 +56,6 @@ import { PopularTrends } from './PopularTrends';
 import { NewsletterSection } from './NewsletterSection';
 import { MarketTickerBar } from './MarketTickerBar';
 import { CurrencyCalculatorModal } from './CurrencyCalculatorModal';
-import { EditorialContextCard } from './EditorialContextCard';
 import { appStorage, getCookie, setCookie } from '../lib/storage';
 import { incrementUserArticlesRead } from '../lib/firebase';
 
@@ -1850,9 +1849,6 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                             <span>Haberin detayları yükleniyor...</span>
                           </div>
                         )}
-
-                        {/* VOX EDİTÖRYAL ANALİZ & PERSPEKTİF (ADSENSE ÖZGÜN DEĞER KARTI) */}
-                        <EditorialContextCard article={readingArticle} />
 
                         {/* Clean original source link at bottom of article */}
                         {readingArticle.sourceUrl && (

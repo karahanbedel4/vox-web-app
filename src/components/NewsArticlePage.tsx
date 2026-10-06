@@ -44,7 +44,6 @@ import {
 import { NativeAdCard } from './NativeAdCard';
 import { VoxLogo } from './VoxLogo';
 import { ShareModal } from './ShareModal';
-import { EditorialContextCard } from './EditorialContextCard';
 import { INITIAL_ARTICLES } from '../data/defaultArticles';
 import { incrementUserArticlesRead } from '../lib/firebase';
 import { appStorage } from '../lib/storage';
@@ -698,9 +697,6 @@ export const NewsArticlePage: React.FC<NewsArticlePageProps> = ({
               })()}
             </div>
           </div>
-
-          {/* VOX EDİTÖRYAL ANALİZ & ARKA PLAN KARTI (ADSENSE ÖZGÜN DEĞER KATMANI) */}
-          <EditorialContextCard article={article} />
 
           {/* Subtle Clean Source Attribution */}
           <div className={`mt-8 pt-4 border-t flex items-center justify-between text-xs ${
