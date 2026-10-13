@@ -5215,7 +5215,7 @@ function getLocalizedMetaHtml(template: string, reqPath: string, queryLang?: str
 
     const allChannels = [
       { name: 'HT Spor', desc: 'Süper Lig, transfer gelişmeleri, maç önü analizleri ve spor bültenleri kesintisiz canlı yayında.', cat: 'Spor', url: 'https://www.youtube.com/watch?v=gcWaPe_LBMc' },
-      { name: 'A Spor', desc: 'A Spor kesintisiz canlı yayın akışı, maç özetleri, tartışma programları ve son dakika spor haberleri.', cat: 'Spor', url: 'https://www.youtube.com/watch?v=-zSaswVrQ_M' },
+      { name: 'A Spor', desc: 'A Spor kesintisiz canlı yayın akışı, maç özetleri, tartışma programları ve son dakika spor haberleri.', cat: 'Spor', url: 'https://www.youtube.com/watch?v=nol9os2B8zE' },
       { name: 'beIN SPORTS HABER', desc: 'beIN SPORTS HABER şifresiz HD canlı yayını, Trendyol Süper Lig, Avrupa ligleri ve spor analizleri.', cat: 'Spor', url: 'https://www.youtube.com/watch?v=i7UpPgxfZZ8' },
       { name: 'CNN TÜRK', desc: 'Son dakika Türkiye ve dünya haberleri, canlı analizler.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=6N8_r2uwLEc' },
       { name: 'Sözcü TV', desc: 'Bağımsız haber bültenleri, gündem programları ve canlı yayın.', cat: 'Gündem', url: 'https://www.youtube.com/watch?v=ztmY_cCtUl0' },

@@ -164,7 +164,7 @@ export const TV_DIRECTORY_CHANNELS: TvDirectoryChannel[] = [
     category: 'Spor',
     description: 'A Spor canlı izle: Kesintisiz canlı yayın akışı, maç özetleri, transfer haberleri ve tartışma programları.',
     highlight: '7/24 Canlı HD Yayın',
-    streamUrl: 'https://www.youtube.com/watch?v=-zSaswVrQ_M',
+    streamUrl: 'https://www.youtube.com/watch?v=nol9os2B8zE',
     keywords: ['a spor canli', 'aspor izle'],
     badge: 'Aktif Canlı Yayın'
   },
