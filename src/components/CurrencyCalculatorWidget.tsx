@@ -1,15 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ArrowUpDown, 
-  Coins, 
   RefreshCw, 
-  TrendingUp, 
-  ChevronRight, 
-  Sparkles, 
-  Check, 
   ChevronDown,
-  Info,
-  DollarSign
+  X as ClearIcon
 } from 'lucide-react';
 import { 
   fetchMarketData, 
@@ -38,10 +32,10 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
   const [marketData, setMarketData] = useState<MarketDataResponse>(DEFAULT_MARKET_DATA);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Forex Tab State
+  // Forex Tab State - Default 1 USD = TRY
   const [fromCurrency, setFromCurrency] = useState<string>('USD');
   const [toCurrency, setToCurrency] = useState<string>('TRY');
-  const [fromAmount, setFromAmount] = useState<string>('100');
+  const [fromAmount, setFromAmount] = useState<string>('1');
   const [toAmount, setToAmount] = useState<string>('');
   const [lastEdited, setLastEdited] = useState<'from' | 'to'>('from');
 
@@ -186,7 +180,7 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
     return fromRate / toRate;
   }, [fromCurrency, toCurrency, currencyMap]);
 
-  // Handle reciprocal updates when fromAmount or currencies change
+  // Reciprocal conversion logic
   useEffect(() => {
     if (lastEdited === 'from') {
       const parsed = parseFloat(fromAmount.replace(',', '.'));
@@ -194,7 +188,8 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
         setToAmount('');
       } else {
         const result = parsed * exchangeRate;
-        setToAmount(result.toFixed(2).replace('.', ','));
+        const decimals = result >= 1000 ? 2 : (result < 1 ? 4 : 2);
+        setToAmount(result.toFixed(decimals).replace('.', ','));
       }
     } else {
       const parsed = parseFloat(toAmount.replace(',', '.'));
@@ -202,7 +197,8 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
         setFromAmount('');
       } else {
         const result = exchangeRate > 0 ? parsed / exchangeRate : 0;
-        setFromAmount(result.toFixed(2).replace('.', ','));
+        const decimals = result >= 1000 ? 2 : (result < 1 ? 4 : 2);
+        setFromAmount(result.toFixed(decimals).replace('.', ','));
       }
     }
   }, [fromAmount, toAmount, exchangeRate, lastEdited]);
@@ -215,13 +211,13 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
     setLastEdited('from');
   };
 
-  // Quick preset amount buttons
+  // Quick preset amounts
   const handlePresetClick = (amount: number) => {
     setFromAmount(String(amount));
     setLastEdited('from');
   };
 
-  // Calculate Gold Conversion
+  // Gold calculation
   const goldCalculation = useMemo(() => {
     const activeGold = goldMap.get(selectedGoldId) || marketData.goldTypes[0];
     const qty = parseFloat(goldQuantity.replace(',', '.')) || 0;
@@ -230,7 +226,6 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
     if (goldTargetCurrency === 'USD') {
       const usdRate = currencyMap.get('USD')?.rateToTRY || 48.98;
       return {
-        amountTRY: priceInTRY,
         amountTarget: priceInTRY / usdRate,
         targetSymbol: '$',
         targetCode: 'USD',
@@ -239,7 +234,6 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
     } else if (goldTargetCurrency === 'EUR') {
       const eurRate = currencyMap.get('EUR')?.rateToTRY || 55.77;
       return {
-        amountTRY: priceInTRY,
         amountTarget: priceInTRY / eurRate,
         targetSymbol: '€',
         targetCode: 'EUR',
@@ -247,7 +241,6 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
       };
     } else {
       return {
-        amountTRY: priceInTRY,
         amountTarget: priceInTRY,
         targetSymbol: '₺',
         targetCode: 'TRY',
@@ -256,7 +249,7 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
     }
   }, [selectedGoldId, goldQuantity, goldTargetCurrency, goldMap, currencyMap, marketData.goldTypes]);
 
-  // Calculate Crypto Conversion
+  // Crypto calculation
   const cryptoCalculation = useMemo(() => {
     const activeCrypto = cryptoMap.get(selectedCryptoSymbol) || marketData.cryptoTypes[0];
     const qty = parseFloat(cryptoQuantity.replace(',', '.')) || 0;
@@ -289,310 +282,372 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
     }
   }, [selectedCryptoSymbol, cryptoQuantity, cryptoTargetCurrency, cryptoMap, currencyMap, marketData.cryptoTypes]);
 
+  // Helper for flag emojis
+  const getFlagEmoji = (code: string, fallbackFlag?: string) => {
+    if (fallbackFlag) return fallbackFlag;
+    switch (code) {
+      case 'USD': return '🇺🇸';
+      case 'EUR': return '🇪🇺';
+      case 'TRY': return '🇹🇷';
+      case 'GLD': return '🪙';
+      case 'CEYREK': return '🪙';
+      case 'GBP': return '🇬🇧';
+      case 'CHF': return '🇨🇭';
+      case 'CAD': return '🇨🇦';
+      case 'AUD': return '🇦🇺';
+      case 'JPY': return '🇯🇵';
+      case 'SAR': return '🇸🇦';
+      case 'AED': return '🇦🇪';
+      case 'KWD': return '🇰🇼';
+      default: return '🌐';
+    }
+  };
+
+  const getGoldShortCode = (id: string) => {
+    switch (id) {
+      case 'gram-altin': return 'GRAM';
+      case 'ceyrek-altin': return 'ÇEYREK';
+      case 'yarim-altin': return 'YARIM';
+      case 'tam-altin': return 'TAM';
+      case 'cumhuriyet-altini': return 'ATA';
+      case '22-ayar-bilezik': return 'BİLEZİK';
+      case 'ons-altin': return 'ONS';
+      case 'gram-gumus':
+      case 'gumus-gram': return 'GÜMÜŞ';
+      default: return 'ALTIN';
+    }
+  };
+
   return (
     <div 
       id="vox-currency-calculator-widget"
-      className={`w-full text-white ${className}`}
+      className={`w-full ${className}`}
     >
-      {/* OPTIONAL HEADER IF RENDERED EMBEDDED OUTSIDE MODAL */}
+      {/* HEADER: Minimal Header */}
       {!hideHeader && (
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10">
-          <div>
-            <h3 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
-              <span>Canlı Kur & Döviz Çevirici</span>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                CANLI
-              </span>
-            </h3>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              TCMB ve serbest piyasa kurlarıyla anında hesaplama
-            </p>
-          </div>
-
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-200 dark:border-white/10">
+          <h3 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+            Döviz Çevirici
+          </h3>
           <button
             type="button"
             onClick={() => loadMarket(true)}
             disabled={isLoading}
-            className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer p-1.5 rounded-xl hover:bg-white/5"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             title="Kurları Yenile"
+            aria-label="Kurları Yenile"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Yenile</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-500' : ''}`} />
           </button>
         </div>
       )}
 
-      {/* SEGMENTED TAB BUTTONS: DÖVİZ | ALTIN | KRİPTO (High Contrast Pill Switcher) */}
-      <div className="grid grid-cols-3 gap-1.5 p-1 bg-white/[0.04] border border-white/10 rounded-2xl mb-4">
+      {/* SEGMENTED TAB BUTTONS: [ Döviz ]  [ Altın ]  [ Kripto ] */}
+      <div className="flex items-center gap-1.5 mb-3.5 overflow-x-auto scrollbar-none pb-0.5">
         <button
           type="button"
           onClick={() => setActiveTab('forex')}
-          className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer text-center ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === 'forex'
-              ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/25'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+              ? 'bg-emerald-500 text-black shadow-xs font-bold'
+              : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white border border-zinc-200/60 dark:border-white/10'
           }`}
         >
-          💱 Döviz
+          Döviz
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('gold')}
-          className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer text-center ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === 'gold'
-              ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/25'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+              ? 'bg-amber-400 text-black shadow-xs font-bold'
+              : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white border border-zinc-200/60 dark:border-white/10'
           }`}
         >
-          🪙 Altın
+          Altın
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('crypto')}
-          className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer text-center ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === 'crypto'
-              ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+              ? 'bg-purple-500 text-white shadow-xs font-bold'
+              : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white border border-zinc-200/60 dark:border-white/10'
           }`}
         >
-          ₿ Kripto
+          Kripto
         </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: DÖVİZ ÇEVİRİCİ */}
+      {/* TAB 1: DÖVİZ (Lean & Clean: Flag + USD ▾ ... Number input)                */}
       {/* ========================================================================= */}
       {activeTab === 'forex' && (
-        <div className="space-y-2.5">
-          {/* FROM CARD */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 sm:p-4 hover:border-emerald-500/40 focus-within:border-emerald-500 transition-all">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-1.5">
-              <span>Çevrilen Tutar</span>
-              <span>Para Birimi</span>
-            </div>
+        <div className="space-y-3">
+          {/* MAIN CARD */}
+          <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-[#151a21] p-3.5 sm:p-4 shadow-sm space-y-3">
+            
+            {/* ROW 1: FROM CURRENCY */}
+            <div className="flex items-center justify-between gap-2.5 sm:gap-3">
+              {/* Left Selector Pill: Flag + Code (NO long currency names) + Chevron */}
+              <div className="relative shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-white/10 hover:bg-zinc-100 dark:hover:bg-white/15 border border-zinc-200 dark:border-white/10 cursor-pointer transition-all active:scale-95 shadow-xs">
+                <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden flex items-center justify-center text-sm sm:text-base shrink-0">
+                  {getFlagEmoji(fromCurrency, currencyMap.get(fromCurrency)?.flag)}
+                </span>
+                <span className="font-bold text-sm sm:text-base tracking-wide text-slate-900 dark:text-white">
+                  {fromCurrency}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
 
-            <div className="flex items-center justify-between gap-3">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={fromAmount}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^0-9.,]/g, '');
-                  setFromAmount(val);
-                  setLastEdited('from');
-                }}
-                placeholder="0"
-                className="w-full font-mono font-black text-2xl sm:text-3xl text-white placeholder-zinc-600 bg-transparent outline-none"
-                aria-label="Kaynak Miktar"
-              />
-
-              <div className="relative shrink-0">
+                {/* Accessible native select overlay - ONLY CODE & FLAG, NO LONG NAMES */}
                 <select
                   value={fromCurrency}
                   onChange={(e) => {
                     setFromCurrency(e.target.value);
                     setLastEdited('from');
                   }}
-                  className="appearance-none pl-3 pr-8 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 font-bold text-sm text-white cursor-pointer focus:outline-none"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   aria-label="Kaynak Para Birimi"
                 >
                   {marketData.currencies.map(c => (
-                    <option key={c.code} value={c.code} className="bg-[#12161a] text-white">
-                      {c.flag} {c.code} - {c.name}
+                    <option key={c.code} value={c.code} className="bg-slate-900 text-white">
+                      {c.flag || getFlagEmoji(c.code)} {c.code}
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+
+              {/* Right Input Box (Clean, easy to tap on mobile, fully selectable) */}
+              <div className="flex-1 min-w-0 flex items-center bg-white dark:bg-black/30 rounded-xl border border-zinc-200 dark:border-white/10 px-3 py-1.5 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={fromAmount}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.,]/g, '');
+                    setFromAmount(val);
+                    setLastEdited('from');
+                  }}
+                  placeholder="0"
+                  className="w-full text-right font-mono font-semibold text-base sm:text-lg text-slate-900 dark:text-white placeholder-zinc-400 bg-transparent outline-none cursor-text select-text"
+                  aria-label="Kaynak Tutar"
+                />
+                {fromAmount && fromAmount !== '0' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFromAmount('');
+                      setLastEdited('from');
+                    }}
+                    className="ml-1.5 p-0.5 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
+                    title="Temizle"
+                  >
+                    <ClearIcon className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* SWAP BUTTON */}
-          <div className="flex justify-center -my-2 relative z-10">
-            <button
-              type="button"
-              onClick={handleSwapForex}
-              className="w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-90 text-black shadow-lg shadow-emerald-500/30 flex items-center justify-center transition-all cursor-pointer border border-emerald-300"
-              title="Para Birimlerini Değiştir"
-              aria-label="Para Birimlerini Değiştir"
-            >
-              <ArrowUpDown className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* TO CARD */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 sm:p-4 hover:border-emerald-500/40 focus-within:border-emerald-500 transition-all">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-1.5">
-              <span>Hesaplanan Değer</span>
-              <span>Hedef Birim</span>
+            {/* MINIMAL SWAP BUTTON ROW */}
+            <div className="relative flex items-center justify-center py-0.5">
+              <div className="w-full border-t border-zinc-200/60 dark:border-white/10" />
+              <button
+                type="button"
+                onClick={handleSwapForex}
+                className="absolute w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white dark:bg-[#1a222c] hover:bg-emerald-500 hover:text-black dark:hover:bg-emerald-400 dark:hover:text-black text-zinc-500 dark:text-zinc-300 border border-zinc-200 dark:border-white/15 flex items-center justify-center transition-all cursor-pointer active:scale-90 shadow-xs"
+                title="Para Birimlerini Değiştir"
+                aria-label="Para Birimlerini Değiştir"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+              </button>
             </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={toAmount}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^0-9.,]/g, '');
-                  setToAmount(val);
-                  setLastEdited('to');
-                }}
-                placeholder="0,00"
-                className="w-full font-mono font-black text-2xl sm:text-3xl text-emerald-400 placeholder-emerald-800 bg-transparent outline-none"
-                aria-label="Hesaplanan Tutar"
-              />
+            {/* ROW 2: TO CURRENCY */}
+            <div className="flex items-center justify-between gap-2.5 sm:gap-3">
+              {/* Left Selector Pill */}
+              <div className="relative shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-white/10 hover:bg-zinc-100 dark:hover:bg-white/15 border border-zinc-200 dark:border-white/10 cursor-pointer transition-all active:scale-95 shadow-xs">
+                <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden flex items-center justify-center text-sm sm:text-base shrink-0">
+                  {getFlagEmoji(toCurrency, currencyMap.get(toCurrency)?.flag)}
+                </span>
+                <span className="font-bold text-sm sm:text-base tracking-wide text-slate-900 dark:text-white">
+                  {toCurrency}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
 
-              <div className="relative shrink-0">
+                {/* Accessible native select overlay - ONLY CODE & FLAG, NO LONG NAMES */}
                 <select
                   value={toCurrency}
                   onChange={(e) => {
                     setToCurrency(e.target.value);
                     setLastEdited('from');
                   }}
-                  className="appearance-none pl-3 pr-8 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 font-bold text-sm text-white cursor-pointer focus:outline-none"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   aria-label="Hedef Para Birimi"
                 >
                   {marketData.currencies.map(c => (
-                    <option key={c.code} value={c.code} className="bg-[#12161a] text-white">
-                      {c.flag} {c.code} - {c.name}
+                    <option key={c.code} value={c.code} className="bg-slate-900 text-white">
+                      {c.flag || getFlagEmoji(c.code)} {c.code}
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+
+              {/* Right Input Box (Clean, easy to tap on mobile, fully selectable) */}
+              <div className="flex-1 min-w-0 flex items-center bg-white dark:bg-black/30 rounded-xl border border-zinc-200 dark:border-white/10 px-3 py-1.5 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={toAmount}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.,]/g, '');
+                    setToAmount(val);
+                    setLastEdited('to');
+                  }}
+                  placeholder="0,00"
+                  className="w-full text-right font-mono font-semibold text-base sm:text-lg text-slate-900 dark:text-white placeholder-zinc-400 bg-transparent outline-none cursor-text select-text"
+                  aria-label="Hedef Tutar"
+                />
               </div>
             </div>
+
           </div>
 
-          {/* QUICK PRESETS (Wrapped cleanly, NO ugly horizontal scrollbar) */}
-          <div className="pt-2">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-2">
-              <span>Hızlı Tutarlar:</span>
-              <span className="text-[11px] text-zinc-400 font-mono">
-                {currencyMap.get(fromCurrency)?.name}
-              </span>
-            </div>
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-              {(fromCurrency === 'GLD' 
-                ? [1, 2.5, 5, 10, 25] 
-                : fromCurrency === 'CEYREK' 
-                ? [1, 2, 4, 10, 20] 
-                : [10, 50, 100, 500, 1000]
-              ).map(amt => (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => handlePresetClick(amt)}
-                  className="py-1.5 px-1 rounded-xl bg-white/[0.05] hover:bg-emerald-500/20 text-zinc-300 hover:text-emerald-300 border border-white/10 font-mono text-xs font-bold transition-all text-center active:scale-95 cursor-pointer"
-                >
-                  {amt} {fromCurrency === 'GLD' ? 'Gr' : fromCurrency === 'CEYREK' ? 'Adet' : fromCurrency}
-                </button>
-              ))}
-            </div>
+          {/* QUICK PRESETS ROW */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+            <span className="text-[11px] font-medium text-zinc-400 shrink-0 mr-0.5">Hızlı:</span>
+            {(fromCurrency === 'GLD' 
+              ? [1, 2.5, 5, 10, 25] 
+              : fromCurrency === 'CEYREK' 
+              ? [1, 2, 4, 10, 20] 
+              : [10, 50, 100, 500, 1000]
+            ).map(amt => (
+              <button
+                key={amt}
+                type="button"
+                onClick={() => handlePresetClick(amt)}
+                className="py-1 px-2.5 rounded-lg bg-white dark:bg-white/5 hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-white/10 font-mono text-xs font-semibold transition-all active:scale-95 cursor-pointer whitespace-nowrap shadow-xs"
+              >
+                {amt} {fromCurrency === 'GLD' ? 'Gr' : fromCurrency === 'CEYREK' ? 'Adet' : fromCurrency}
+              </button>
+            ))}
           </div>
 
           {/* FOOTER RATE BANNER */}
-          <div className="mt-3 p-3 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-zinc-300 font-mono">
-                1 {fromCurrency} = <strong className="text-white font-black">{exchangeRate.toFixed(4).replace('.', ',')} {toCurrency}</strong>
+          <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-zinc-200/60 dark:border-white/5 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-zinc-500 dark:text-zinc-400 font-mono text-[11px]">
+                1 {fromCurrency} = <strong className="text-slate-900 dark:text-white font-semibold">{exchangeRate.toFixed(4).replace('.', ',')} {toCurrency}</strong>
               </span>
             </div>
-            <span className="text-[11px] text-zinc-400 font-medium">
-              TCMB & Serbest Piyasa
+            <span className="text-[10px] text-zinc-400 font-medium">
+              TCMB Serbest Piyasa
             </span>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: ALTIN ÇEVİRİCİ */}
+      {/* TAB 2: ALTIN ÇEVİRİCİ (Matching Clean 2-Row Layout)                       */}
       {/* ========================================================================= */}
       {activeTab === 'gold' && (
         <div className="space-y-3">
-          {/* GOLD SELECTION */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 sm:p-4 hover:border-amber-400/40 focus-within:border-amber-400 transition-all">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-1.5">
-              <span>Altın Türü</span>
-              <span>Miktar ({goldMap.get(selectedGoldId)?.unit.split(' ')[0] || 'Adet'})</span>
-            </div>
+          <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-[#151a21] p-3.5 sm:p-4 shadow-sm space-y-3">
+            
+            {/* ROW 1: GOLD ASSET & QUANTITY */}
+            <div className="flex items-center justify-between gap-2.5 sm:gap-3">
+              <div className="relative shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-white/10 hover:bg-zinc-100 dark:hover:bg-white/15 border border-zinc-200 dark:border-white/10 cursor-pointer transition-all active:scale-95 shadow-xs">
+                <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-400/20 text-amber-500 flex items-center justify-center text-sm shrink-0">
+                  🪙
+                </span>
+                <span className="font-bold text-sm sm:text-base tracking-wide text-slate-900 dark:text-white">
+                  {getGoldShortCode(selectedGoldId)}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
 
-            <div className="flex items-center justify-between gap-3">
-              <div className="relative w-full">
                 <select
                   value={selectedGoldId}
                   onChange={(e) => setSelectedGoldId(e.target.value)}
-                  className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 font-bold text-sm text-white cursor-pointer focus:outline-none"
-                  aria-label="Altın Türü"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  aria-label="Altın Türü Seç"
                 >
                   {marketData.goldTypes.map(g => (
-                    <option key={g.id} value={g.id} className="bg-[#12161a] text-white">
-                      {g.name} ({formatFinancialNumber(g.rateToTRY, 2, '', ' ₺')})
+                    <option key={g.id} value={g.id} className="bg-slate-900 text-white">
+                      🪙 {getGoldShortCode(g.id)}
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
 
-              <input
-                type="text"
-                inputMode="decimal"
-                value={goldQuantity}
-                onChange={(e) => setGoldQuantity(e.target.value.replace(/[^0-9.,]/g, ''))}
-                placeholder="1"
-                className="w-24 sm:w-32 text-right font-mono font-black text-2xl sm:text-3xl text-white placeholder-zinc-600 bg-transparent outline-none"
-                aria-label="Altın Miktarı"
-              />
-            </div>
-          </div>
-
-          {/* TARGET CURRENCY & VALUE */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 sm:p-4 hover:border-amber-400/40 focus-within:border-amber-400 transition-all">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-1.5">
-              <span>Hesaplanan Toplam Tutar</span>
-              <span>Hedef Para Birimi</span>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <div className="font-mono font-black text-2xl sm:text-3xl text-amber-400">
-                {formatFinancialNumber(goldCalculation.amountTarget, 2, '', ` ${goldCalculation.targetSymbol}`)}
+              <div className="flex-1 min-w-0 flex items-center bg-white dark:bg-black/30 rounded-xl border border-zinc-200 dark:border-white/10 px-3 py-1.5 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={goldQuantity}
+                  onChange={(e) => setGoldQuantity(e.target.value.replace(/[^0-9.,]/g, ''))}
+                  placeholder="1"
+                  className="w-full text-right font-mono font-semibold text-base sm:text-lg text-slate-900 dark:text-white placeholder-zinc-400 bg-transparent outline-none cursor-text select-text"
+                  aria-label="Altın Miktarı"
+                />
               </div>
+            </div>
 
-              <div className="relative shrink-0">
+            {/* DIVIDER */}
+            <div className="w-full border-t border-zinc-200/60 dark:border-white/10" />
+
+            {/* ROW 2: TARGET CURRENCY & VALUE */}
+            <div className="flex items-center justify-between gap-2.5 sm:gap-3">
+              <div className="relative shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-white/10 hover:bg-zinc-100 dark:hover:bg-white/15 border border-zinc-200 dark:border-white/10 cursor-pointer transition-all active:scale-95 shadow-xs">
+                <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden flex items-center justify-center text-sm sm:text-base shrink-0">
+                  {getFlagEmoji(goldTargetCurrency)}
+                </span>
+                <span className="font-bold text-sm sm:text-base tracking-wide text-slate-900 dark:text-white">
+                  {goldTargetCurrency}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+
                 <select
                   value={goldTargetCurrency}
                   onChange={(e) => setGoldTargetCurrency(e.target.value)}
-                  className="appearance-none pl-3 pr-8 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 font-bold text-sm text-white cursor-pointer focus:outline-none"
-                  aria-label="Hesaplanacak Para Birimi"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  aria-label="Hedef Para Birimi"
                 >
-                  <option value="TRY" className="bg-[#12161a] text-white">🇹🇷 TRY (₺)</option>
-                  <option value="USD" className="bg-[#12161a] text-white">🇺🇸 USD ($)</option>
-                  <option value="EUR" className="bg-[#12161a] text-white">🇪🇺 EUR (€)</option>
+                  <option value="TRY" className="bg-slate-900 text-white">🇹🇷 TRY</option>
+                  <option value="USD" className="bg-slate-900 text-white">🇺🇸 USD</option>
+                  <option value="EUR" className="bg-slate-900 text-white">🇪🇺 EUR</option>
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+
+              <div className="flex-1 min-w-0 flex items-center justify-end bg-white dark:bg-black/30 rounded-xl border border-zinc-200 dark:border-white/10 px-3 py-1.5">
+                <span className="font-mono font-bold text-base sm:text-lg text-slate-900 dark:text-white select-text">
+                  {formatFinancialNumber(goldCalculation.amountTarget, 2, '', ` ${goldCalculation.targetSymbol}`)}
+                </span>
               </div>
             </div>
+
           </div>
 
           {/* QUICK SHORTCUT BUTTONS */}
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-2 pt-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
             {[
               { id: 'gram-altin', label: 'Gram' },
               { id: 'ceyrek-altin', label: 'Çeyrek' },
               { id: 'yarim-altin', label: 'Yarım' },
               { id: 'tam-altin', label: 'Tam' },
+              { id: 'cumhuriyet-altini', label: 'Ata' },
+              { id: 'ons-altin', label: 'Ons' },
               { id: 'gumus-gram', label: 'Gümüş' }
             ].map(g => (
               <button
                 key={g.id}
                 type="button"
                 onClick={() => setSelectedGoldId(g.id)}
-                className={`py-1.5 px-1 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer active:scale-95 ${
+                className={`py-1 px-2.5 rounded-lg text-xs font-semibold border transition-all text-center cursor-pointer active:scale-95 whitespace-nowrap ${
                   selectedGoldId === g.id
-                    ? 'bg-amber-400 text-black border-amber-300 shadow-md font-extrabold'
-                    : 'bg-white/[0.05] hover:bg-white/10 text-zinc-300 border-white/10'
+                    ? 'bg-amber-400 text-black border-transparent shadow-xs font-bold'
+                    : 'bg-white dark:bg-white/5 hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-white/10'
                 }`}
               >
                 {g.label}
@@ -601,14 +656,14 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
           </div>
 
           {/* FOOTER RATE BANNER */}
-          <div className="mt-2 p-3 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-              <span className="text-zinc-300">
-                Birim: <strong className="text-white font-mono font-bold">{formatFinancialNumber(goldCalculation.unitPriceTRY, 2, '', ' ₺')}</strong>
+          <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-zinc-200/60 dark:border-white/5 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">
+                Birim Fiyat: <strong className="text-slate-900 dark:text-white font-mono font-semibold">{formatFinancialNumber(goldCalculation.unitPriceTRY, 2, '', ' ₺')}</strong>
               </span>
             </div>
-            <span className="text-[11px] text-zinc-400">
+            <span className="text-[10px] text-zinc-400">
               Kapalıçarşı Canlı
             </span>
           </div>
@@ -616,90 +671,101 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: KRİPTO PARA ÇEVİRİCİ */}
+      {/* TAB 3: KRİPTO PARA (Matching Clean 2-Row Layout)                          */}
       {/* ========================================================================= */}
       {activeTab === 'crypto' && (
         <div className="space-y-3">
-          {/* CRYPTO SELECTION */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 sm:p-4 hover:border-purple-400/40 focus-within:border-purple-400 transition-all">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-1.5">
-              <span>Kripto Varlık</span>
-              <span>Miktar</span>
-            </div>
+          <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-[#151a21] p-3.5 sm:p-4 shadow-sm space-y-3">
+            
+            {/* ROW 1: CRYPTO SELECTOR & QUANTITY */}
+            <div className="flex items-center justify-between gap-2.5 sm:gap-3">
+              <div className="relative shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-white/10 hover:bg-zinc-100 dark:hover:bg-white/15 border border-zinc-200 dark:border-white/10 cursor-pointer transition-all active:scale-95 shadow-xs">
+                <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-300 flex items-center justify-center text-xs sm:text-sm shrink-0 font-bold">
+                  {selectedCryptoSymbol === 'BTC' ? '₿' : selectedCryptoSymbol === 'ETH' ? 'Ξ' : '◎'}
+                </span>
+                <span className="font-bold text-sm sm:text-base tracking-wide text-slate-900 dark:text-white">
+                  {selectedCryptoSymbol}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
 
-            <div className="flex items-center justify-between gap-3">
-              <div className="relative w-full">
                 <select
                   value={selectedCryptoSymbol}
                   onChange={(e) => setSelectedCryptoSymbol(e.target.value)}
-                  className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 font-bold text-sm text-white cursor-pointer focus:outline-none"
-                  aria-label="Kripto Varlık"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  aria-label="Kripto Varlık Seç"
                 >
                   {marketData.cryptoTypes.map(c => (
-                    <option key={c.symbol} value={c.symbol} className="bg-[#12161a] text-white">
-                      {c.symbol} - {c.name}
+                    <option key={c.symbol} value={c.symbol} className="bg-slate-900 text-white">
+                      {c.symbol}
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
 
-              <input
-                type="text"
-                inputMode="decimal"
-                value={cryptoQuantity}
-                onChange={(e) => setCryptoQuantity(e.target.value.replace(/[^0-9.,]/g, ''))}
-                placeholder="1"
-                className="w-24 sm:w-32 text-right font-mono font-black text-2xl sm:text-3xl text-white placeholder-zinc-600 bg-transparent outline-none"
-                aria-label="Kripto Miktarı"
-              />
-            </div>
-          </div>
-
-          {/* TARGET CURRENCY & VALUE */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 sm:p-4 hover:border-purple-400/40 focus-within:border-purple-400 transition-all">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-1.5">
-              <span>Hesaplanan Değer</span>
-              <span>Karşılık Birim</span>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <div className="font-mono font-black text-2xl sm:text-3xl text-purple-400">
-                {formatFinancialNumber(
-                  cryptoCalculation.amount, 
-                  cryptoCalculation.code === 'TRY' ? 2 : 2, 
-                  cryptoCalculation.symbol === '$' ? '$' : '', 
-                  cryptoCalculation.symbol !== '$' ? ` ${cryptoCalculation.symbol}` : ''
-                )}
+              <div className="flex-1 min-w-0 flex items-center bg-white dark:bg-black/30 rounded-xl border border-zinc-200 dark:border-white/10 px-3 py-1.5 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={cryptoQuantity}
+                  onChange={(e) => setCryptoQuantity(e.target.value.replace(/[^0-9.,]/g, ''))}
+                  placeholder="1"
+                  className="w-full text-right font-mono font-semibold text-base sm:text-lg text-slate-900 dark:text-white placeholder-zinc-400 bg-transparent outline-none cursor-text select-text"
+                  aria-label="Kripto Miktarı"
+                />
               </div>
+            </div>
 
-              <div className="relative shrink-0">
+            {/* DIVIDER */}
+            <div className="w-full border-t border-zinc-200/60 dark:border-white/10" />
+
+            {/* ROW 2: TARGET CURRENCY & VALUE */}
+            <div className="flex items-center justify-between gap-2.5 sm:gap-3">
+              <div className="relative shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-white/10 hover:bg-zinc-100 dark:hover:bg-white/15 border border-zinc-200 dark:border-white/10 cursor-pointer transition-all active:scale-95 shadow-xs">
+                <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden flex items-center justify-center text-sm sm:text-base shrink-0">
+                  {getFlagEmoji(cryptoTargetCurrency)}
+                </span>
+                <span className="font-bold text-sm sm:text-base tracking-wide text-slate-900 dark:text-white">
+                  {cryptoTargetCurrency}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+
                 <select
                   value={cryptoTargetCurrency}
                   onChange={(e) => setCryptoTargetCurrency(e.target.value)}
-                  className="appearance-none pl-3 pr-8 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 font-bold text-sm text-white cursor-pointer focus:outline-none"
-                  aria-label="Kripto Karşılığı Para Birimi"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  aria-label="Hedef Para Birimi"
                 >
-                  <option value="USD" className="bg-[#12161a] text-white">🇺🇸 USD ($)</option>
-                  <option value="TRY" className="bg-[#12161a] text-white">🇹🇷 TRY (₺)</option>
-                  <option value="EUR" className="bg-[#12161a] text-white">🇪🇺 EUR (€)</option>
+                  <option value="USD" className="bg-slate-900 text-white">🇺🇸 USD</option>
+                  <option value="TRY" className="bg-slate-900 text-white">🇹🇷 TRY</option>
+                  <option value="EUR" className="bg-slate-900 text-white">🇪🇺 EUR</option>
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+
+              <div className="flex-1 min-w-0 flex items-center justify-end bg-white dark:bg-black/30 rounded-xl border border-zinc-200 dark:border-white/10 px-3 py-1.5">
+                <span className="font-mono font-bold text-base sm:text-lg text-slate-900 dark:text-white select-text">
+                  {formatFinancialNumber(
+                    cryptoCalculation.amount, 
+                    2, 
+                    cryptoCalculation.symbol === '$' ? '$' : '', 
+                    cryptoCalculation.symbol !== '$' ? ` ${cryptoCalculation.symbol}` : ''
+                  )}
+                </span>
               </div>
             </div>
+
           </div>
 
           {/* QUICK SHORTCUT BUTTONS */}
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-2 pt-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
             {['BTC', 'ETH', 'SOL', 'USDT', 'XRP'].map(sym => (
               <button
                 key={sym}
                 type="button"
                 onClick={() => setSelectedCryptoSymbol(sym)}
-                className={`py-1.5 px-1 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer active:scale-95 ${
+                className={`py-1 px-2.5 rounded-lg text-xs font-semibold border transition-all text-center cursor-pointer active:scale-95 whitespace-nowrap ${
                   selectedCryptoSymbol === sym
-                    ? 'bg-purple-500 text-white border-purple-400 shadow-md font-extrabold'
-                    : 'bg-white/[0.05] hover:bg-white/10 text-zinc-300 border-white/10'
+                    ? 'bg-purple-500 text-white border-transparent shadow-xs font-bold'
+                    : 'bg-white dark:bg-white/5 hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-white/10'
                 }`}
               >
                 {sym}
@@ -708,14 +774,14 @@ export const CurrencyCalculatorWidget: React.FC<CurrencyCalculatorWidgetProps> =
           </div>
 
           {/* FOOTER RATE BANNER */}
-          <div className="mt-2 p-3 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-400" />
-              <span className="text-zinc-300">
-                1 {selectedCryptoSymbol} = <strong className="text-white font-mono font-bold">{formatFinancialNumber(cryptoCalculation.unitPrice, 2, cryptoTargetCurrency === 'USD' ? '$' : '', cryptoTargetCurrency !== 'USD' ? ` ${cryptoCalculation.symbol}` : '')}</strong>
+          <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-zinc-200/60 dark:border-white/5 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+              <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">
+                1 {selectedCryptoSymbol} = <strong className="text-slate-900 dark:text-white font-mono font-semibold">{formatFinancialNumber(cryptoCalculation.unitPrice, 2, cryptoTargetCurrency === 'USD' ? '$' : '', cryptoTargetCurrency !== 'USD' ? ` ${cryptoCalculation.symbol}` : '')}</strong>
               </span>
             </div>
-            <span className="text-[11px] text-zinc-400">
+            <span className="text-[10px] text-zinc-400">
               Binance Canlı
             </span>
           </div>

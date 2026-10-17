@@ -45,7 +45,7 @@ export const CurrencyCalculatorModal: React.FC<CurrencyCalculatorModalProps> = (
             </div>
             <div>
               <h3 className="font-black text-base sm:text-lg tracking-tight text-white leading-tight">
-                Canlı Kur & Çevirici
+                Döviz Çevirici
               </h3>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="relative flex h-2 w-2">
