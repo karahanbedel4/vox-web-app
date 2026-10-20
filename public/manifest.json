@@ -6,7 +6,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "theme_color": "#0e1217",
   "background_color": "#0e1217",
   "icons": [
@@ -35,5 +35,5 @@
       "purpose": "any"
     }
   ],
-  "categories": ["news", "magazines", "productivity"]
+  "categories": ["news", "tv", "entertainment", "magazines", "productivity"]
 }

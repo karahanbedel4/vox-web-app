@@ -16,7 +16,8 @@ import {
   Layers,
   Check,
   Compass,
-  Bell
+  Bell,
+  Tv
 } from 'lucide-react';
 import { appStorage } from '../lib/storage';
 import { triggerHapticImpact } from '../lib/haptics';
@@ -26,7 +27,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
-type DevicePlatform = 'android' | 'ios' | 'desktop';
+type DevicePlatform = 'android' | 'ios' | 'desktop' | 'tv';
 
 export const InstallPwaModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -49,14 +50,16 @@ export const InstallPwaModal: React.FC = () => {
       return; // Already running as native PWA, no prompt needed
     }
 
-    // 2. Intelligent Device and Browser Detection
+    // 2. Intelligent Device, Browser and Smart TV Detection
     const ua = navigator.userAgent || '';
-    const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isAndroid = /Android/i.test(ua);
-    const isDesktop = !isIos && !isAndroid && !/Mobile|Tablet/i.test(ua);
+    const isTV = /Android.*TV|SmartTV|GoogleTV|HbbTV|Tizen|webOS|AppleTV|BRAVIA|PlayStation|Xbox|NetCast|POV_TV|viera/i.test(ua);
+    const isIos = !isTV && (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+    const isAndroid = !isTV && /Android/i.test(ua);
+    const isDesktop = !isTV && !isIos && !isAndroid && !/Mobile|Tablet/i.test(ua);
 
     let platform: DevicePlatform = 'android';
-    if (isIos) platform = 'ios';
+    if (isTV) platform = 'tv';
+    else if (isIos) platform = 'ios';
     else if (isDesktop) platform = 'desktop';
     else platform = 'android';
 
@@ -203,7 +206,7 @@ export const InstallPwaModal: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400">
-                VOX Mobil Uygulama
+                VOX Mobil &amp; TV Uygulaması
               </span>
               <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 PWA • Ücretsiz
@@ -213,6 +216,7 @@ export const InstallPwaModal: React.FC = () => {
               {activeTab === 'ios' && "iPhone & iPad'inize Ekleyin"}
               {activeTab === 'android' && "Android Cihazınıza Yükleyin"}
               {activeTab === 'desktop' && "Masaüstü Bilgisayarınıza Kurun"}
+              {activeTab === 'tv' && "Smart TV & Android TV'nize Kurun"}
             </h3>
           </div>
         </div>
@@ -223,11 +227,11 @@ export const InstallPwaModal: React.FC = () => {
             <span>Cihazınıza Özel Kurulum Rehberi:</span>
             <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {detectedPlatform === 'ios' ? 'iPhone algılandı' : detectedPlatform === 'android' ? 'Android algılandı' : 'Bilgisayar algılandı'}
+              {detectedPlatform === 'ios' ? 'iPhone algılandı' : detectedPlatform === 'android' ? 'Android algılandı' : detectedPlatform === 'tv' ? 'Akıllı TV algılandı' : 'Bilgisayar algılandı'}
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-1.5 p-1 bg-white/[0.04] border border-white/10 rounded-2xl">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-white/[0.04] border border-white/10 rounded-2xl">
             <button
               type="button"
               onClick={() => setActiveTab('android')}
@@ -254,7 +258,7 @@ export const InstallPwaModal: React.FC = () => {
               }`}
             >
               <Smartphone className="w-3.5 h-3.5" />
-              <span>iPhone (iOS)</span>
+              <span>iPhone</span>
               {detectedPlatform === 'ios' && (
                 <span className="w-1.5 h-1.5 rounded-full bg-black ml-0.5" title="Mevcut cihazınız" />
               )}
@@ -272,6 +276,22 @@ export const InstallPwaModal: React.FC = () => {
               <Monitor className="w-3.5 h-3.5" />
               <span>Masaüstü</span>
               {detectedPlatform === 'desktop' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-black ml-0.5" title="Mevcut cihazınız" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('tv')}
+              className={`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'tv'
+                  ? 'bg-emerald-500 text-black shadow-md font-black'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Tv className="w-3.5 h-3.5" />
+              <span>Smart TV</span>
+              {detectedPlatform === 'tv' && (
                 <span className="w-1.5 h-1.5 rounded-full bg-black ml-0.5" title="Mevcut cihazınız" />
               )}
             </button>
@@ -525,6 +545,109 @@ export const InstallPwaModal: React.FC = () => {
               >
                 <Download className={`w-4 h-4 ${isInstalling ? 'animate-bounce' : ''}`} />
                 <span>{isInstalling ? 'Yükleniyor...' : 'Bilgisayara Yükle'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================= */}
+        {/* TAB 4: AKILLI TELEVİZYON (ANDROID TV, GOOGLE TV, SAMSUNG, LG) */}
+        {/* ============================================================= */}
+        {activeTab === 'tv' && (
+          <div className="space-y-3.5">
+            {/* TV Screen Mockup */}
+            <div className="bg-black/50 border border-white/10 rounded-2xl p-3 relative overflow-hidden">
+              <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400 mb-2 flex items-center justify-between">
+                <span>Android TV / Google TV / Smart TV</span>
+                <span className="text-zinc-500 font-mono">Büyük Ekran TV Deneyimi</span>
+              </div>
+
+              {/* TV Interface Graphic */}
+              <div className="bg-[#0b0e13] rounded-xl p-3 border border-emerald-500/20 relative">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="font-bold text-white">VOX TV</span>
+                    <span className="text-[10px] text-zinc-400">Canlı Yayınlar &amp; Sesli Özetler</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                    16:9 Full HD
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-white/[0.04] p-2 rounded-lg border border-white/5 text-center">
+                    <span className="text-base block mb-0.5">📺</span>
+                    <span className="text-[10px] font-bold text-zinc-200">20+ Canlı TV</span>
+                  </div>
+                  <div className="bg-white/[0.04] p-2 rounded-lg border border-white/5 text-center">
+                    <span className="text-base block mb-0.5">🎙️</span>
+                    <span className="text-[10px] font-bold text-zinc-200">Sesli Özet</span>
+                  </div>
+                  <div className="bg-white/[0.04] p-2 rounded-lg border border-white/5 text-center">
+                    <span className="text-base block mb-0.5">🎯</span>
+                    <span className="text-[10px] font-bold text-zinc-200">Odak Müzikleri</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 text-center text-[11px] text-zinc-400 font-mono">
+                TV kumandanızın yön tuşları (D-Pad) ve OK tuşuyla kolay kullanım
+              </div>
+            </div>
+
+            {/* Smart TV Instructions */}
+            <div className="space-y-2.5 bg-white/[0.02] p-3 rounded-2xl border border-white/5 text-xs text-zinc-300">
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                <div>
+                  <strong className="text-white">Android TV &amp; Google TV (Tavsiye Edilen):</strong>
+                  <p className="text-zinc-400 mt-0.5">
+                    Televizyonunuzun Google Play Store'undan ücretsiz bir TV tarayıcısı (örn. <strong className="text-emerald-400">TV Bro</strong>, <strong className="text-emerald-400">JioPages</strong> veya <strong className="text-emerald-400">Chrome</strong>) açıp <strong>voxozet.com</strong> adresine girin. Tarayıcı menüsünden <strong>"Ana Ekrana Ekle / Uygulamayı Yükle"</strong> butonuna basın. VOX, TV ana menünüzdeki "Uygulamalarım" satırına kalıcı olarak eklenir!
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                <div>
+                  <strong className="text-white">Samsung (Tizen) &amp; LG (webOS) Smart TV:</strong>
+                  <p className="text-zinc-400 mt-0.5">
+                    TV'nin dahili "İnternet / Web Browser" uygulamasından <strong>voxozet.com</strong> adresine gidin. Kumandadan Yıldız/Menü simgesine basıp <strong>"Hızlı Erişim'e / Ana Menüye Ekle"</strong> deyin. Kumandanızla tek tıkla açın.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                <div>
+                  <strong className="text-white">Kumanda (D-Pad) ile Tam Ekran Deneyimi:</strong>
+                  <p className="text-zinc-400 mt-0.5">
+                    Kumandanızın <strong>Yukarı / Aşağı / Sağ / Sol</strong> yön tuşlarıyla kanallar ve haberler arasında gezinin, <strong>OK (Enter)</strong> tuşu ile Canlı TV'yi televizyonunuzda tam ekran reklamsız ve kesintisiz izleyin.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="flex-1 py-3 px-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 text-gray-300 font-bold text-xs transition-all cursor-pointer border border-white/5"
+              >
+                Kapat
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleDismiss();
+                  window.location.href = '/canli-tv';
+                }}
+                className="flex-1 py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-black font-black text-xs transition-all shadow-lg shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2 border border-emerald-300"
+              >
+                <Tv className="w-4 h-4" />
+                <span>Canlı TV'yi Aç</span>
               </button>
             </div>
           </div>

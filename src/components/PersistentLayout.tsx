@@ -748,16 +748,16 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
             </NavLink>
           </nav>
 
-          {/* COMPACT MOBILE APP INDICATOR */}
+          {/* COMPACT MOBILE & TV APP INDICATOR */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('vox_open_pwa_install'))}
             className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] active:scale-95 border border-white/5 text-[11px] text-gray-300 transition-all cursor-pointer text-left group"
-            title="Ana Ekrana Ekle"
+            title="Telefona, Bilgisayara veya TV'ye Kur"
           >
             <span className="flex items-center gap-1.5 font-medium group-hover:text-white">
-              <span>📱</span>
-              <span>Mobil Uygulama</span>
+              <span>📱 📺</span>
+              <span>Mobil &amp; TV Uygulaması</span>
             </span>
             <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full group-hover:bg-emerald-500/25">
               Yükle
@@ -1144,7 +1144,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
                     className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] active:scale-95 border border-white/5 text-[11px] text-gray-300 transition-all cursor-pointer text-left group"
                   >
                     <span className="flex items-center gap-1.5 font-medium group-hover:text-white">
-                      <span>📱 Mobil Uygulama</span>
+                      <span>📱 📺 Mobil &amp; TV Uygulaması</span>
                     </span>
                     <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
                       Yükle

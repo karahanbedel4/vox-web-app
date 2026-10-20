@@ -101,6 +101,14 @@ html.light .vox-logo-text, body.light .vox-logo-text, .light .vox-logo-text {
   -webkit-touch-callout: none;
 }
 
+/* Smart TV & Remote D-Pad Navigation Focus Styling */
+:focus-visible {
+  outline: 2px solid #10b981 !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.45) !important;
+  border-radius: inherit;
+}
+
 html, body {
   background-color: var(--color-surface);
   color: var(--color-on-surface);
