@@ -176,6 +176,18 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [calculatorAssetId, setCalculatorAssetId] = useState<string | undefined>(undefined);
 
+  const [isPwaBannerVisible, setIsPwaBannerVisible] = useState(false);
+
+  useEffect(() => {
+    const handlePwaBannerChange = (e: any) => {
+      setIsPwaBannerVisible(Boolean(e.detail));
+    };
+    window.addEventListener('vox_pwa_banner_change' as any, handlePwaBannerChange);
+    return () => {
+      window.removeEventListener('vox_pwa_banner_change' as any, handlePwaBannerChange);
+    };
+  }, []);
+
   useEffect(() => {
     const handleOpenCalc = (e: CustomEvent<any>) => {
       const assetId = e.detail?.assetId;
@@ -1957,7 +1969,7 @@ export const PersistentLayout: React.FC<PersistentLayoutProps> = ({
           setCalculatorAssetId(undefined);
           setIsCalculatorOpen(true);
         }}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-500 hover:to-blue-600 text-white p-3 md:px-4 md:py-2.5 rounded-full shadow-2xl flex items-center gap-2 text-xs font-bold transition-all transform hover:scale-105 active:scale-95 cursor-pointer border border-sky-400/30"
+        className={`fixed ${isPwaBannerVisible ? 'bottom-[142px]' : 'bottom-20'} right-4 md:bottom-6 md:right-6 z-40 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-500 hover:to-blue-600 text-white p-3 md:px-4 md:py-2.5 rounded-full shadow-2xl flex items-center gap-2 text-xs font-bold transition-all duration-300 transform hover:scale-105 active:scale-95 cursor-pointer border border-sky-400/30`}
         title="Döviz & Altın Çevirici"
         aria-label="Çevirici"
       >

@@ -194,6 +194,7 @@ export const FocusTab: React.FC<FocusTabProps> = ({
   const [editingTaskText, setEditingTaskText] = useState<string>('');
   const [isEditingGoal, setIsEditingGoal] = useState<boolean>(false);
   const [phoneActiveTab, setPhoneActiveTab] = useState<'timer' | 'player'>('timer');
+  const [customMusicTab, setCustomMusicTab] = useState<'spotify' | 'youtube'>('spotify');
   const [isMotivationVisible, setIsMotivationVisible] = useState<boolean>(false);
 
   // "Lights Out" / Zen Focus Minimalist Mode State
@@ -1628,6 +1629,91 @@ export const FocusTab: React.FC<FocusTabProps> = ({
               <span className="hidden sm:inline">Gelişmiş Mikser</span>
               <span className="sm:hidden">Mikser</span>
             </button>
+          </div>
+        </div>
+
+        {/* CUSTOM USER MUSIC PLAYLISTS SECTION (Spotify & YouTube Music) */}
+        <div className={`p-4 sm:p-5 rounded-2xl border transition-all shadow-md ${
+          theme === 'light'
+            ? 'bg-white border-slate-200'
+            : 'bg-[#101712] border-emerald-500/30'
+        }`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <Music className="w-4 h-4" />
+                </div>
+                <h3 className={`text-base sm:text-lg font-black tracking-tight ${
+                  theme === 'light' ? 'text-slate-900' : 'text-white'
+                }`}>
+                  Kullanıcı Özel Müzik Listeleri (Spotify & YouTube Music)
+                </h3>
+              </div>
+              <p className={`text-xs ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>
+                Sıkıcı doğa sesleri yerine doğrudan favori Spotify ve YouTube Music çalma listelerinizle reklamsız odaklanın.
+              </p>
+            </div>
+
+            {/* Tab Switcher */}
+            <div className={`flex items-center p-1 rounded-xl border shrink-0 ${
+              theme === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
+            }`}>
+              <button
+                onClick={() => setCustomMusicTab('spotify')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  customMusicTab === 'spotify'
+                    ? 'bg-[#1ed760] text-black shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <span>Spotify Playlist</span>
+              </button>
+              <button
+                onClick={() => setCustomMusicTab('youtube')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  customMusicTab === 'youtube'
+                    ? 'bg-red-600 text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <span>YouTube Music</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Embedded Player */}
+          <div className="rounded-xl overflow-hidden bg-black/40 border border-white/10 relative">
+            {customMusicTab === 'spotify' ? (
+              <div className="w-full">
+                <iframe
+                  style={{ borderRadius: '12px' }}
+                  src="https://open.spotify.com/embed/playlist/5BXQfi2cNZDrsxIj3EEP5Q?utm_source=generator&theme=0"
+                  width="100%"
+                  height="352"
+                  frameBorder="0"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  title="Spotify Odaklanma Çalma Listesi"
+                  className="w-full"
+                />
+              </div>
+            ) : (
+              <div className="w-full">
+                <iframe
+                  style={{ borderRadius: '12px' }}
+                  src="https://www.youtube-nocookie.com/embed/videoseries?list=PLWWtFInII-zudV41bstzGe3MnW_hQOEsZ&enablejsapi=1&playsinline=1"
+                  width="100%"
+                  height="352"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  loading="lazy"
+                  title="YouTube Music Odaklanma Çalma Listesi"
+                  className="w-full"
+                />
+              </div>
+            )}
           </div>
         </div>
 

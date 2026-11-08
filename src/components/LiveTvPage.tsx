@@ -808,7 +808,9 @@ export function LiveTvPage() {
                     <Tv className="w-5 h-5" />
                   )}
                 </div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5">
+                <h1 className={`text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5 ${
+                  theme === 'light' ? 'text-slate-900' : 'text-white'
+                }`}>
                   <span>
                     {selectedCategory === 'Spor' 
                       ? 'Canlı Spor TV' 
@@ -1283,7 +1285,9 @@ export function LiveTvPage() {
                 <Tv className="w-4 h-4" />
                 <span>TV Kanalları Listesi & Rehber</span>
               </div>
-              <h2 id="directory-section-heading" className="text-lg sm:text-xl font-black mt-1">
+              <h2 id="directory-section-heading" className={`text-lg sm:text-xl font-black mt-1 ${
+                theme === 'light' ? 'text-slate-900' : 'text-white'
+              }`}>
                 Türkiye & Azerbaycan Canlı TV Kanalları Listesi
               </h2>
               <p className={`text-xs sm:text-sm mt-1 leading-relaxed ${
@@ -1439,7 +1443,9 @@ export function LiveTvPage() {
                 <HelpCircle className="w-4 h-4" />
                 <span>Google & Gemini AI Uyumlu SSS</span>
               </div>
-              <h2 id="faq-section-heading" className="text-lg sm:text-xl font-black mt-1">
+              <h2 id="faq-section-heading" className={`text-lg sm:text-xl font-black mt-1 ${
+                theme === 'light' ? 'text-slate-900' : 'text-white'
+              }`}>
                 Canlı TV & Kanallar Hakkında Sıkça Sorulan Sorular
               </h2>
             </div>
@@ -1460,7 +1466,9 @@ export function LiveTvPage() {
                     className="w-full flex items-center justify-between text-left font-bold text-sm sm:text-base gap-4 cursor-pointer group"
                     aria-expanded={isOpen}
                   >
-                    <span className="group-hover:text-red-500 transition-colors">{faq.question}</span>
+                    <span className={`group-hover:text-red-500 transition-colors ${
+                      theme === 'light' ? 'text-slate-900' : 'text-white'
+                    }`}>{faq.question}</span>
                     <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-red-500' : 'text-zinc-400'}`} />
                   </button>
                   <AnimatePresence>
